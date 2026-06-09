@@ -1,4 +1,4 @@
-import { createElement, useRef, useState } from 'react'
+import { createElement, useRef, useState, useEffect } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -102,6 +102,40 @@ const metricPages = {
 }
 
 function SignIn({ onSignIn }) {
+  const [username, setUsername] = useState('admin@gmail.com')
+  const [password, setPassword] = useState('admin')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      const token = data?.token || data?.accessToken || data?.jwt
+      if (!token) throw new Error('No token in response')
+
+      localStorage.setItem('token', token)
+      onSignIn(token)
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="signin-page">
       <section className="signin-brand" aria-label="Expressway operation maintenance and management division">
@@ -115,21 +149,19 @@ function SignIn({ onSignIn }) {
         </h1>
       </section>
 
-      <form className="signin-card" onSubmit={(event) => {
-        event.preventDefault()
-        onSignIn()
-      }}>
+      <form className="signin-card" onSubmit={handleSubmit}>
         <h2>Sign in</h2>
         <p>Enter your credentials to continue.</p>
         <label>
           <span>Username</span>
-          <input defaultValue="admin@gmail.com" />
+          <input value={username} onChange={(e) => setUsername(e.target.value)} />
         </label>
         <label>
           <span>Password</span>
-          <input type="password" defaultValue="admin" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
-        <button type="submit">Sign in</button>
+        <button type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+        {error ? <p className="signin-error">{error}</p> : null}
         <div className="signin-links">
           <label className="remember">
             <input type="checkbox" defaultChecked />
@@ -770,8 +802,13 @@ function App() {
     showToast('Alarm acknowledged')
   }
 
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) setSignedIn(true)
+  }, [])
+
   if (!signedIn) {
-    return <SignIn onSignIn={() => setSignedIn(true)} />
+    return <SignIn onSignIn={(token) => { if (token) localStorage.setItem('token', token); setSignedIn(true) }} />
   }
 
   return (
@@ -784,6 +821,7 @@ function App() {
       onLogout={() => {
         setActivePage('Dashboard')
         setSignedIn(false)
+        localStorage.removeItem('token')
       }}
     >
       {toast ? <div className="toast">{toast}</div> : null}
