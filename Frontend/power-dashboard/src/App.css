@@ -1,17 +1,19 @@
 :root {
-  --ink: #0b1223;
-  --ink-2: #101a33;
-  --panel: #172341;
-  --panel-2: #202d50;
-  --line: #344364;
-  --muted: #aeb9d5;
+  --ink: #071020;
+  --ink-2: #0e1730;
+  --panel: #13203c;
+  --panel-2: #1b2946;
+  --line: #2f4064;
+  --muted: #b8c3de;
   --paper: #f5f7fb;
-  --paper-2: #dfe5f4;
+  --paper-2: #e6ebf7;
   --text: #f8fbff;
   --cyan: #66d7e6;
-  --green: #76d33f;
-  --red: #e23a3a;
-  --amber: #f28b2d;
+  --green: #75da5d;
+  --red: #ff6b72;
+  --amber: #f5b14b;
+  --shadow-lg: 0 24px 70px rgb(5 11 24 / 34%);
+  --shadow-md: 0 14px 30px rgb(5 11 24 / 22%);
 }
 
 #root {
@@ -35,7 +37,10 @@ button {
   align-items: center;
   gap: 72px;
   padding: 64px 10vw;
-  background: var(--ink);
+  background:
+    radial-gradient(circle at 18% 18%, rgb(102 215 230 / 16%), transparent 24%),
+    radial-gradient(circle at 82% 14%, rgb(117 218 93 / 12%), transparent 22%),
+    linear-gradient(160deg, #071020 0%, #101b35 55%, #08111f 100%);
   color: var(--text);
 }
 
@@ -56,6 +61,7 @@ button {
   font-size: 42px;
   line-height: 1;
   letter-spacing: 5px;
+  text-wrap: balance;
 }
 
 .signin-brand span {
@@ -64,11 +70,13 @@ button {
 
 .signin-card {
   min-height: 420px;
-  border-radius: 22px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 26px;
   padding: 46px 40px;
-  background: #e9eef8;
+  background: linear-gradient(180deg, rgb(233 238 248 / 98%), rgb(219 228 244 / 96%));
   color: #090f1f;
-  box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(18px);
 }
 
 .signin-card h2 {
@@ -92,21 +100,40 @@ button {
 .signin-card select {
   width: 100%;
   min-height: 52px;
-  border: 2px solid #111a30;
-  border-radius: 14px;
+  border: 1px solid rgb(17 26 48 / 20%);
+  border-radius: 16px;
   padding: 0 16px;
   background: #f8fbff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
 }
 
 .signin-card button {
   width: 100%;
   min-height: 44px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   margin-top: 10px;
-  background: var(--ink);
+  background: linear-gradient(135deg, #0e1730, #1f2e55);
   color: #fff;
   font-weight: 900;
+  box-shadow: 0 12px 28px rgb(12 20 39 / 28%);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.signin-card button:hover,
+.signin-card button:focus-visible,
+.nav-list button:hover,
+.nav-list button:focus-visible,
+.actions button:hover,
+.actions button:focus-visible,
+.schedule-table button:hover,
+.schedule-table button:focus-visible,
+.settings-actions button:hover,
+.settings-actions button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgb(12 20 39 / 22%);
+  filter: brightness(1.04);
+  outline: none;
 }
 
 .signin-links {
@@ -141,13 +168,20 @@ button {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 270px minmax(0, 1fr);
-  background: var(--panel-2);
+  background:
+    radial-gradient(circle at top right, rgb(102 215 230 / 8%), transparent 24%),
+    linear-gradient(180deg, #09111f 0%, #0c152b 30%, #101b34 100%);
   color: var(--text);
 }
 
 .sidebar {
-  background: var(--ink);
-  border-right: 1px solid #1c2843;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #07101e 0%, #0d172d 60%, #091120 100%);
+  border-right: 1px solid rgb(255 255 255 / 6%);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 4%);
 }
 
 .account-card {
@@ -178,20 +212,23 @@ button {
 .nav-list button {
   min-height: 58px;
   border: 0;
-  border-top: 1px solid #243250;
-  border-bottom: 1px solid #071022;
+  border-top: 1px solid rgb(255 255 255 / 5%);
+  border-bottom: 1px solid rgb(5 11 24 / 72%);
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 0 18px;
-  background: #15203e;
+  background: linear-gradient(90deg, rgb(255 255 255 / 2%), rgb(255 255 255 / 0%));
   color: var(--text);
   text-align: left;
   font-weight: 900;
+  transition: background-color .2s ease, transform .2s ease, border-color .2s ease;
 }
 
 .nav-list button.active {
-  background: #1f2d52;
+  background: linear-gradient(90deg, rgb(102 215 230 / 18%), rgb(31 45 82 / 92%));
+  border-color: rgb(102 215 230 / 24%);
+  box-shadow: inset 3px 0 0 var(--cyan);
 }
 
 .nav-list svg {
@@ -200,19 +237,23 @@ button {
 
 .workspace {
   min-width: 0;
-  padding: 0 22px 26px;
+  padding: 18px 22px 28px;
 }
 
 .page-header {
-  min-height: 106px;
-  margin: 0 -22px 18px;
+  min-height: 100px;
+  margin: 0 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   padding: 0 30px;
-  background: #fff;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgb(243 247 255 / 96%), rgb(226 233 246 / 92%));
   color: #060b17;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px);
 }
 
 .page-header h1 {
@@ -239,14 +280,28 @@ button {
 .status-card,
 .metric-panel,
 .section-card {
-  border: 1px solid #33425f;
-  border-radius: 4px;
-  background: var(--ink-2);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgb(19 32 60 / 98%), rgb(13 22 43 / 98%));
+  box-shadow: var(--shadow-md);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.status-card:hover,
+.metric-panel:hover,
+.section-card:hover,
+.ups-unit:hover,
+.load-card:hover,
+.phase-card:hover,
+.ups-add-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(102 215 230 / 20%);
+  box-shadow: 0 20px 40px rgb(5 11 24 / 28%);
 }
 
 .status-card {
   min-height: 112px;
-  padding: 18px;
+  padding: 20px 18px;
   text-align: center;
 }
 
@@ -264,24 +319,24 @@ button {
 .divider {
   height: 1px;
   margin: 13px 0;
-  background: #dfe7f8;
-  opacity: .55;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 36%), transparent);
 }
 
 .status-pill,
 .white-pill,
 .status-chip {
   width: fit-content;
-  border-radius: 7px;
+  border-radius: 999px;
   margin: 0 auto;
-  padding: 7px 24px;
-  background: #fff;
+  padding: 8px 18px;
+  background: rgb(255 255 255 / 96%);
   color: #071022;
   font-weight: 900;
+  box-shadow: 0 8px 18px rgb(5 11 24 / 10%);
 }
 
 .status-pill.danger {
-  background: #ffc6c8;
+  background: #ffd4d7;
 }
 
 .status-pill.ok,
@@ -313,11 +368,12 @@ button {
 
 .metric-strip {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
 }
 
 .metric-panel {
   min-height: 118px;
-  padding: 12px 14px;
+  padding: 16px 16px 14px;
 }
 
 .panel-heading,
@@ -330,7 +386,7 @@ button {
 .metric-value {
   margin: 0;
   color: #fff;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 900;
 }
 
@@ -343,14 +399,16 @@ button {
 }
 
 .section-card {
-  padding: 12px 14px 14px;
+  padding: 16px 16px 18px;
 }
 
 .system-overview {
-  border-radius: 4px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 18px;
   padding: 18px;
-  background: #eef3fb;
+  background: linear-gradient(180deg, #eef3fb 0%, #dfe8f7 100%);
   color: #17223d;
+  box-shadow: var(--shadow-md);
 }
 
 .system-overview h2 {
@@ -439,22 +497,25 @@ button {
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  border-bottom: 1px solid #b8c4df;
+  border-bottom: 1px solid rgb(184 196 223 / 36%);
   padding-bottom: 8px;
 }
 
 .tabs button {
-  border: 0;
-  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgb(255 255 255 / 3%);
   color: #e7edf8;
   font-size: 12px;
   font-weight: 800;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
 }
 
 .tabs .selected {
-  color: var(--cyan);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  color: #071020;
+  background: linear-gradient(135deg, #7ee7f0, #9de45f);
+  border-color: rgb(255 255 255 / 18%);
 }
 
 .tabs .right-tab {
@@ -472,11 +533,12 @@ button {
   grid-template-columns: 24px minmax(90px, .7fr) minmax(160px, 1.6fr) 82px auto;
   align-items: center;
   gap: 10px;
-  border-radius: 5px;
-  padding: 6px 10px;
-  background: #eef2f8;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #eef2f8, #e5ebf6);
   color: #080e1c;
   font-size: 13px;
+  box-shadow: 0 10px 20px rgb(7 16 32 / 8%);
 }
 
 .alarm-row strong {
@@ -499,14 +561,15 @@ button {
 .alarm-row button,
 .actions button,
 .schedule-table button {
-  border: 1px solid #e5ecf7;
-  border-radius: 7px;
-  min-height: 26px;
-  padding: 0 12px;
-  background: var(--ink);
+  border: 1px solid rgb(229 236 247 / 84%);
+  border-radius: 999px;
+  min-height: 30px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #0e1730, #20355e);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
+  transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
 }
 
 .alarm-row.acknowledged {
@@ -624,9 +687,10 @@ dd {
 .mini-chart,
 .chart-placeholder {
   min-height: 96px;
-  border-radius: 4px;
-  border: 1px solid #d7def0;
-  background: linear-gradient(160deg, #f8fbff, #e2e9f8);
+  border-radius: 18px;
+  border: 1px solid rgb(215 222 240 / 88%);
+  background: linear-gradient(160deg, #f8fbff, #e7edf9);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
 }
 
 .mini-chart.warm {
@@ -672,7 +736,7 @@ dd {
 }
 
 .chart-placeholder.engine {
-  background: linear-gradient(180deg, #fff4f0, #ffd1c4);
+  background: linear-gradient(180deg, #fff6f1, #ffd8cb);
 }
 
 .chart-placeholder.engine .line-a {
@@ -716,7 +780,8 @@ dd {
   min-height: 240px;
   position: relative;
   overflow: hidden;
-  background: #eef3fb;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #eef3fb, #dfe8f7);
   color: #10192c;
   padding: 20px;
 }
@@ -824,9 +889,10 @@ dd {
 .ups-unit,
 .ups-add-card {
   min-height: 190px;
-  border: 1px solid #33425f;
-  border-radius: 4px;
-  background: var(--ink-2);
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgb(19 32 60 / 98%), rgb(13 22 43 / 98%));
+  box-shadow: var(--shadow-md);
 }
 
 .ups-unit {
@@ -904,7 +970,7 @@ dd {
   display: grid;
   place-items: center;
   color: #edf3ff;
-  background: #26375f;
+  background: linear-gradient(160deg, #233458, #15213d);
 }
 
 .ups-add-card svg {
@@ -957,10 +1023,11 @@ dd {
 
 .phase-card,
 .load-card {
-  border-radius: 5px;
-  padding: 12px;
-  border: 1px solid #3a4b70;
-  background: #263557;
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgb(58 75 112 / 88%);
+  background: linear-gradient(180deg, #27355a, #1a2745);
+  box-shadow: 0 10px 24px rgb(7 16 32 / 18%);
 }
 
 .phase-card h3,
@@ -969,9 +1036,120 @@ dd {
 }
 
 .phase-card h3 {
-  border-bottom: 1px solid #4a5a7d;
+  border-bottom: 1px solid rgb(74 90 125 / 80%);
   padding-bottom: 9px;
   color: #dfe8fb;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-actions button {
+  min-width: 132px;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: linear-gradient(135deg, #7ee7f0, #9de45f);
+  color: #071022;
+}
+
+.settings-actions .ghost {
+  background: transparent;
+  color: #f8fbff;
+  border-color: rgb(255 255 255 / 20%);
+}
+
+.toast {
+  position: fixed;
+  right: 26px;
+  bottom: 22px;
+  z-index: 50;
+  min-width: 240px;
+  border: 1px solid rgb(126 228 95 / 30%);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: rgb(7 16 32 / 90%);
+  color: #f5fbff;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+@media (max-width: 1180px) {
+  .signin-page {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+    position: static;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .dashboard-grid,
+  .main-side,
+  .two-even,
+  .metric-strip,
+  .status-strip,
+  .ups-fleet,
+  .phase-grid,
+  .load-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    padding-inline: 14px;
+  }
+
+  .page-header {
+    padding-inline: 18px;
+    border-radius: 18px;
+  }
+
+  .status-strip,
+  .metric-strip,
+  .dashboard-grid,
+  .two-column,
+  .two-even,
+  .main-side,
+  .ups-fleet,
+  .phase-grid,
+  .load-grid,
+  .nav-list {
+    grid-template-columns: 1fr;
+  }
+
+  .signin-card,
+  .section-card,
+  .metric-panel,
+  .status-card,
+  .ups-unit,
+  .phase-card,
+  .load-card {
+    border-radius: 16px;
+  }
+
+  .alarm-row {
+    grid-template-columns: 24px 1fr;
+    align-items: start;
+  }
+
+  .alarm-row time,
+  .alarm-row button {
+    grid-column: 2;
+  }
 }
 
 .phase-card .bad {
