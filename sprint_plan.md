@@ -1,5 +1,5 @@
 # Integrated Fault Monitoring & Management System
-## Sprint Coordination Document — Power Module
+## Sprint Coordination Document — Power Module 
 
 **Team:** Dhanuja · Nethmini · Achani · Onel  
 **Sprints:** 5 × 2 weeks = 10 weeks  
