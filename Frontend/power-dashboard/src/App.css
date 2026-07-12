@@ -527,12 +527,34 @@ button {
   gap: 8px;
 }
 
+.alarm-list-shell.scrollable {
+  max-height: 310px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.alarm-list-shell.scrollable::-webkit-scrollbar {
+  width: 10px;
+}
+
+.alarm-list-shell.scrollable::-webkit-scrollbar-track {
+  background: rgb(16 27 52 / 10%);
+  border-radius: 999px;
+}
+
+.alarm-list-shell.scrollable::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgb(102 215 230 / 82%), rgb(35 55 96 / 92%));
+  border: 2px solid rgb(245 247 251 / 92%);
+}
+
 .alarm-row {
   min-height: 38px;
   display: grid;
-  grid-template-columns: 24px minmax(90px, .7fr) minmax(160px, 1.6fr) 82px auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   border-radius: 14px;
   padding: 10px 12px;
   background: linear-gradient(180deg, #eef2f8, #e5ebf6);
@@ -541,13 +563,71 @@ button {
   box-shadow: 0 10px 20px rgb(7 16 32 / 8%);
 }
 
+.alarm-row.compact {
+  cursor: pointer;
+}
+
+.alarm-row.compact:hover,
+.alarm-row.compact:focus-visible {
+  background: linear-gradient(180deg, #f7fbff, #e2e9f6);
+  box-shadow: 0 14px 24px rgb(7 16 32 / 12%);
+  outline: none;
+}
+
 .alarm-row strong {
   color: #d5212c;
+}
+
+.alarm-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.alarm-main span {
+  display: grid;
+  gap: 2px;
+  color: #24324a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alarm-main b {
+  color: #0d1630;
+  font-size: 12px;
+}
+
+.alarm-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
 }
 
 .alarm-row time {
   font-weight: 900;
   white-space: nowrap;
+}
+
+.alarm-severity {
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #d7e2f3;
+  color: #1a2740;
+}
+
+.alarm-severity.critical {
+  background: #ffd8db;
+  color: #b61b26;
+}
+
+.alarm-severity.warning {
+  background: #f7e3bc;
+  color: #9b6410;
 }
 
 .alarm-row small {
@@ -1142,13 +1222,14 @@ dd {
   }
 
   .alarm-row {
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 24px minmax(0, 1fr);
     align-items: start;
   }
 
-  .alarm-row time,
+  .alarm-meta,
   .alarm-row button {
     grid-column: 2;
+    justify-self: start;
   }
 }
 
@@ -1472,10 +1553,10 @@ dd {
   }
 
   .alarm-row {
-    grid-template-columns: 24px 1fr;
+    grid-template-columns: 24px minmax(0, 1fr);
   }
 
-  .alarm-row time,
+  .alarm-meta,
   .alarm-row button {
     grid-column: 2;
     justify-self: start;

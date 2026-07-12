@@ -67,23 +67,168 @@ const statusCards = [
 ]
 
 const dashboardAlarms = [
-  { id: 'dash-ups-battery', source: 'UPS', title: 'Battery Low', time: '10:15 am', tone: 'warning', status: 'active' },
-  { id: 'dash-generator-start', source: 'Generator', title: 'Fail to Start', time: '09:20 am', tone: 'danger', status: 'active' },
-  { id: 'dash-mdp-phase', source: 'MDP', title: 'Phase Loss Warning', time: '08:50 am', tone: 'warning', status: 'active' },
+  {
+    id: 'dash-ups-battery',
+    source: 'UPS',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_BATTERY_LOW',
+    alarmMessage: 'UPS battery charge has dropped below the warning threshold.',
+    title: 'Battery Low',
+    time: '10:15 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'active',
+    targetPage: '/ups',
+  },
+  {
+    id: 'dash-generator-start',
+    source: 'Generator',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_FAULT',
+    alarmMessage: 'Generator failed to start and is reporting a fault condition.',
+    title: 'Fail to Start',
+    time: '09:20 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'active',
+    targetPage: '/generator',
+  },
+  {
+    id: 'dash-mdp-phase',
+    source: 'MDP',
+    subsystemType: 'MDP',
+    subsystemId: 'MDP-01',
+    alarmCode: 'MDP_PHASE_IMBALANCE',
+    alarmMessage: 'Phase difference across the main distribution panel is above the safe limit.',
+    title: 'Phase Loss Warning',
+    time: '08:50 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'active',
+    targetPage: '/mdp',
+  },
 ]
 
 const generatorAlarms = [
-  { id: 'gen-coolant', title: 'High Coolant Temperature', detail: 'Radiator fan failed to start', time: '10:15 am', tone: 'danger', status: 'active' },
-  { id: 'gen-fuel', title: 'Low Fuel Warning', detail: 'Utility not available', time: '09:20 am', tone: 'warning', status: 'active' },
-  { id: 'gen-battery', title: 'Battery Low Voltage', detail: 'Battery below normal charging range', time: '08:50 am', tone: 'danger', status: 'acknowledged', acknowledgedAt: '08:58 am' },
+  {
+    id: 'gen-coolant',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_HIGH_TEMP',
+    alarmMessage: 'Radiator fan failed to start and generator temperature is above the limit.',
+    title: 'High Coolant Temperature',
+    detail: 'Radiator fan failed to start',
+    time: '10:15 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'active',
+    targetPage: '/generator',
+  },
+  {
+    id: 'gen-fuel',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_LOW_FUEL',
+    alarmMessage: 'Generator fuel level is below the warning threshold.',
+    title: 'Low Fuel Warning',
+    detail: 'Utility not available',
+    time: '09:20 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'active',
+    targetPage: '/generator',
+  },
+  {
+    id: 'gen-battery',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_INTRUDER',
+    alarmMessage: 'Generator room battery support circuit is below the nominal range.',
+    title: 'Battery Low Voltage',
+    detail: 'Battery below normal charging range',
+    time: '08:50 am',
+    tone: 'danger',
+    severity: 'WARNING',
+    status: 'acknowledged',
+    acknowledgedAt: '08:58 am',
+    targetPage: '/generator',
+  },
 ]
 
 const upsAlarms = [
-  { id: 'ups-critical-low', area: 'UPS 01 - Server Room', title: 'Battery Critically Low', time: '09:25 am', tone: 'danger', status: 'active' },
-  { id: 'ups-output', area: 'UPS 01 - Server Room', title: 'UPS Output Failure', time: '07:32 am', tone: 'danger', status: 'active' },
-  { id: 'ups-low', area: 'UPS 02 - Server Room', title: 'Battery Low', time: '08:45 am', tone: 'warning', status: 'active' },
-  { id: 'ups-internal', area: 'UPS 04 - Toll Plaza', title: 'UPS Internal Failure', time: '09:15 am', tone: 'danger', status: 'acknowledged', acknowledgedAt: '09:24 am' },
-  { id: 'ups-overload', area: 'UPS 04 - Toll Plaza', title: 'Overload Warning', time: '08:21 am', tone: 'warning', status: 'active' },
+  {
+    id: 'ups-critical-low',
+    area: 'UPS 01 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_BATTERY_CRITICAL',
+    alarmMessage: 'UPS 01 battery charge is critically low and requires immediate action.',
+    title: 'Battery Critically Low',
+    time: '09:25 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'active',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-output',
+    area: 'UPS 01 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_FAULT',
+    alarmMessage: 'UPS output circuit has failed and output power is not stable.',
+    title: 'UPS Output Failure',
+    time: '07:32 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'active',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-low',
+    area: 'UPS 02 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-02',
+    alarmCode: 'UPS_BATTERY_LOW',
+    alarmMessage: 'UPS 02 battery is below the warning threshold.',
+    title: 'Battery Low',
+    time: '08:45 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'active',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-internal',
+    area: 'UPS 04 - Toll Plaza',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-04',
+    alarmCode: 'UPS_FAULT',
+    alarmMessage: 'UPS internal fault has been acknowledged by the operator.',
+    title: 'UPS Internal Failure',
+    time: '09:15 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'acknowledged',
+    acknowledgedAt: '09:24 am',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-overload',
+    area: 'UPS 04 - Toll Plaza',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-04',
+    alarmCode: 'UPS_HIGH_LOAD',
+    alarmMessage: 'UPS load is above the safe operating limit.',
+    title: 'Overload Warning',
+    time: '08:21 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'active',
+    targetPage: '/ups',
+  },
 ]
 
 const initialAlarmState = {
@@ -92,8 +237,66 @@ const initialAlarmState = {
   ats: generatorAlarms.slice(1).map((alarm) => ({ ...alarm, id: `ats-${alarm.id}` })),
   ups: upsAlarms,
   mdp: [
-    { id: 'mdp-phase-r', title: 'Phase R Tripped', detail: 'Phase R breaker has automatically tripped due to overload condition.', time: '10:15 am', tone: 'danger', status: 'active' },
-    { id: 'mdp-imbalance', title: 'Imbalanced Phase', detail: 'High/low voltage difference detected across three phases.', time: '08:50 am', tone: 'warning', status: 'acknowledged', acknowledgedAt: '09:05 am' },
+    {
+      id: 'mdp-phase-r',
+      subsystemType: 'MDP',
+      subsystemId: 'MDP-01',
+      alarmCode: 'MDP_PHASE_VOLTAGE',
+      alarmMessage: 'Phase R breaker has automatically tripped due to an overload condition.',
+      title: 'Phase R Tripped',
+      detail: 'Phase R breaker has automatically tripped due to overload condition.',
+      time: '10:15 am',
+      tone: 'danger',
+      severity: 'WARNING',
+      status: 'active',
+      targetPage: '/mdp',
+    },
+    {
+      id: 'mdp-imbalance',
+      subsystemType: 'MDP',
+      subsystemId: 'MDP-01',
+      alarmCode: 'MDP_PHASE_IMBALANCE',
+      alarmMessage: 'High and low voltage difference detected across the three phases.',
+      title: 'Imbalanced Phase',
+      detail: 'High/low voltage difference detected across three phases.',
+      time: '08:50 am',
+      tone: 'warning',
+      severity: 'WARNING',
+      status: 'acknowledged',
+      acknowledgedAt: '09:05 am',
+      targetPage: '/mdp',
+    },
+  ],
+  sdp: [
+    {
+      id: 'sdp-lighting',
+      subsystemType: 'SDP',
+      subsystemId: 'SDP-01',
+      alarmCode: 'SDP_PHASE_VOLTAGE',
+      alarmMessage: 'Voltage on the downstream lighting section is outside the safe range.',
+      title: 'Downstream Voltage Warning',
+      detail: 'Voltage on downstream circuit is outside the safe range.',
+      time: '10:05 am',
+      tone: 'warning',
+      severity: 'WARNING',
+      status: 'active',
+      targetPage: '/sdp',
+    },
+    {
+      id: 'sdp-intruder',
+      subsystemType: 'SDP',
+      subsystemId: 'SDP-02',
+      alarmCode: 'SDP_INTRUDER',
+      alarmMessage: 'Intruder alarm was detected in SDP-02 cabinet room.',
+      title: 'Intruder Alarm',
+      detail: 'Intruder alarm was detected in the cabinet room.',
+      time: '09:35 am',
+      tone: 'danger',
+      severity: 'WARNING',
+      status: 'acknowledged',
+      acknowledgedAt: '09:42 am',
+      targetPage: '/sdp',
+    },
   ],
 }
 
@@ -213,7 +416,7 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
   )
 }
 
-function AppShell({ activePage, setActivePage, onLogout, alarms, onAcknowledge, onAction, children }) {
+function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onAction, children }) {
   return (
     <div className="app-shell">
       <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={onLogout} />
@@ -221,12 +424,12 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, onAcknowledge, 
         <header className="page-header">
           <h1>{activePage}</h1>
         </header>
-        {activePage === 'Dashboard' ? <DashboardPage alarms={alarms.dashboard} onAcknowledge={(id) => onAcknowledge('dashboard', id)} onAction={onAction} /> : null}
+        {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} onAcknowledge={(id) => onAcknowledge('dashboard', id)} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
         {activePage === 'Generator' ? <GeneratorPage alarms={alarms.generator} onAcknowledge={(id) => onAcknowledge('generator', id)} onAction={onAction} /> : null}
         {activePage === 'ATS Status' ? <AtsPage alarms={alarms.ats} onAcknowledge={(id) => onAcknowledge('ats', id)} onAction={onAction} /> : null}
         {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={(id) => onAcknowledge('ups', id)} onAction={onAction} /> : null}
         {activePage === 'MDP Status' ? <MdpPage alarms={alarms.mdp} onAcknowledge={(id) => onAcknowledge('mdp', id)} onAction={onAction} /> : null}
-        {activePage === 'SDP Status' ? <SdpPage onAction={onAction} /> : null}
+        {activePage === 'SDP Status' ? <SdpPage alarms={alarms.sdp} onAcknowledge={(id) => onAcknowledge('sdp', id)} onAction={onAction} /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
@@ -298,7 +501,24 @@ function getVisibleAlarms(alarms, tab, filter) {
   })
 }
 
-function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onAction, filters = false }) {
+function getDashboardSummaryAlarms(alarmState) {
+  return Object.entries(alarmState)
+    .filter(([group]) => group !== 'dashboard')
+    .flatMap(([, groupAlarms]) => groupAlarms)
+    .filter((alarm) => alarm.status === 'active')
+}
+
+function getAlarmRoute(alarm) {
+  return alarm.targetPage || ({
+    GENERATOR: '/generator',
+    ATS: '/ats',
+    UPS: '/ups',
+    MDP: '/mdp',
+    SDP: '/sdp',
+  }[alarm.subsystemType || alarm.source] ?? '/dashboard')
+}
+
+function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigateAlarm, onAction, filters = false, compact = false }) {
   const [tab, setTab] = useState('Active')
   const [filter, setFilter] = useState('All')
   const visibleAlarms = getVisibleAlarms(alarms, tab, filter)
@@ -312,13 +532,15 @@ function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onAction, 
         filter={filter}
         onFilterChange={setFilter}
       />
-      <AlarmTable alarms={visibleAlarms} onAcknowledge={onAcknowledge} />
+      <div className={`alarm-list-shell ${compact ? 'scrollable' : ''}`}>
+        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} />
+      </div>
       <Actions onAction={onAction} />
     </SectionCard>
   )
 }
 
-function AlarmTable({ alarms = dashboardAlarms, compact = false, onAcknowledge }) {
+function AlarmTable({ alarms = dashboardAlarms, compact = false, onAcknowledge, onNavigateAlarm }) {
   if (!alarms.length) {
     return <p className="empty-state">No alarms in this view.</p>
   }
@@ -326,24 +548,52 @@ function AlarmTable({ alarms = dashboardAlarms, compact = false, onAcknowledge }
   return (
     <div className="alarm-table">
       {alarms.map((alarm) => (
-        <div className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`} key={alarm.id ?? `${alarm.title}-${alarm.time}`}>
+        <article
+          className={`alarm-row ${compact ? 'compact' : 'full'} ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
+          key={alarm.id ?? `${alarm.title}-${alarm.time}`}
+          role={compact ? 'button' : undefined}
+          tabIndex={compact ? 0 : undefined}
+          onClick={compact ? () => onNavigateAlarm?.(alarm, getAlarmRoute(alarm)) : undefined}
+          onKeyDown={compact ? (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onNavigateAlarm?.(alarm, getAlarmRoute(alarm))
+            }
+          } : undefined}
+        >
           <span className={`severity ${alarm.tone}`}>
             <AlertTriangle size={compact ? 15 : 18} />
           </span>
-          <strong>{alarm.source ?? alarm.title}</strong>
-          <span>
-            {alarm.source ? alarm.title : alarm.detail ?? alarm.area}
-            {alarm.status === 'acknowledged' ? <small>Acknowledged by Admin at {alarm.acknowledgedAt}</small> : null}
-          </span>
-          <time>{alarm.time}</time>
+          <div className="alarm-main">
+            <strong>{alarm.source ?? alarm.area ?? alarm.subsystemId ?? alarm.title}</strong>
+            <span>
+              {compact ? (
+                alarm.alarmMessage ?? alarm.detail ?? alarm.title
+              ) : (
+                <>
+                  <b>{alarm.alarmCode ?? alarm.title}</b>
+                  <small>{alarm.alarmMessage ?? alarm.detail ?? alarm.title}</small>
+                  {alarm.subsystemId ? <small>Subsystem: {alarm.subsystemId}</small> : null}
+                  {alarm.status === 'acknowledged' ? <small>Acknowledged by Admin at {alarm.acknowledgedAt}</small> : null}
+                </>
+              )}
+            </span>
+          </div>
+          <div className="alarm-meta">
+            <time>{alarm.time}</time>
+            {alarm.severity ? <p className={`alarm-severity ${alarm.severity.toLowerCase()}`}>{alarm.severity}</p> : null}
+          </div>
           <button
             type="button"
             disabled={alarm.status === 'acknowledged'}
-            onClick={() => onAcknowledge?.(alarm.id)}
+            onClick={(event) => {
+              event.stopPropagation()
+              onAcknowledge?.(alarm.id)
+            }}
           >
-            {alarm.status === 'acknowledged' ? `Ack ${alarm.acknowledgedAt ?? ''}` : 'Acknowledge'}
+            {alarm.status === 'acknowledged' ? `Ack ${alarm.acknowledgedAt ?? ''}` : compact ? 'Open' : 'Acknowledge'}
           </button>
-        </div>
+        </article>
       ))}
     </div>
   )
@@ -362,7 +612,7 @@ function SectionCard({ title, icon: Icon, children, className = '' }) {
   )
 }
 
-function DashboardPage({ alarms, onAcknowledge, onAction }) {
+function DashboardPage({ alarms, onAcknowledge, onNavigateAlarm, onAction }) {
   return (
     <div className="dashboard-layout">
       <section className="status-strip" aria-label="Equipment status">
@@ -378,7 +628,7 @@ function DashboardPage({ alarms, onAcknowledge, onAction }) {
       <div className="dashboard-grid">
         <SystemOverview />
         <div className="dashboard-stack">
-          <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
+          <AlarmPanel title="Alarm Summary" alarms={alarms} compact onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onAction={onAction} />
           <div className="two-column">
             <UpsSummary />
             <FaultDiagnosis title="UPS Battery is low." />
@@ -563,7 +813,7 @@ function UpsPage({ alarms, onAcknowledge, onAction }) {
           {visibleAlarms.length ? visibleAlarms.map((alarm) => (
             <article key={`${alarm.area}-${alarm.title}`} className="grouped-alarm">
               <p>{alarm.area}</p>
-              <AlarmTable alarms={[alarm]} compact onAcknowledge={onAcknowledge} />
+              <AlarmTable alarms={[alarm]} onAcknowledge={onAcknowledge} />
             </article>
           )) : <p className="empty-state">No UPS alarms in this view.</p>}
         </div>
@@ -640,7 +890,7 @@ function MdpPage({ alarms, onAcknowledge, onAction }) {
   )
 }
 
-function SdpPage({ onAction }) {
+function SdpPage({ alarms, onAcknowledge, onAction }) {
   const loads = [
     { name: 'Highway Lighting Section A', status: 'ON', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'ok' },
     { name: 'CCTV Cluster Section A', status: 'ON', active: '12/12', power: '0.8kW', voltage: '230 V', tone: 'ok' },
@@ -674,6 +924,7 @@ function SdpPage({ onAction }) {
             <div><span>CCTV Power Supply Audit</span><span>15 Nov 2026</span><em>Upcoming</em><button type="button" onClick={() => onAction?.('CCTV task opened')}>View Task</button></div>
           </div>
         </SectionCard>
+        <AlarmPanel title="Active Alarms" alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
         <SectionCard title="Environmental Monitoring">
           <p className="large-status">Cabinet Temp <strong>20C</strong></p>
           <p className="large-status">Cabinet Door <strong>Closed</strong></p>
@@ -816,6 +1067,15 @@ function DashboardWorkspace() {
     showToast('Alarm acknowledged')
   }
 
+  function openAlarm(alarm, path) {
+    if (path) {
+      navigate(path)
+      showToast(`${alarm.source ?? alarm.title} alarm opened`)
+    }
+  }
+
+  const dashboardSummaryAlarms = getDashboardSummaryAlarms(alarms)
+
   return (
     <AppShell
       activePage={activePage}
@@ -823,7 +1083,9 @@ function DashboardWorkspace() {
         navigate(item.path)
       }}
       alarms={alarms}
+      dashboardSummaryAlarms={dashboardSummaryAlarms}
       onAcknowledge={acknowledgeAlarm}
+      onAlarmNavigate={openAlarm}
       onAction={showToast}
       onLogout={() => {
         logout()
