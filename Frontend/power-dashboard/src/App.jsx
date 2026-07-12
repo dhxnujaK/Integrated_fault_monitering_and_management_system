@@ -1,4 +1,6 @@
 import { createElement, useRef, useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import {
   AlertTriangle,
   Bell,
@@ -19,6 +21,9 @@ import {
   Zap,
   Plus,
 } from 'lucide-react'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import ProtectedRoute from './routes/ProtectedRoute'
+import MainLayout from './layouts/MainLayout'
 import './App.css'
 
 const chartSeries = {
@@ -33,15 +38,25 @@ const chartSeries = {
 }
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard },
-  { label: 'Generator', icon: Gauge },
-  { label: 'ATS Status', icon: PlugZap },
-  { label: 'UPS Status', icon: Power },
-  { label: 'MDP Status', icon: PanelTop },
-  { label: 'SDP Status', icon: ServerCog },
-  { label: 'Settings', icon: Settings },
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Generator', path: '/generator', icon: Gauge },
+  { label: 'ATS Status', path: '/ats', icon: PlugZap },
+  { label: 'UPS Status', path: '/ups', icon: Power },
+  { label: 'MDP Status', path: '/mdp', icon: PanelTop },
+  { label: 'SDP Status', path: '/sdp', icon: ServerCog },
+  { label: 'Settings', path: '/settings', icon: Settings },
   { label: 'Log out', icon: LogOut },
 ]
+
+const pathToPage = {
+  '/dashboard': 'Dashboard',
+  '/generator': 'Generator',
+  '/ats': 'ATS Status',
+  '/ups': 'UPS Status',
+  '/mdp': 'MDP Status',
+  '/sdp': 'SDP Status',
+  '/settings': 'Settings',
+}
 
 const statusCards = [
   { title: 'Generator', value: 'Fault', tone: 'danger' },
@@ -101,7 +116,30 @@ const metricPages = {
   },
 }
 
-function SignIn({ onSignIn }) {
+function SignIn() {
+  const { login, isAuthenticated } = useAuth()
+  const [username, setUsername] = useState('admin')
+  const [password, setPassword] = useState('admin123')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await login(username, password)
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="signin-page">
       <section className="signin-brand" aria-label="Expressway operation maintenance and management division">
@@ -115,21 +153,24 @@ function SignIn({ onSignIn }) {
         </h1>
       </section>
 
-      <form className="signin-card" onSubmit={(event) => {
-        event.preventDefault()
-        onSignIn()
-      }}>
+      <form className="signin-card" onSubmit={handleSubmit}>
         <h2>Sign in</h2>
         <p>Enter your credentials to continue.</p>
         <label>
           <span>Username</span>
-          <input defaultValue="admin@gmail.com" />
+          <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
         </label>
         <label>
           <span>Password</span>
-          <input type="password" defaultValue="admin" />
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+          />
         </label>
-        <button type="submit">Sign in</button>
+        <button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
+        {error ? <p className="signin-error">{error}</p> : null}
         <div className="signin-links">
           <label className="remember">
             <input type="checkbox" defaultChecked />
@@ -143,13 +184,15 @@ function SignIn({ onSignIn }) {
 }
 
 function Sidebar({ activePage, onNavigate, onLogout }) {
+  const { user } = useAuth()
+
   return (
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="account-card">
         <CircleUserRound size={42} strokeWidth={2.6} />
         <div>
-          <p>Admin</p>
-          <span>admin@gmail.com</span>
+          <p>{user?.username || 'Admin'}</p>
+          <span>{user?.role || 'Authenticated'}</span>
         </div>
       </div>
 
@@ -159,7 +202,7 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
             key={item.label}
             type="button"
             className={activePage === item.label ? 'active' : ''}
-            onClick={() => (item.label === 'Log out' ? onLogout() : onNavigate(item.label))}
+            onClick={() => (item.label === 'Log out' ? onLogout() : onNavigate(item))}
           >
             {createElement(item.icon, { size: 22 })}
             <span>{item.label}</span>
@@ -745,12 +788,15 @@ function Actions({ secondary = 'Create Maintenance ticket', onAction }) {
   )
 }
 
-function App() {
-  const [signedIn, setSignedIn] = useState(false)
-  const [activePage, setActivePage] = useState('Dashboard')
+function DashboardWorkspace() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { logout } = useAuth()
   const [alarms, setAlarms] = useState(initialAlarmState)
   const [toast, setToast] = useState('')
   const toastTimer = useRef()
+
+  const activePage = pathToPage[location.pathname] || 'Dashboard'
 
   function showToast(message) {
     setToast(message)
@@ -770,24 +816,47 @@ function App() {
     showToast('Alarm acknowledged')
   }
 
-  if (!signedIn) {
-    return <SignIn onSignIn={() => setSignedIn(true)} />
-  }
-
   return (
     <AppShell
       activePage={activePage}
-      setActivePage={setActivePage}
+      setActivePage={(item) => {
+        navigate(item.path)
+      }}
       alarms={alarms}
       onAcknowledge={acknowledgeAlarm}
       onAction={showToast}
       onLogout={() => {
-        setActivePage('Dashboard')
-        setSignedIn(false)
+        logout()
       }}
     >
       {toast ? <div className="toast">{toast}</div> : null}
     </AppShell>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+        <Routes>
+          <Route path="/login" element={<SignIn />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardWorkspace />} />
+              <Route path="/generator" element={<DashboardWorkspace />} />
+              <Route path="/ats" element={<DashboardWorkspace />} />
+              <Route path="/ups" element={<DashboardWorkspace />} />
+              <Route path="/mdp" element={<DashboardWorkspace />} />
+              <Route path="/sdp" element={<DashboardWorkspace />} />
+              <Route path="/settings" element={<DashboardWorkspace />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 
