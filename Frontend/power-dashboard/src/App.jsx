@@ -1,4 +1,4 @@
-import { createElement, useRef, useState } from 'react'
+import { createElement, useRef, useState, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import {
@@ -25,6 +25,11 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import './App.css'
+import api from './api/axios'
+import GeneratorPage from './pages/GeneratorPage'
+import ATSPage from './pages/ATSPage'
+import MDPPage from './pages/MDPPage'
+import SDPPage from './pages/SDPPage'
 
 const chartSeries = {
   power: {
@@ -185,6 +190,81 @@ function SignIn() {
 
 function Sidebar({ activePage, onNavigate, onLogout }) {
   const { user } = useAuth()
+  const [statuses, setStatuses] = useState({
+    Generator: 'NORMAL',
+    'ATS Status': 'NORMAL',
+    'MDP Status': 'NORMAL',
+    'SDP Status': 'NORMAL',
+    'UPS Status': 'NORMAL'
+  })
+
+  useEffect(() => {
+    let active = true
+
+    async function fetchAllStatuses() {
+      try {
+        // 1. Generator Status
+        const genRes = await api.get('/api/generator/status').catch(() => null)
+        const genStatus = genRes?.data?.overallStatus || 'NORMAL'
+
+        // 2. ATS Status
+        const atsRes = await api.get('/api/ats/status').catch(() => null)
+        const atsStatus = atsRes?.data?.overallStatus || 'NORMAL'
+
+        // 3. MDP Status
+        const mdpRes = await api.get('/api/mdp/status').catch(() => null)
+        const mdpStatus = mdpRes?.data?.overallStatus || 'NORMAL'
+
+        // 4. SDP Status (we check both SDP-01 and SDP-02)
+        let sdpStatus = 'NORMAL'
+        try {
+          const sdpList = ['SDP-01', 'SDP-02']
+          const sdpStatuses = await Promise.all(
+            sdpList.map(id => api.get(`/api/sdp/${id}/status`).then(r => r.data.overallStatus).catch(() => 'NORMAL'))
+          )
+          if (sdpStatuses.includes('CRITICAL')) sdpStatus = 'CRITICAL'
+          else if (sdpStatuses.includes('WARNING')) sdpStatus = 'WARNING'
+        } catch {}
+
+        // 5. UPS Status (we check both UPS-01 and UPS-02)
+        let upsStatus = 'NORMAL'
+        try {
+          const upsList = ['UPS-01', 'UPS-02']
+          const upsStatuses = await Promise.all(
+            upsList.map(id => api.get(`/api/ups/${id}/status`).then(r => r.data.overallStatus).catch(() => 'NORMAL'))
+          )
+          if (upsStatuses.includes('CRITICAL')) upsStatus = 'CRITICAL'
+          else if (upsStatuses.includes('WARNING')) upsStatus = 'WARNING'
+        } catch {}
+
+        if (active) {
+          setStatuses({
+            Generator: genStatus,
+            'ATS Status': atsStatus,
+            'MDP Status': mdpStatus,
+            'SDP Status': sdpStatus,
+            'UPS Status': upsStatus
+          })
+        }
+      } catch (err) {
+        console.error('Error fetching overall statuses for sidebar', err)
+      }
+    }
+
+    fetchAllStatuses()
+    const interval = setInterval(fetchAllStatuses, 10000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
+
+  const statusColorMap = {
+    NORMAL: 'bg-green-500',
+    WARNING: 'bg-amber-500',
+    CRITICAL: 'bg-red-500'
+  }
 
   return (
     <aside className="sidebar" aria-label="Primary navigation">
@@ -201,11 +281,17 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
           <button
             key={item.label}
             type="button"
-            className={activePage === item.label ? 'active' : ''}
+            className={`w-full flex items-center ${activePage === item.label ? 'active' : ''}`}
             onClick={() => (item.label === 'Log out' ? onLogout() : onNavigate(item))}
           >
             {createElement(item.icon, { size: 22 })}
-            <span>{item.label}</span>
+            <span className="flex-grow text-left">{item.label}</span>
+            {statuses[item.label] && (
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${statusColorMap[statuses[item.label]] || 'bg-green-500'} ml-auto mr-1`}
+                title={`${item.label} status: ${statuses[item.label]}`}
+              />
+            )}
           </button>
         ))}
       </nav>
@@ -222,11 +308,11 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, onAcknowledge, 
           <h1>{activePage}</h1>
         </header>
         {activePage === 'Dashboard' ? <DashboardPage alarms={alarms.dashboard} onAcknowledge={(id) => onAcknowledge('dashboard', id)} onAction={onAction} /> : null}
-        {activePage === 'Generator' ? <GeneratorPage alarms={alarms.generator} onAcknowledge={(id) => onAcknowledge('generator', id)} onAction={onAction} /> : null}
-        {activePage === 'ATS Status' ? <AtsPage alarms={alarms.ats} onAcknowledge={(id) => onAcknowledge('ats', id)} onAction={onAction} /> : null}
+        {activePage === 'Generator' ? <GeneratorPage /> : null}
+        {activePage === 'ATS Status' ? <ATSPage /> : null}
         {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={(id) => onAcknowledge('ups', id)} onAction={onAction} /> : null}
-        {activePage === 'MDP Status' ? <MdpPage alarms={alarms.mdp} onAcknowledge={(id) => onAcknowledge('mdp', id)} onAction={onAction} /> : null}
-        {activePage === 'SDP Status' ? <SdpPage onAction={onAction} /> : null}
+        {activePage === 'MDP Status' ? <MDPPage /> : null}
+        {activePage === 'SDP Status' ? <SDPPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
@@ -482,72 +568,7 @@ function FaultDiagnosis({ title = 'High Coolant temperature' }) {
   )
 }
 
-function GeneratorPage({ alarms, onAcknowledge, onAction }) {
-  return (
-    <>
-      <MetricStrip page="Generator" />
-      <div className="content-grid two-even">
-        <ChartPanel title="Power & Voltage" variant="power" legend={['Power', 'Voltage']} />
-        <ChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp', 'Oil Pressure']} />
-      </div>
-      <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
-        <FaultDiagnosis title="High Coolant temperature" />
-      </div>
-      <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
-        <div className="snapshot-grid">
-          <article><span>Last Service</span><strong>12 Feb 2026</strong></article>
-          <article><span>Runtime Hours</span><strong>1,284 h</strong></article>
-          <article><span>Next Test</span><strong>Weekly run</strong></article>
-          <article><span>Assigned Team</span><strong>Electrical Ops</strong></article>
-        </div>
-      </SectionCard>
-    </>
-  )
-}
 
-function AtsPage({ alarms, onAcknowledge, onAction }) {
-  return (
-    <>
-      <MetricStrip page="ATS Status" />
-      <div className="content-grid two-even">
-        <SectionCard title="Utility Source">
-          <div className="ats-flow">
-            <svg className="ats-wires" viewBox="0 0 620 260" aria-hidden="true">
-              <path className="wire utility" d="M115 82 H278" />
-              <path className="wire generator" d="M122 190 V148 H278" />
-              <path className="wire load" d="M340 116 H505" />
-              <circle className="junction" cx="306" cy="116" r="8" />
-            </svg>
-            <div className="source green utility-node">UTILITY<span>415 V<br />50 Hz</span></div>
-            <div className="source teal ats-node">ATS</div>
-            <div className="source blue load-node">LOAD<span>100 Hz</span></div>
-            <div className="source green generator-node">GENERATOR<span>400 V<br />50 Hz</span></div>
-          </div>
-        </SectionCard>
-        <SectionCard title="Electrical Parameters" icon={Zap}>
-          <dl className="parameter-list">
-            <div><dt>Utility Voltage</dt><dd>415 V</dd></div>
-            <div><dt>Generator Voltage L - L</dt><dd>400 V</dd></div>
-            <div><dt>Frequency</dt><dd>50 Hz</dd></div>
-            <div><dt>Phases</dt><dd><span className="phase r">R</span><span className="phase y">Y</span><span className="phase b">B</span></dd></div>
-          </dl>
-        </SectionCard>
-      </div>
-      <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
-        <SectionCard title="Transfer Events" icon={PlugZap}>
-          <ul className="event-list">
-            <li><strong>Transfer Failure</strong><span>10:12 am</span><p>Unable to connect to utility.</p></li>
-            <li><strong>Load transferred to Generator</strong><span>10:12 am</span><p>Utility not available.</p></li>
-            <li><strong>Load transferred to Utility</strong><span>09:15 am</span><p>Utility restored.</p></li>
-          </ul>
-          <Actions secondary="Initiate Test Transfer" onAction={onAction} />
-        </SectionCard>
-      </div>
-    </>
-  )
-}
 
 function UpsPage({ alarms, onAcknowledge, onAction }) {
   const [tab, setTab] = useState('Active')
@@ -606,82 +627,7 @@ function UpsFleetSummary() {
   )
 }
 
-function MdpPage({ alarms, onAcknowledge, onAction }) {
-  return (
-    <div className="mdp-layout">
-      <div className="state-bar">
-        <span>Current Status</span>
-        <strong>Normal</strong>
-      </div>
-      <SectionCard title="Phase Status" icon={Gauge}>
-        <div className="phase-grid">
-          {['Phase R', 'Phase Y', 'Phase B'].map((phase, index) => (
-            <article className="phase-card" key={phase}>
-              <h3>{phase}</h3>
-              <dl>
-                <div><dt>Voltage</dt><dd>{index === 1 ? '228 V' : index === 2 ? '0 V' : '230 V'}</dd></div>
-                <div><dt>Current</dt><dd>{index === 2 ? '0 A' : `${index === 1 ? '41' : '42'} A`}</dd></div>
-                <div><dt>Status</dt><dd className={index === 2 ? 'bad' : 'good'}>{index === 2 ? 'Tripped' : 'Okay'}</dd></div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-      <SectionCard title="Panel Protection Summary" icon={ShieldCheck}>
-        <div className="snapshot-grid">
-          <article><span>Earth Fault Relay</span><strong>Healthy</strong></article>
-          <article><span>Overcurrent Relay</span><strong>Healthy</strong></article>
-          <article><span>Surge Protection</span><strong>Online</strong></article>
-          <article><span>Thermal Margin</span><strong>12%</strong></article>
-        </div>
-      </SectionCard>
-      <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
-    </div>
-  )
-}
 
-function SdpPage({ onAction }) {
-  const loads = [
-    { name: 'Highway Lighting Section A', status: 'ON', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'ok' },
-    { name: 'CCTV Cluster Section A', status: 'ON', active: '12/12', power: '0.8kW', voltage: '230 V', tone: 'ok' },
-    { name: 'Emergency Call Boxes', status: 'Standby', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'warning' },
-    { name: 'Highway Lighting Section B', status: 'ON', active: '2/2', power: '0.4kW', voltage: '229 V', tone: 'ok' },
-  ]
-
-  return (
-    <>
-      <SectionCard title="Load Distribution" icon={ServerCog}>
-        <div className="load-grid">
-          {loads.map((load) => (
-            <article className="load-card" key={load.name}>
-              <h3>{load.name}</h3>
-              <p className={`status-chip ${load.tone === 'warning' ? 'warning' : ''}`}>{load.status}</p>
-              <dl>
-                <div><dt>Active Poles</dt><dd>{load.active}</dd></div>
-                <div><dt>Power Draw</dt><dd>{load.power}</dd></div>
-                <div><dt>Voltage</dt><dd>{load.voltage}</dd></div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-      <div className="content-grid main-side">
-        <SectionCard title="Maintenance Schedule" icon={ClipboardList}>
-          <div className="schedule-table">
-            <div><strong>Service Item</strong><strong>Due Date</strong><strong>Status</strong><strong>Action</strong></div>
-            <div><span>SPD Replacement</span><span>15 Nov 2026</span><em>Pending</em><button type="button" onClick={() => onAction?.('SPD task opened')}>View Task</button></div>
-            <div><span>Lighting Section A</span><span>15 Nov 2026</span><em>Scheduled</em><button type="button" onClick={() => onAction?.('Lighting task opened')}>View Task</button></div>
-            <div><span>CCTV Power Supply Audit</span><span>15 Nov 2026</span><em>Upcoming</em><button type="button" onClick={() => onAction?.('CCTV task opened')}>View Task</button></div>
-          </div>
-        </SectionCard>
-        <SectionCard title="Environmental Monitoring">
-          <p className="large-status">Cabinet Temp <strong>20C</strong></p>
-          <p className="large-status">Cabinet Door <strong>Closed</strong></p>
-        </SectionCard>
-      </div>
-    </>
-  )
-}
 
 function SettingsPage({ onAction }) {
   return (
