@@ -2,6 +2,7 @@ import React from 'react'
 
 /**
  * Reusable ReadingCard component to display telemetry metrics.
+ * Inherits standard classes from App.css to match existing dashboard cards exactly.
  * @param {string} label - Name of the metric.
  * @param {any} value - Value of the metric.
  * @param {string} unit - Metric unit (e.g. V, A, Hz, °C).
@@ -10,32 +11,23 @@ import React from 'react'
  */
 export default function ReadingCard({ label, value, unit, icon: Icon, alert = false }) {
   return (
-    <div 
-      className={`p-5 rounded-xl border transition-all duration-300 ${
-        alert 
-          ? 'bg-red-500/10 border-red-500/30 shadow-lg shadow-red-500/5' 
-          : 'bg-[#172341] border-[#344364] hover:border-[#66d7e6]/50'
-      }`}
+    <article 
+      className="metric-panel" 
+      style={alert ? { borderColor: 'var(--red)', boxShadow: '0 0 10px rgba(226, 58, 58, 0.15)' } : {}}
     >
-      <div className="flex items-center justify-between text-xs text-[#aeb9d5] font-extrabold tracking-wider uppercase">
-        <span>{label}</span>
-        {Icon && (
-          <Icon 
-            size={16} 
-            className={alert ? 'text-red-400 animate-pulse' : 'text-[#66d7e6]'} 
-          />
-        )}
+      <div className="panel-heading">
+        {Icon && <Icon size={18} style={{ color: alert ? 'var(--red)' : '#66d7e6' }} />}
+        <h2>{label}</h2>
       </div>
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className={`text-2xl font-black tracking-tight ${alert ? 'text-red-400' : 'text-[#f8fbff]'}`}>
-          {value !== undefined && value !== null ? value : '--'}
-        </span>
+      <div className="divider" />
+      <p className="metric-value" style={alert ? { color: 'var(--red)' } : {}}>
+        {value !== undefined && value !== null ? value : '--'}
         {unit && (
-          <span className="text-sm font-bold text-[#aeb9d5]">
+          <span style={{ fontSize: '14px', marginLeft: '4px', color: 'var(--muted)', fontWeight: 700 }}>
             {unit}
           </span>
         )}
-      </div>
-    </div>
+      </p>
+    </article>
   )
 }

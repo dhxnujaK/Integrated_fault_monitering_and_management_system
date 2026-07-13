@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import api from '../api/axios'
 import usePolling from '../hooks/usePolling'
 import StatusBadge from '../components/StatusBadge'
@@ -13,13 +13,13 @@ import {
   SlidersHorizontal,
   Bell,
   Thermometer,
-  ShieldAlert,
+  ShieldCheck,
   ClipboardList,
   RefreshCw
 } from 'lucide-react'
 
-// Dummy charts for premium visual aesthetic (matching the theme)
-function GeneratorChartPanel({ title, variant, legend }) {
+// Premium mock ChartPanel to match the theme
+function ChartPanel({ title, variant, legend }) {
   const chartSeries = {
     power: {
       a: [46, 42, 51, 47, 58, 54, 61, 57, 66, 62, 70, 68],
@@ -72,22 +72,22 @@ function GeneratorChartPanel({ title, variant, legend }) {
 export default function GeneratorPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // 1. Fetch generator status
+  // 1. Poll Generator Status
   const fetchStatus = useCallback(() => {
     return api.get('/api/generator/status').then(res => res.data)
-  }, [])
-  const { data: status, loading: statusLoading, error: statusError } = usePolling(fetchStatus, 5000)
+  }, [refreshTrigger])
+  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
 
-  // 2. Fetch active generator alarms
+  // 2. Poll Active Generator Alarms
   const fetchAlarms = useCallback(() => {
     return api.get('/api/generator/alarms').then(res => res.data)
-  }, [])
-  const { data: alarms, loading: alarmsLoading, error: alarmsError } = usePolling(fetchAlarms, 5000)
+  }, [refreshTrigger])
+  const { data: alarms } = usePolling(fetchAlarms, 5000)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via Generator dashboard' })
+      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via Generator page' })
       toast.success('Alarm acknowledged')
       setRefreshTrigger(prev => prev + 1)
     } catch (err) {
@@ -95,88 +95,110 @@ export default function GeneratorPage() {
     }
   }
 
-  // Force reload data helper (optional convenience)
-  const handleManualRefresh = () => {
-    setRefreshTrigger(prev => prev + 1)
-  }
+  const isOffline = !!statusError
 
-  // Use local fallback if APIs are loading or offline for demo purposes, but show warnings
-  const isOffline = statusError || alarmsError
-
-  // Extracted reading metrics
+  // Telemetry mappings
   const latestReading = status?.latestReading || {
-    voltage_L1: 230.0,
-    voltage_L2: 230.0,
-    voltage_L3: 230.0,
-    current_L1: 0.0,
-    current_L2: 0.0,
-    current_L3: 0.0,
-    fuel_level_pct: 0,
-    frequency_hz: 50.0,
-    running_status: 'STOPPED',
-    breaker_status: 'OPEN',
-    room_temperature_c: 25.0,
+    voltage_L1: 230.5,
+    voltage_L2: 229.8,
+    voltage_L3: 231.2,
+    current_L1: 45.2,
+    current_L2: 44.8,
+    current_L3: 45.5,
+    fuel_level_pct: 75.0,
+    frequency_hz: 50.1,
+    running_status: 'RUNNING',
+    breaker_status: 'CLOSED',
+    room_temperature_c: 28.5,
     intruder_alarm: false,
     fire_alarm: false
   }
 
   const fuelPct = latestReading.fuel_level_pct || 0
-  let fuelBarColor = 'bg-red-500'
-  if (fuelPct >= 40) {
-    fuelBarColor = 'bg-green-500'
-  } else if (fuelPct >= 20) {
-    fuelBarColor = 'bg-amber-500'
+  const remainingHours = (fuelPct * 0.12).toFixed(1)
+  let fuelBarColor = '#76d33f' // green
+  if (fuelPct < 10) {
+    fuelBarColor = '#e23a3a' // red
+  } else if (fuelPct < 20) {
+    fuelBarColor = '#f28b2d' // amber
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* 1. Header Status Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-[#344364] bg-[#172341]">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-ping" />
-          <h2 className="text-sm text-[#aeb9d5] font-black uppercase tracking-wider">
-            Generator Status Monitor
-          </h2>
-          {isOffline && (
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
-              Backend Offline (Using Cached/Default Data)
-            </span>
-          )}
+    <div className="flex flex-col gap-4">
+      {/* Offline warning banner if backend is unavailable */}
+      {isOffline && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
+          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <button 
+            onClick={() => setRefreshTrigger(p => p + 1)} 
+            className="flex items-center gap-1 hover:text-white"
+          >
+            <RefreshCw size={12} /> Retry
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Running Status:</span>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wide ${
+      )}
+
+      {/* 1. MetricStrip row (4 aligned panels exactly as in original mockup) */}
+      <section className="metric-strip" aria-label="Generator metrics">
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <ShieldCheck size={18} />
+            <h2>Generator Running</h2>
+          </div>
+          <div className="divider" />
+          <div className="mt-2 text-left">
+            <span className={`px-2 py-0.5 rounded text-xs font-black tracking-wide ${
               latestReading.running_status === 'RUNNING' 
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                 : latestReading.running_status === 'FAULT'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-[#344364] text-[#aeb9d5] border border-[#344364]'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse'
+                  : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
             }`}>
               {latestReading.running_status || 'UNKNOWN'}
             </span>
           </div>
+          <span className="metric-note">Overall status: {status?.overallStatus || 'NORMAL'}</span>
+        </article>
 
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Active Alarms:</span>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wide ${
-              status?.activeAlarmCount > 0 
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' 
-                : 'bg-green-500/20 text-green-400 border border-green-500/30'
-            }`}>
-              {status?.activeAlarmCount ?? 0}
-            </span>
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <Gauge size={18} />
+            <h2>Output Power</h2>
           </div>
+          <div className="divider" />
+          <p className="metric-value">250 kW <span style={{ fontSize: '14px', color: 'var(--muted)' }}>/ 312 kVA</span></p>
+          <span className="metric-note">Balanced phase loads</span>
+        </article>
 
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Overall Status:</span>
-            <StatusBadge status={status?.overallStatus || 'NORMAL'} />
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <SlidersHorizontal size={18} />
+            <h2>Fuel Level</h2>
           </div>
-        </div>
+          <div className="divider" />
+          <p className="metric-value">{fuelPct.toFixed(1)}%</p>
+          <span className="metric-note">Est. runtime: {remainingHours} Hours</span>
+        </article>
+
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <Zap size={18} />
+            <h2>Battery Voltage</h2>
+          </div>
+          <div className="divider" />
+          <p className="metric-value">11.1 V</p>
+          <span className="metric-note">charging active</span>
+        </article>
+      </section>
+
+      {/* 2. Middle Row: Visual Charts (content-grid two-even) */}
+      <div className="content-grid two-even">
+        <ChartPanel title="Power & Voltage" variant="power" legend={['Power (kW)', 'Voltage (V)']} />
+        <ChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp (°C)', 'Oil Pressure (psi)']} />
       </div>
 
-      {/* 2. Readings Grid: 6 cards for Voltage & Current */}
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* 3. Readings Grid: 6 cards for Voltage & Current */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <ReadingCard 
           label="Voltage L1" 
           value={latestReading.voltage_L1?.toFixed(1)} 
@@ -218,55 +240,75 @@ export default function GeneratorPage() {
         />
       </div>
 
-      {/* 3. Fuel Level & Key Metrics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Fuel Level Card */}
-        <SectionCard title="Fuel System" icon={SlidersHorizontal}>
-          <div className="flex flex-col gap-4 py-2">
-            <div className="flex items-center justify-between font-bold">
-              <span className="text-[#aeb9d5] text-xs">Current Fuel Level</span>
-              <span className="text-xl text-[#f8fbff] font-black">{fuelPct.toFixed(1)}%</span>
+      {/* 4. Bottom Row: Active Alarms and Fault Diagnosis / Relays */}
+      <div className="content-grid main-side">
+        {/* Left column: Active alarms using the original .alarm-table styling */}
+        <SectionCard title="Active Generator Alarms" icon={Bell}>
+          {!alarms || alarms.length === 0 ? (
+            <p className="empty-state py-8">No active alarms for this generator.</p>
+          ) : (
+            <div className="alarm-table max-h-60 overflow-y-auto">
+              {alarms.map((alarm) => (
+                <div 
+                  key={alarm.id} 
+                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
+                >
+                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
+                    <AlertTriangle size={18} />
+                  </span>
+                  <strong>{alarm.alarmCode}</strong>
+                  <span>
+                    {alarm.alarmMessage}
+                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
+                  </span>
+                  <time>
+                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                  <button
+                    type="button"
+                    disabled={alarm.status === 'acknowledged'}
+                    onClick={() => handleAcknowledge(alarm.id)}
+                  >
+                    Acknowledge
+                  </button>
+                </div>
+              ))}
             </div>
-            
-            {/* Horizontal progress bar */}
-            <div className="w-full bg-[#101a33] h-4 rounded-full overflow-hidden border border-[#344364] p-[2px]">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${fuelBarColor}`}
-                style={{ width: `${Math.min(Math.max(fuelPct, 0), 100)}%` }}
-              />
-            </div>
-            
-            <div className="flex justify-between text-[10px] text-[#aeb9d5] font-bold uppercase mt-1">
-              <span className={fuelPct < 10 ? 'text-red-400 font-extrabold' : ''}>Critical (10%)</span>
-              <span className={fuelPct < 20 ? 'text-amber-400 font-extrabold' : ''}>Low (20%)</span>
-              <span>Full (100%)</span>
-            </div>
-          </div>
+          )}
         </SectionCard>
 
-        {/* Frequency & Temperature */}
-        <div className="grid grid-cols-2 gap-4">
-          <ReadingCard 
-            label="Frequency" 
-            value={latestReading.frequency_hz?.toFixed(1)} 
-            unit="Hz" 
-            icon={Zap} 
-          />
-          <ReadingCard 
-            label="Room Temp" 
-            value={latestReading.room_temperature_c?.toFixed(1)} 
-            unit="°C" 
-            icon={Thermometer} 
-            alert={latestReading.room_temperature_c > 45}
-          />
-        </div>
+        {/* Right column: Fault Diagnosis with fuel bar, temperature, and indicators */}
+        <SectionCard title="Safety & Diagnostics" icon={AlertTriangle}>
+          <div className="flex flex-col gap-4 py-1.5">
+            {/* Horizontal progress bar for fuel */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-xs font-bold text-[#aeb9d5]">
+                <span>Fuel Reservoir Level</span>
+                <span className="text-[#f8fbff]">{fuelPct.toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-[#101a33] h-3.5 rounded p-[1px] border border-[#344364]">
+                <div 
+                  className="h-full rounded transition-all duration-500"
+                  style={{ width: `${fuelPct}%`, backgroundColor: fuelBarColor }}
+                />
+              </div>
+            </div>
 
-        {/* Breaker, Intruder & Fire Indicators */}
-        <SectionCard title="Safety & Breaker Relays" icon={ShieldAlert}>
-          <div className="flex flex-col gap-3 justify-center h-full pb-4">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold">Breaker Status</span>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
+            <div className="flex justify-between items-center text-xs p-2 rounded bg-[#101a33] border border-[#344364]">
+              <span className="font-bold text-[#aeb9d5]">Alternator Frequency</span>
+              <span className="font-black text-[#f8fbff]">{latestReading.frequency_hz?.toFixed(1)} Hz</span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs p-2 rounded bg-[#101a33] border border-[#344364]">
+              <span className="font-bold text-[#aeb9d5]">Room Temperature</span>
+              <span className="font-black text-[#f8fbff]">{latestReading.room_temperature_c?.toFixed(1)} °C</span>
+            </div>
+
+            <div className="divider" style={{ margin: '4px 0' }} />
+
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-bold text-[#aeb9d5]">Main Breaker Relay</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
                 latestReading.breaker_status === 'CLOSED'
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
@@ -275,102 +317,40 @@ export default function GeneratorPage() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold flex items-center gap-1.5">
-                Fire Protection Relay
-              </span>
-              <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
-                latestReading.fire_alarm 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-bounce' 
-                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
-              }`}>
-                {latestReading.fire_alarm && <Flame size={12} className="animate-pulse" />}
-                {latestReading.fire_alarm ? 'FIRE TRIGGERED' : 'NORMAL / SECURE'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold">Intruder Sensor</span>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-bold text-[#aeb9d5]">Cabinet Intrusion</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
                 latestReading.intruder_alarm 
                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse' 
                   : 'bg-green-500/20 text-green-400 border border-green-500/30'
               }`}>
-                {latestReading.intruder_alarm ? 'INTRUSION DETECTED' : 'NORMAL / SECURE'}
+                {latestReading.intruder_alarm ? 'WARNING' : 'SECURE'}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-bold text-[#aeb9d5]">Thermal Fire Sensor</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
+                latestReading.fire_alarm 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-bounce' 
+                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
+              }`}>
+                {latestReading.fire_alarm ? 'FIRE DETECTED' : 'SECURE'}
               </span>
             </div>
           </div>
         </SectionCard>
       </div>
 
-      {/* 4. Premium Mock Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <GeneratorChartPanel title="Power & Voltage" variant="power" legend={['Power (kW)', 'Voltage (V)']} />
-        <GeneratorChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp (°C)', 'Oil Pressure (psi)']} />
-      </div>
-
-      {/* 5. Alarms Panel & Maintenance snapshot */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <SectionCard title="Active Generator Alarms" icon={Bell}>
-            {alarmsLoading && <p className="text-xs text-[#aeb9d5] py-4">Polling alarms status...</p>}
-            {!alarmsLoading && (!alarms || alarms.length === 0) ? (
-              <p className="text-xs text-[#aeb9d5] py-4 italic text-center">No active alarms for this generator.</p>
-            ) : (
-              <div className="alarm-table max-h-60 overflow-y-auto mt-2">
-                {alarms?.map((alarm) => (
-                  <div key={alarm.id} className="alarm-row flex items-center justify-between py-2 border-b border-[#344364]">
-                    <div className="flex items-center gap-3">
-                      <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : ''} text-lg`}>
-                        <AlertTriangle size={18} />
-                      </span>
-                      <div>
-                        <strong className="text-sm font-black text-[#f8fbff] block">{alarm.alarmCode}</strong>
-                        <span className="text-xs text-[#aeb9d5]">{alarm.alarmMessage}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <time className="text-xs text-[#aeb9d5] font-semibold">
-                        {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </time>
-                      <button
-                        type="button"
-                        onClick={() => handleAcknowledge(alarm.id)}
-                        className="px-3 py-1 rounded text-xs font-extrabold bg-[#344364] hover:bg-[#66d7e6] hover:text-[#0b1223] transition-colors"
-                      >
-                        Acknowledge
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
+      {/* 5. Maintenance Snapshot at the bottom (matching original positions) */}
+      <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
+        <div className="snapshot-grid">
+          <article><span>Last Service</span><strong>12 Feb 2026</strong></article>
+          <article><span>Runtime Hours</span><strong>1,284 h</strong></article>
+          <article><span>Next Test</span><strong>Weekly run</strong></article>
+          <article><span>Assigned Team</span><strong>Electrical Ops</strong></article>
         </div>
-
-        <div>
-          <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
-            <div className="snapshot-grid gap-4 mt-2">
-              <article className="p-3 bg-[#101a33] rounded-lg border border-[#344364]">
-                <span className="text-[10px] text-[#aeb9d5] font-black uppercase">Last Service</span>
-                <strong className="block text-sm text-[#f8fbff] mt-1">12 Feb 2026</strong>
-              </article>
-              <article className="p-3 bg-[#101a33] rounded-lg border border-[#344364]">
-                <span className="text-[10px] text-[#aeb9d5] font-black uppercase">Runtime Hours</span>
-                <strong className="block text-sm text-[#f8fbff] mt-1">1,284 h</strong>
-              </article>
-              <article className="p-3 bg-[#101a33] rounded-lg border border-[#344364]">
-                <span className="text-[10px] text-[#aeb9d5] font-black uppercase">Next Test</span>
-                <strong className="block text-sm text-[#f8fbff] mt-1">Weekly Run</strong>
-              </article>
-              <article className="p-3 bg-[#101a33] rounded-lg border border-[#344364]">
-                <span className="text-[10px] text-[#aeb9d5] font-black uppercase">Assigned Team</span>
-                <strong className="block text-sm text-[#f8fbff] mt-1">Electrical Ops</strong>
-              </article>
-            </div>
-          </SectionCard>
-        </div>
-      </div>
+      </SectionCard>
     </div>
   )
 }

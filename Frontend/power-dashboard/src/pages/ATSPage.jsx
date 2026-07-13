@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import api from '../api/axios'
 import usePolling from '../hooks/usePolling'
 import StatusBadge from '../components/StatusBadge'
@@ -12,29 +12,31 @@ import {
   PlugZap,
   Bell,
   Thermometer,
-  ShieldAlert,
-  ClipboardList
+  ShieldCheck,
+  Gauge,
+  ClipboardList,
+  RefreshCw
 } from 'lucide-react'
 
 export default function ATSPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // 1. Fetch ATS status
+  // 1. Poll ATS Status
   const fetchStatus = useCallback(() => {
     return api.get('/api/ats/status').then(res => res.data)
-  }, [])
-  const { data: status, loading: statusLoading, error: statusError } = usePolling(fetchStatus, 5000)
+  }, [refreshTrigger])
+  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
 
-  // 2. Fetch active ATS alarms
+  // 2. Poll Active ATS Alarms
   const fetchAlarms = useCallback(() => {
     return api.get('/api/ats/alarms').then(res => res.data)
-  }, [])
-  const { data: alarms, loading: alarmsLoading, error: alarmsError } = usePolling(fetchAlarms, 5000)
+  }, [refreshTrigger])
+  const { data: alarms } = usePolling(fetchAlarms, 5000)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via ATS dashboard' })
+      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via ATS page' })
       toast.success('Alarm acknowledged')
       setRefreshTrigger(prev => prev + 1)
     } catch (err) {
@@ -42,264 +44,227 @@ export default function ATSPage() {
     }
   }
 
-  const isOffline = statusError || alarmsError
+  const isOffline = !!statusError
 
-  // Extracted reading metrics
+  // Telemetry mappings
   const latestReading = status?.latestReading || {
     active_source: 'MAINS',
-    mains_voltage: 230.0,
-    generator_voltage: 0.0,
+    mains_voltage: 230.2,
+    generator_voltage: 229.8,
     transfer_status: 'NORMAL',
-    breaker_status: 'OPEN',
+    breaker_status: 'CLOSED',
     last_transfer_at: '2024-01-15T10:30:00',
-    room_temperature_c: 25.0,
+    room_temperature_c: 26.0,
     intruder_alarm: false,
     fire_alarm: false
   }
 
-  const activeSource = latestReading.active_source || 'MAINS'
-  const isMainsActive = activeSource.toUpperCase() === 'MAINS'
+  const activeSource = (latestReading.active_source || 'MAINS').toUpperCase()
+  const isMainsActive = activeSource === 'MAINS'
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* 1. Header Status Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-[#344364] bg-[#172341]">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-ping" />
-          <h2 className="text-sm text-[#aeb9d5] font-black uppercase tracking-wider">
-            ATS Status Monitor
-          </h2>
-          {isOffline && (
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">
-              Backend Offline (Using Cached/Default Data)
-            </span>
-          )}
+    <div className="flex flex-col gap-4">
+      {/* Offline warning banner if backend is offline */}
+      {isOffline && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
+          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <button 
+            onClick={() => setRefreshTrigger(p => p + 1)} 
+            className="flex items-center gap-1 hover:text-white"
+          >
+            <RefreshCw size={12} /> Retry
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Transfer Status:</span>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wide ${
-              latestReading.transfer_status === 'NORMAL' 
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                : latestReading.transfer_status === 'FAILED'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-            }`}>
-              {latestReading.transfer_status || 'UNKNOWN'}
+      )}
+
+      {/* 1. MetricStrip row (exactly as mockup, dynamically connected) */}
+      <section className="metric-strip" aria-label="ATS metrics">
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <PlugZap size={18} />
+            <h2>Utility Supply</h2>
+          </div>
+          <div className="divider" />
+          <p className="metric-value">{latestReading.mains_voltage?.toFixed(1)} V</p>
+          <span className="metric-note">Frequency: 50.0 Hz</span>
+        </article>
+
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <Gauge size={18} />
+            <h2>Generator</h2>
+          </div>
+          <div className="divider" />
+          <p className="metric-value">{latestReading.generator_voltage?.toFixed(1)} V</p>
+          <span className="metric-note">Status: {isMainsActive ? 'Standby' : 'Active'}</span>
+        </article>
+
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <ClipboardList size={18} />
+            <h2>ATS Position</h2>
+          </div>
+          <div className="divider" />
+          <p className="metric-value" style={{ fontSize: '20px', marginTop: '16px' }}>Load on {activeSource}</p>
+          <span className="metric-note">Switch position active</span>
+        </article>
+
+        <article className="metric-panel">
+          <div className="panel-heading">
+            <ShieldCheck size={18} />
+            <h2>ATS Mode</h2>
+          </div>
+          <div className="divider" />
+          <div className="mt-2 text-left">
+            <span className="px-2 py-0.5 rounded text-xs font-black tracking-wide bg-green-500/20 text-green-400 border border-green-500/30">
+              AUTO MODE
             </span>
           </div>
+          <span className="metric-note">Overall status: {status?.overallStatus || 'NORMAL'}</span>
+        </article>
+      </section>
 
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Active Alarms:</span>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-black tracking-wide ${
-              status?.activeAlarmCount > 0 
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' 
-                : 'bg-green-500/20 text-green-400 border border-green-500/30'
-            }`}>
-              {status?.activeAlarmCount ?? 0}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 bg-[#101a33] px-3 py-1.5 rounded-lg border border-[#344364]">
-            <span className="text-xs text-[#aeb9d5] font-bold">Overall Status:</span>
-            <StatusBadge status={status?.overallStatus || 'NORMAL'} />
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Visual Interactive Flow Diagram & Parameter list */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* ATS Wiring SVG Diagram */}
-        <SectionCard title="Active Power Path" icon={PlugZap}>
-          <div className="ats-flow relative min-h-[260px] flex items-center justify-center p-4">
-            <svg className="ats-wires w-full max-w-[500px]" viewBox="0 0 620 260" aria-hidden="true">
-              {/* Utility to ATS Wire */}
+      {/* 2. Middle Row: Visual Flow & Parameters (content-grid two-even) */}
+      <div className="content-grid two-even">
+        {/* Left: SVG Flow map matching App.css absolute coordinate styles */}
+        <SectionCard title="Utility Source Flow Map">
+          <div className="ats-flow" style={{ borderRadius: '4px' }}>
+            <svg className="ats-wires" viewBox="0 0 620 260" aria-hidden="true">
               <path 
-                className={`wire utility stroke-[4px] fill-none transition-all duration-500 ${
-                  isMainsActive 
-                    ? 'stroke-green-500 shadow-lg shadow-green-500/50' 
-                    : 'stroke-[#344364]'
-                }`} 
+                className="wire utility" 
+                style={{ stroke: isMainsActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
                 d="M115 82 H278" 
               />
-              {/* Generator to ATS Wire */}
               <path 
-                className={`wire generator stroke-[4px] fill-none transition-all duration-500 ${
-                  !isMainsActive 
-                    ? 'stroke-[#66d7e6] shadow-lg shadow-cyan-500/50' 
-                    : 'stroke-[#344364]'
-                }`} 
+                className="wire generator" 
+                style={{ stroke: !isMainsActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
                 d="M122 190 V148 H278" 
               />
-              {/* ATS to Load Wire */}
-              <path 
-                className="wire load stroke-[4px] fill-none stroke-[#aeb9d5]" 
-                d="M340 116 H505" 
-              />
-              <circle className="junction fill-[#f8fbff]" cx="306" cy="116" r="8" />
+              <path className="wire load" style={{ stroke: '#3a6ad8' }} d="M340 116 H505" />
+              <circle className="junction" cx="306" cy="116" r="8" />
             </svg>
-            
-            <div className={`source absolute left-[15px] top-[40px] text-center font-bold p-3 rounded-lg border uppercase ${
-              isMainsActive 
-                ? 'bg-green-500/20 text-green-400 border-green-500/30 font-black' 
-                : 'bg-[#101a33] text-[#aeb9d5] border-[#344364]'
-            }`}>
-              CEB Utility
-              <span className="block text-[10px] normal-case mt-1">
-                {latestReading.mains_voltage?.toFixed(1)} V
-              </span>
-            </div>
-
-            <div className="source absolute left-[265px] top-[80px] text-center font-bold px-5 py-2.5 rounded-lg border bg-[#172341] border-[#66d7e6] text-[#f8fbff] font-black uppercase">
-              ATS Switch
-            </div>
-
-            <div className="source absolute right-[20px] top-[80px] text-center font-bold p-3 rounded-lg border border-blue-500/30 bg-blue-500/20 text-blue-400 uppercase">
-              Main Load
-              <span className="block text-[10px] normal-case mt-1">
-                Connected: {activeSource}
-              </span>
-            </div>
-
-            <div className={`source absolute left-[15px] bottom-[20px] text-center font-bold p-3 rounded-lg border uppercase ${
-              !isMainsActive 
-                ? 'bg-[#66d7e6]/20 text-[#66d7e6] border-[#66d7e6]/30 font-black' 
-                : 'bg-[#101a33] text-[#aeb9d5] border-[#344364]'
-            }`}>
-              Generator
-              <span className="block text-[10px] normal-case mt-1">
-                {latestReading.generator_voltage?.toFixed(1)} V
-              </span>
-            </div>
+            <div className="source green utility-node">UTILITY<span>{latestReading.mains_voltage?.toFixed(1)} V<br />50 Hz</span></div>
+            <div className="source teal ats-node">ATS</div>
+            <div className="source blue load-node">LOAD<span>Active: {activeSource}</span></div>
+            <div className="source green generator-node">GENERATOR<span>{latestReading.generator_voltage?.toFixed(1)} V<br />50 Hz</span></div>
           </div>
         </SectionCard>
 
-        {/* Electrical parameters details card */}
-        <SectionCard title="Telemetry Details" icon={Zap}>
-          <dl className="parameter-list flex flex-col gap-4 mt-2">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[#101a33] border border-[#344364]">
-              <dt className="text-xs text-[#aeb9d5] font-bold">Utility Voltage</dt>
-              <dd className="text-sm font-black text-[#f8fbff]">{latestReading.mains_voltage?.toFixed(1)} V</dd>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[#101a33] border border-[#344364]">
-              <dt className="text-xs text-[#aeb9d5] font-bold">Generator Voltage</dt>
-              <dd className="text-sm font-black text-[#f8fbff]">{latestReading.generator_voltage?.toFixed(1)} V</dd>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[#101a33] border border-[#344364]">
-              <dt className="text-xs text-[#aeb9d5] font-bold">Active Source Source</dt>
-              <dd className={`px-2.5 py-0.5 rounded text-xs font-black uppercase tracking-wide ${
-                isMainsActive 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                  : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-              }`}>
-                {activeSource}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[#101a33] border border-[#344364]">
-              <dt className="text-xs text-[#aeb9d5] font-bold">Last Transfer Time</dt>
-              <dd className="text-xs font-bold text-[#f8fbff]">
-                {latestReading.last_transfer_at ? new Date(latestReading.last_transfer_at).toLocaleString() : 'N/A'}
-              </dd>
-            </div>
+        {/* Right: Telemetry parameters */}
+        <SectionCard title="Electrical Parameters" icon={Zap}>
+          <dl className="parameter-list">
+            <div><dt>Utility Voltage</dt><dd>{latestReading.mains_voltage?.toFixed(1)} V</dd></div>
+            <div><dt>Generator Voltage L - L</dt><dd>{latestReading.generator_voltage?.toFixed(1)} V</dd></div>
+            <div><dt>Frequency</dt><dd>50 Hz</dd></div>
+            <div><dt>Phases</dt><dd><span className="phase r">R</span><span className="phase y">Y</span><span className="phase b">B</span></dd></div>
           </dl>
         </SectionCard>
       </div>
 
-      {/* 3. Voltage cards + Temperature & Security Relays */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 3. Voltages and Temperature Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
         <ReadingCard 
-          label="Mains Voltage" 
+          label="Mains Line Voltage" 
           value={latestReading.mains_voltage?.toFixed(1)} 
           unit="V" 
           icon={Zap} 
           alert={latestReading.mains_voltage < 207 || latestReading.mains_voltage > 253}
         />
         <ReadingCard 
-          label="Generator Voltage" 
+          label="Generator Line Voltage" 
           value={latestReading.generator_voltage?.toFixed(1)} 
           unit="V" 
           icon={Zap} 
+          alert={!isMainsActive && (latestReading.generator_voltage < 207 || latestReading.generator_voltage > 253)}
         />
         <ReadingCard 
-          label="ATS Cabinet Temp" 
+          label="ATS Room Temp" 
           value={latestReading.room_temperature_c?.toFixed(1)} 
           unit="°C" 
           icon={Thermometer} 
         />
       </div>
 
-      {/* 4. Intruder, Fire alarms, and ATS Alarms Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <SectionCard title="Active ATS Alarms" icon={Bell}>
-            {alarmsLoading && <p className="text-xs text-[#aeb9d5] py-4">Polling alarms...</p>}
-            {!alarmsLoading && (!alarms || alarms.length === 0) ? (
-              <p className="text-xs text-[#aeb9d5] py-4 italic text-center">No active alarms for this ATS.</p>
-            ) : (
-              <div className="alarm-table max-h-60 overflow-y-auto mt-2">
-                {alarms?.map((alarm) => (
-                  <div key={alarm.id} className="alarm-row flex items-center justify-between py-2 border-b border-[#344364]">
-                    <div className="flex items-center gap-3">
-                      <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : ''} text-lg`}>
-                        <AlertTriangle size={18} />
-                      </span>
-                      <div>
-                        <strong className="text-sm font-black text-[#f8fbff] block">{alarm.alarmCode}</strong>
-                        <span className="text-xs text-[#aeb9d5]">{alarm.alarmMessage}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <time className="text-xs text-[#aeb9d5] font-semibold">
-                        {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </time>
-                      <button
-                        type="button"
-                        onClick={() => handleAcknowledge(alarm.id)}
-                        className="px-3 py-1 rounded text-xs font-extrabold bg-[#344364] hover:bg-[#66d7e6] hover:text-[#0b1223] transition-colors"
-                      >
-                        Acknowledge
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
-        </div>
-
-        <SectionCard title="Relay Controls & Events" icon={ShieldAlert}>
-          <div className="flex flex-col gap-3 justify-center h-full pb-4">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold">Fire Sensor</span>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
-                latestReading.fire_alarm 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
-              }`}>
-                {latestReading.fire_alarm ? 'FIRE WARNING' : 'SECURE'}
-              </span>
+      {/* 4. Bottom Row: Active Alarms and Events List */}
+      <div className="content-grid main-side">
+        {/* Left column: Active alarms */}
+        <SectionCard title="Active ATS Alarms" icon={Bell}>
+          {!alarms || alarms.length === 0 ? (
+            <p className="empty-state py-8">No active alarms for this ATS.</p>
+          ) : (
+            <div className="alarm-table max-h-60 overflow-y-auto">
+              {alarms.map((alarm) => (
+                <div 
+                  key={alarm.id} 
+                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
+                >
+                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
+                    <AlertTriangle size={18} />
+                  </span>
+                  <strong>{alarm.alarmCode}</strong>
+                  <span>
+                    {alarm.alarmMessage}
+                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
+                  </span>
+                  <time>
+                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                  <button
+                    type="button"
+                    disabled={alarm.status === 'acknowledged'}
+                    onClick={() => handleAcknowledge(alarm.id)}
+                  >
+                    Acknowledge
+                  </button>
+                </div>
+              ))}
             </div>
+          )}
+        </SectionCard>
 
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold">Intruder Sensor</span>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
-                latestReading.intruder_alarm 
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
-                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
-              }`}>
-                {latestReading.intruder_alarm ? 'INTRUDER DETECTED' : 'SECURE'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101a33] border border-[#344364]">
-              <span className="text-xs text-[#aeb9d5] font-bold">Breaker Switch</span>
-              <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide ${
+        {/* Right column: Cabinet protection relays and last transfer timestamp */}
+        <SectionCard title="ATS Cabinet Relays" icon={PlugZap}>
+          <div className="flex flex-col gap-3 py-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-[#aeb9d5]">Main Breaker Relay</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
                 latestReading.breaker_status === 'CLOSED'
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
                 {latestReading.breaker_status || 'OPEN'}
               </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-[#aeb9d5]">Intruder Sensor</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
+                latestReading.intruder_alarm 
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse' 
+                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
+              }`}>
+                {latestReading.intruder_alarm ? 'WARNING' : 'SECURE'}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-[#aeb9d5]">Fire relay Sensor</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wide ${
+                latestReading.fire_alarm 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                  : 'bg-green-500/20 text-green-400 border border-green-500/30'
+              }`}>
+                {latestReading.fire_alarm ? 'FIRE ALERT' : 'SECURE'}
+              </span>
+            </div>
+
+            <div className="divider" style={{ margin: '4px 0' }} />
+
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-[#aeb9d5]">Last Transfer Occurrence</span>
+              <strong className="text-[#f8fbff] text-[11px]">
+                {latestReading.last_transfer_at ? new Date(latestReading.last_transfer_at).toLocaleString() : 'N/A'}
+              </strong>
             </div>
           </div>
         </SectionCard>
