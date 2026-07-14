@@ -1,0 +1,50 @@
+package com.faultmonitor.backend.dto;
+
+import com.faultmonitor.backend.entity.Alarm;
+import com.faultmonitor.backend.entity.AlarmSeverity;
+import com.faultmonitor.backend.entity.AlarmStatus;
+import com.faultmonitor.backend.entity.SubsystemType;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
+public record AlarmResponse(
+        Long id,
+        Long equipmentId,
+        String equipmentCode,
+        SubsystemType equipmentType,
+        String alarmCode,
+        String alarmMessage,
+        AlarmSeverity severity,
+        AlarmStatus status,
+        Instant triggeredAt,
+        Instant acknowledgedAt,
+        AcknowledgedUser acknowledgedBy,
+        String acknowledgementNote,
+        Instant resolvedAt
+) {
+    public static AlarmResponse from(Alarm alarm) {
+        return new AlarmResponse(
+                alarm.getId(),
+                alarm.getEquipment() == null ? null : alarm.getEquipment().getId(),
+                alarm.getEquipment() == null ? alarm.getSubsystemId() : alarm.getEquipment().getEquipmentCode(),
+                alarm.getSubsystemType(),
+                alarm.getAlarmCode(),
+                alarm.getAlarmMessage(),
+                alarm.getSeverity(),
+                alarm.getStatus(),
+                toInstant(alarm.getTriggeredAt()),
+                toInstant(alarm.getAcknowledgedAt()),
+                alarm.getAcknowledgedBy() == null ? null : new AcknowledgedUser(
+                        alarm.getAcknowledgedBy().getId(), alarm.getAcknowledgedBy().getUsername()),
+                alarm.getAcknowledgementNote(),
+                toInstant(alarm.getResolvedAt()));
+    }
+
+    private static Instant toInstant(LocalDateTime value) {
+        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+    }
+
+    public record AcknowledgedUser(Long id, String username) {
+    }
+}

@@ -65,7 +65,7 @@ public class DataSimulationService {
         data.put("fire_alarm", false);
 
         saveReading(equipment, data);
-        alarmService.checkGenerator(data);
+        alarmService.checkGenerator(equipment, data);
     }
 
     @Scheduled(fixedRate = 5000)
@@ -89,7 +89,7 @@ public class DataSimulationService {
         data.put("fire_alarm", false);
 
         saveReading(equipment, data);
-        alarmService.checkATS(data);
+        alarmService.checkATS(equipment, data);
     }
 
     @Scheduled(fixedRate = 5000)
@@ -121,7 +121,7 @@ public class DataSimulationService {
         data.put("fire_alarm", false);
 
         saveReading(equipment, data);
-        alarmService.checkMDP(data);
+        alarmService.checkMDP(equipment, data);
     }
 
     @Scheduled(fixedRate = 5000)
@@ -143,10 +143,10 @@ public class DataSimulationService {
         data.put("fire_alarm", false);
 
         saveReading(equipment, data);
-        alarmService.checkSDP(data, equipment.getEquipmentCode());
+        alarmService.checkSDP(equipment, data);
     }
 
-    /** UPS alarm evaluation is intentionally left to Nethmini's lifecycle work. */
+    /** UPS alarm evaluation is added by the UPS feature owner. */
     @Scheduled(fixedRate = 5000)
     public void simulateUPS() {
         enabledEquipment(SubsystemType.UPS).forEach(this::simulateUPS);
