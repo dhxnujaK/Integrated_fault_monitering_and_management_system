@@ -784,6 +784,7 @@ function DashboardWorkspace() {
     const [records, summary] = await Promise.all([getAlarms({ unresolved: true }), getDashboardSummary()])
     setAlarms(groupAlarmsByEquipmentType(records))
     setDashboardSummary(summary)
+    return records
   }, [])
 
   useEffect(() => {
@@ -792,7 +793,7 @@ function DashboardWorkspace() {
     }, 0)
     const intervalId = window.setInterval(() => {
       refreshMonitoring().catch(() => {})
-    }, 10000)
+    }, 5000)
     return () => {
       window.clearTimeout(initialLoadId)
       window.clearInterval(intervalId)
@@ -810,10 +811,20 @@ function DashboardWorkspace() {
     }
   }
 
-  function openAlarm(alarm, path) {
-    if (path) {
-      navigate(path, { state: { alarmId: alarm.id, tab: getAlarmTab(alarm.status) } })
-      showToast(`${alarm.source ?? alarm.title} alarm opened`)
+  async function openAlarm(alarm, path) {
+    if (!path) return
+
+    try {
+      const unresolvedAlarms = await refreshMonitoring()
+      const currentAlarm = unresolvedAlarms.find((item) => String(item.id) === String(alarm.id))
+      if (!currentAlarm) {
+        showToast('This alarm has already resolved.')
+        return
+      }
+      navigate(path, { state: { alarmId: currentAlarm.id, tab: getAlarmTab(currentAlarm.status) } })
+      showToast(`${currentAlarm.equipmentCode ?? currentAlarm.alarmCode} alarm opened`)
+    } catch (error) {
+      showToast(`Unable to refresh alarm status: ${error.message}`)
     }
   }
 
