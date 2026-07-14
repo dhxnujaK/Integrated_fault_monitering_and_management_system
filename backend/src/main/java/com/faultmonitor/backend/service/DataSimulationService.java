@@ -15,6 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,11 @@ public class DataSimulationService {
     private final AtomicInteger generatorTicks = new AtomicInteger();
     private final AtomicInteger atsTicks = new AtomicInteger();
     private final AtomicInteger mdpTicks = new AtomicInteger();
-    private final Map<String, Double> generatorFuelLevels = new java.util.concurrent.ConcurrentHashMap<>();
+    private final AtomicInteger sdpTicks = new AtomicInteger();
+    private final AtomicInteger upsTicks = new AtomicInteger();
+
+    @Value("${simulation.fault-injection.enabled:false}")
+    private boolean faultInjectionEnabled;
 
     @Scheduled(fixedRate = 5000)
     public void simulateGenerator() {
@@ -42,12 +47,7 @@ public class DataSimulationService {
 
     private void simulateGenerator(Equipment equipment) {
         int tick = generatorTicks.incrementAndGet();
-        double generatorFuelLevel = generatorFuelLevels.getOrDefault(equipment.getEquipmentCode(), 100.0);
-        generatorFuelLevel = Math.max(0.0, generatorFuelLevel - 0.01);
-        if (tick % 500 == 0) {
-            generatorFuelLevel = Math.max(0.0, generatorFuelLevel - 5.0);
-        }
-        generatorFuelLevels.put(equipment.getEquipmentCode(), generatorFuelLevel);
+        boolean lowFuel = faultWindow(tick, 0);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("voltage_L1", varied(230.0, 5.0));
@@ -56,7 +56,7 @@ public class DataSimulationService {
         data.put("current_L1", varied(45.0, 3.0));
         data.put("current_L2", varied(45.0, 3.0));
         data.put("current_L3", varied(45.0, 3.0));
-        data.put("fuel_level_pct", round(generatorFuelLevel));
+        data.put("fuel_level_pct", lowFuel ? 15.0 : varied(85.0, 3.0));
         data.put("frequency_hz", varied(50.0, 0.5));
         data.put("running_status", "RUNNING");
         data.put("breaker_status", "CLOSED");
@@ -75,15 +75,15 @@ public class DataSimulationService {
 
     private void simulateATS(Equipment equipment) {
         int tick = atsTicks.incrementAndGet();
-        boolean transferTest = tick % 200 >= 0 && tick % 200 < 10;
+        boolean transferFailed = faultWindow(tick, 3);
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("active_source", transferTest ? "GENERATOR" : "MAINS");
+        data.put("active_source", transferFailed ? "GENERATOR" : "MAINS");
         data.put("mains_voltage", varied(230.0, 5.0));
         data.put("generator_voltage", varied(230.0, 5.0));
-        data.put("transfer_status", "NORMAL");
+        data.put("transfer_status", transferFailed ? "FAILED" : "NORMAL");
         data.put("breaker_status", "CLOSED");
-        data.put("last_transfer_at", transferTest ? LocalDateTime.now().toString() : null);
+        data.put("last_transfer_at", transferFailed ? LocalDateTime.now().toString() : null);
         data.put("room_temperature_c", varied(26.0, 2.0));
         data.put("intruder_alarm", false);
         data.put("fire_alarm", false);
@@ -99,7 +99,7 @@ public class DataSimulationService {
 
     private void simulateMDP(Equipment equipment) {
         int tick = mdpTicks.incrementAndGet();
-        boolean injectImbalance = tick % 300 == 0;
+        boolean injectImbalance = faultWindow(tick, 6);
 
         double voltageR = varied(230.0, 5.0);
         double voltageY = varied(230.0, 5.0);
@@ -130,8 +130,9 @@ public class DataSimulationService {
     }
 
     private void simulateSingleSDP(Equipment equipment) {
+        boolean voltageFault = faultWindow(sdpTicks.incrementAndGet(), 9);
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("voltage_R", varied(228.0, 5.0));
+        data.put("voltage_R", voltageFault ? 180.0 : varied(228.0, 5.0));
         data.put("voltage_Y", varied(228.0, 5.0));
         data.put("voltage_B", varied(228.0, 5.0));
         data.put("current_R", varied(30.0, 3.0));
@@ -152,13 +153,14 @@ public class DataSimulationService {
     }
 
     private void simulateUPS(Equipment equipment) {
+        boolean batteryFault = faultWindow(upsTicks.incrementAndGet(), 12);
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("operational_status", "ONLINE");
-        data.put("battery_charge_pct", varied(85.0, 3.0));
+        data.put("operational_status", batteryFault ? "ON_BATTERY" : "ONLINE");
+        data.put("battery_charge_pct", batteryFault ? 15.0 : varied(85.0, 3.0));
         data.put("battery_voltage_v", varied(48.0, 1.0));
         data.put("input_voltage_v", varied(230.0, 4.0));
         data.put("output_voltage_v", varied(230.0, 2.0));
-        data.put("load_pct", varied(45.0, 5.0));
+        data.put("load_pct", batteryFault ? 85.0 : varied(45.0, 5.0));
         data.put("estimated_runtime_min", Math.round(varied(120.0, 12.0)));
         data.put("temperature_c", varied(27.0, 2.0));
         data.put("fault_code", null);
@@ -194,5 +196,11 @@ public class DataSimulationService {
 
     private ThreadLocalRandom random() {
         return ThreadLocalRandom.current();
+    }
+
+    /** Generates a 15-second fault window once per minute in the local dev simulator. */
+    private boolean faultWindow(int tick, int offset) {
+        int phase = Math.floorMod(tick + offset, 12);
+        return faultInjectionEnabled && phase >= 9;
     }
 }
