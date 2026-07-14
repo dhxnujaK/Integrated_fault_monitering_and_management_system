@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  ChevronRight,
   CircleUserRound,
   ClipboardList,
   Gauge,
@@ -504,40 +503,39 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
 
 function SystemOverview({ equipment }) {
   const severityRank = { NORMAL: 0, OFFLINE: 1, WARNING: 2, CRITICAL: 3 }
-  const statuses = equipment.reduce((byType, item) => {
-    const type = String(item.equipmentType ?? '').toUpperCase()
-    const status = String(item.overallStatus ?? 'OFFLINE').toUpperCase()
-    if (!byType[type] || severityRank[status] > severityRank[byType[type].overallStatus]) {
-      byType[type] = { equipmentCode: item.equipmentCode, overallStatus: status }
+  const nodeForType = (type, fallbackLabel) => {
+    const matchingEquipment = equipment.filter((item) => item.equipmentType === type)
+    const worst = matchingEquipment.reduce((current, item) => {
+      const status = String(item.overallStatus ?? 'OFFLINE').toUpperCase()
+      return !current || severityRank[status] > severityRank[current.status]
+        ? { status, equipmentCode: item.equipmentCode }
+        : current
+    }, null)
+    return {
+      label: matchingEquipment.length > 1 ? `${type} FLEET` : worst?.equipmentCode ?? fallbackLabel,
+      status: worst?.status ?? 'OFFLINE',
+      alarmCount: matchingEquipment.reduce((total, item) => total + (item.unresolvedAlarmCount ?? 0), 0),
     }
-    return byType
-  }, {})
-  const node = (type, label) => ({
-    label: statuses[type]?.equipmentCode ?? label,
-    status: statuses[type]?.overallStatus ?? 'OFFLINE',
-  })
-  const rows = [
-    [node('GENERATOR', 'GENERATOR'), node('ATS', 'ATS')],
-    [node('ATS', 'ATS'), node('MDP', 'MDP')],
-    [node('MDP', 'MDP'), {
-      label: equipment.filter((item) => item.equipmentType === 'SDP').length > 1 ? 'SDP FLEET' : 'SDP',
-      status: statuses.SDP?.overallStatus ?? 'OFFLINE',
-    }],
-    [node('UPS', 'UPS'), { label: 'CRITICAL LOAD', status: statuses.UPS?.overallStatus ?? 'OFFLINE' }],
+  }
+  const groups = [
+    { label: 'Generation & Transfer', nodes: [nodeForType('GENERATOR', 'GENERATOR'), nodeForType('ATS', 'ATS')] },
+    { label: 'Distribution', nodes: [nodeForType('MDP', 'MDP'), nodeForType('SDP', 'SDP')] },
+    { label: 'Critical Power', nodes: [nodeForType('UPS', 'UPS')] },
   ]
 
   return (
     <section className="system-overview" aria-label="Live system overview">
       <h2>Live System Overview</h2>
-      <p className="system-overview-note">Equipment status updates from the monitoring service.</p>
+      <p className="system-overview-note">Live equipment health and unresolved alarms.</p>
       <div className="divider" />
-      <div className="flow-map">
-        {rows.map(([from, to]) => (
-          <div className="flow-row" key={`${from.label}-${to.label}`}>
-            <FlowNode {...from} />
-            <ChevronRight className={`flow-arrow ${statusClass(to.status)}`} size={22} />
-            <FlowNode {...to} />
-          </div>
+      <div className="topology-groups">
+        {groups.map((group) => (
+          <section className="topology-group" key={group.label}>
+            <h3>{group.label}</h3>
+            <div className="topology-nodes">
+              {group.nodes.map((node) => <TopologyNode key={node.label} {...node} />)}
+            </div>
+          </section>
         ))}
       </div>
       <div className="legend" aria-label="Status legend">
@@ -550,11 +548,11 @@ function SystemOverview({ equipment }) {
   )
 }
 
-function FlowNode({ label, status }) {
+function TopologyNode({ label, status, alarmCount }) {
   return (
-    <div className={`flow-node ${statusClass(status)}`} title={`${label}: ${status}`}>
+    <div className={`topology-node ${statusClass(status)}`} title={`${label}: ${status}`}>
       <strong>{label}</strong>
-      <small>{status}</small>
+      <small>{status} · {alarmCount} unresolved</small>
     </div>
   )
 }

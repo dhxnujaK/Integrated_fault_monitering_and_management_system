@@ -552,6 +552,70 @@ button {
   text-align: center;
 }
 
+.topology-groups {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 4px;
+}
+
+.topology-group {
+  padding: 12px;
+  border: 1px solid #cbd7ea;
+  border-radius: 12px;
+  background: rgb(248 251 255 / 76%);
+}
+
+.topology-group h3 {
+  margin: 0 0 10px;
+  color: #526082;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.topology-nodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.topology-node {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: #fff;
+}
+
+.topology-node strong {
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+
+.topology-node small {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: .92;
+}
+
+.topology-node.normal {
+  background: #3c8e5d;
+}
+
+.topology-node.warning {
+  background: #b7791f;
+}
+
+.topology-node.critical {
+  background: #c53b3b;
+}
+
+.topology-node.offline {
+  background: #64748b;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;
