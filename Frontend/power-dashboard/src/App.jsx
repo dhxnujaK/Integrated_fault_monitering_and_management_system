@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  ChevronRight,
   CircleUserRound,
   ClipboardList,
   Gauge,
@@ -488,7 +487,6 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
       </section>
 
       <div className="dashboard-grid">
-        <SystemOverview />
         <div className="dashboard-stack">
           <AlarmPanel title="Alarm Summary" alarms={alarms} compact={!showAllAlarms} filters={showAllAlarms} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onAction={onAction} />
           <div className="actions">
@@ -496,106 +494,9 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
               {showAllAlarms ? 'Show summary' : 'View all alarms'}
             </button>
           </div>
-          <div className="two-column">
-            <UpsSummary />
-            <FaultDiagnosis title="UPS Battery is low." />
-          </div>
-          <DashboardActionQueue />
         </div>
       </div>
     </div>
-  )
-}
-
-function DashboardActionQueue() {
-  return (
-    <SectionCard title="Maintenance & Action Queue" icon={ClipboardList}>
-      <div className="action-queue">
-        <article>
-          <strong>Generator cooling inspection</strong>
-          <span>Critical</span>
-          <p>Technician dispatch required after repeated coolant temperature alarms.</p>
-        </article>
-        <article>
-          <strong>UPS battery replacement</strong>
-          <span>Pending</span>
-          <p>UPS 01 runtime below safe threshold for server-room load.</p>
-        </article>
-        <article>
-          <strong>MDP phase check</strong>
-          <span>Scheduled</span>
-          <p>Verify phase imbalance and breaker trip behavior during next window.</p>
-        </article>
-      </div>
-    </SectionCard>
-  )
-}
-
-function SystemOverview() {
-  const nodes = [
-    ['CEB', 'ATS', 'danger'],
-    ['GENERATOR', 'MDP', 'green'],
-    ['MDP', 'SDP', 'blue'],
-    ['SDP', 'CRITICAL LOAD', 'danger'],
-  ]
-
-  return (
-    <section className="system-overview">
-      <h2>System Overview</h2>
-      <div className="divider" />
-      <div className="flow-map">
-        {nodes.map(([from, to, tone]) => (
-          <div className="flow-row" key={`${from}-${to}`}>
-            <span className={`flow-node ${tone}`}>{from}</span>
-            <ChevronRight size={22} />
-            <span className={`flow-node ${tone}`}>{to}</span>
-          </div>
-        ))}
-      </div>
-      <div className="legend">
-        <span><i className="danger-line" />Fault Path</span>
-        <span><i className="green-line" />Generator Backup</span>
-        <span><i className="blue-line" />Power Distribution</span>
-      </div>
-    </section>
-  )
-}
-
-function UpsSummary() {
-  return (
-    <SectionCard title="UPS Status">
-      <dl className="kv-list">
-        <div><dt>Input Voltage</dt><dd>230V</dd></div>
-        <div><dt>Output Load</dt><dd>78%</dd></div>
-        <div><dt>Battery Level</dt><dd>15%</dd></div>
-      </dl>
-      <ChartPlaceholder variant="warm" />
-    </SectionCard>
-  )
-}
-
-function FaultDiagnosis({ title = 'High Coolant temperature' }) {
-  return (
-    <SectionCard title="Fault Diagnosis" icon={AlertTriangle}>
-      <p className="diagnosis-banner">{title}</p>
-      <div className="fault-timeline">
-        <span>Raised: 10:12 am</span>
-        <span>Ack: 10:13 am</span>
-        <span>Cleared: 10:14 am</span>
-      </div>
-      <h3>Probable Causes:</h3>
-      <ul className="compact-list">
-        <li>Battery near end-of-life.</li>
-        <li>Input AC failure.</li>
-        <li>UPS overload.</li>
-      </ul>
-      <h3>Recommended Actions:</h3>
-      <ul className="compact-list">
-        <li>Check input power.</li>
-        <li>Inspect battery condition.</li>
-        <li>Reduce UPS load.</li>
-      </ul>
-    </SectionCard>
   )
 }
 
@@ -790,10 +691,6 @@ function SliderRow({ label, value }) {
       <span className="slider-control"><input type="range" defaultValue="68" /><strong>{value}</strong></span>
     </label>
   )
-}
-
-function ChartPlaceholder({ variant = 'cool' }) {
-  return <div className={`mini-chart ${variant}`} aria-label="Chart placeholder" />
 }
 
 function Actions({ secondary = 'Create Maintenance ticket', onAction }) {
