@@ -972,10 +972,10 @@ dd {
 .mini-chart,
 .telemetry-chart {
   min-height: 96px;
-  border-radius: 18px;
-  border: 1px solid rgb(215 222 240 / 88%);
-  background: linear-gradient(160deg, #f8fbff, #e7edf9);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
+  border-radius: 12px;
+  border: 1px solid rgb(119 151 204 / 35%);
+  background: linear-gradient(160deg, #0d1a31, #132846);
+  box-shadow: inset 0 1px 0 rgb(185 209 248 / 8%);
 }
 
 .mini-chart.warm {
@@ -987,6 +987,7 @@ dd {
 }
 
 .telemetry-chart {
+  position: relative;
   min-height: 206px;
   display: grid;
   align-items: center;
@@ -1006,7 +1007,7 @@ dd {
 }
 
 .telemetry-chart .chart-grid-lines path {
-  stroke: #b6c2da;
+  stroke: #52709b;
   stroke-width: 1;
   opacity: .62;
 }
@@ -1019,7 +1020,7 @@ dd {
   display: flex;
   gap: 14px;
   margin-top: 10px;
-  color: #d7dff0;
+  color: #c7d5eb;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1039,84 +1040,230 @@ dd {
   display: flex;
   justify-content: space-between;
   margin-top: 4px;
-  color: #5f6e8d;
+  color: #8ea4c7;
   font-size: 11px;
   font-weight: 800;
 }
 
-.ats-flow {
-  min-height: 240px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #eef3fb, #dfe8f7);
-  color: #10192c;
-  padding: 20px;
-}
-
-.ats-wires {
+.telemetry-scale {
   position: absolute;
-  inset: 20px;
-  width: calc(100% - 40px);
-  height: calc(100% - 40px);
-}
-
-.wire {
-  fill: none;
-  stroke-width: 5;
-  stroke-linecap: square;
-}
-
-.wire.utility {
-  stroke: #e04444;
-}
-
-.wire.generator {
-  stroke: #80b95a;
-}
-
-.wire.load {
-  stroke: #3a6ad8;
-}
-
-.junction {
-  fill: #34a6a8;
-  stroke: #1f6973;
-  stroke-width: 3;
-}
-
-.ats-flow .source {
-  position: absolute;
-  z-index: 1;
-  width: 112px;
-  min-height: 48px;
-  box-shadow: 0 8px 18px rgb(38 48 75 / 14%);
-}
-
-.ats-flow .source span {
-  display: block;
-  margin-top: 3px;
+  inset: 22px 8px 22px auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #9fb4d5;
   font-size: 10px;
+  font-weight: 800;
+  text-align: right;
 }
 
-.utility-node {
-  left: 46px;
-  top: 74px;
+.condition-trends {
+  display: grid;
+  gap: 14px;
 }
 
-.generator-node {
-  left: 48px;
-  bottom: 26px;
+.condition-trend {
+  border: 1px solid rgb(112 145 197 / 28%);
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(145deg, #0f1d35, #142845);
 }
 
-.ats-node {
-  left: calc(50% - 56px);
-  top: 94px;
+.condition-trend-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #c6d3e9;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.load-node {
-  right: 44px;
-  top: 74px;
+.condition-trend-heading strong {
+  color: #fff;
+  font-size: 16px;
+}
+
+.condition-trend svg {
+  display: block;
+  width: 100%;
+  height: 58px;
+  margin-top: 8px;
+}
+
+.condition-trend path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.condition-trend .condition-baseline {
+  stroke: #486485;
+  stroke-width: 1;
+}
+
+.condition-trend .condition-line {
+  stroke-width: 4;
+}
+
+.condition-trend small {
+  color: #90a6c8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ats-schematic {
+  display: grid;
+  grid-template-columns: minmax(132px, 1fr) 72px minmax(132px, 1fr) 72px minmax(132px, 1fr);
+  align-items: center;
+  min-height: 244px;
+  gap: 0;
+  border: 1px solid rgb(93 122 176 / 30%);
+  border-radius: 14px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(62 113 177 / 15%), transparent 48%),
+    linear-gradient(145deg, #101d37, #142746);
+}
+
+.schematic-sources {
+  display: grid;
+  gap: 14px;
+}
+
+.schematic-node {
+  display: grid;
+  gap: 4px;
+  min-height: 82px;
+  align-content: center;
+  border: 1px solid rgb(148 168 209 / 34%);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #22395f;
+  color: #f4f8ff;
+  box-shadow: 0 10px 20px rgb(2 10 26 / 24%);
+}
+
+.schematic-node span {
+  color: #bdcbe5;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.schematic-node strong {
+  font-size: 18px;
+}
+
+.schematic-node small {
+  color: #c9d6ed;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.schematic-node.active,
+.schematic-node.normal {
+  border-color: rgb(119 217 126 / 62%);
+  background: linear-gradient(145deg, #246642, #2e8552);
+}
+
+.schematic-node.standby {
+  background: linear-gradient(145deg, #344866, #425978);
+}
+
+.schematic-node.fault {
+  border-color: rgb(255 112 112 / 72%);
+  background: linear-gradient(145deg, #9e343e, #d9484b);
+}
+
+.schematic-node.ats,
+.schematic-node.load {
+  justify-self: stretch;
+  text-align: center;
+}
+
+.schematic-node.load {
+  border-color: rgb(100 161 255 / 65%);
+  background: linear-gradient(145deg, #2f538f, #3d6db6);
+}
+
+.schematic-connector {
+  position: relative;
+  height: 4px;
+  margin: 0 -1px;
+  background: #496887;
+}
+
+.schematic-connector::after {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 10px solid currentColor;
+  color: inherit;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.schematic-connector span {
+  position: absolute;
+  top: -23px;
+  left: 50%;
+  color: #bcd0ef;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.schematic-connector.normal {
+  color: #77d97e;
+  background: #77d97e;
+}
+
+.schematic-connector.fault {
+  color: #ff7474;
+  background: #ff7474;
+}
+
+@media (max-width: 1180px) {
+  .ats-schematic {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .schematic-sources {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schematic-connector {
+    width: 4px;
+    height: 26px;
+    margin: -1px auto;
+  }
+
+  .schematic-connector::after {
+    top: auto;
+    right: 50%;
+    bottom: -1px;
+    border-top: 10px solid currentColor;
+    border-right: 7px solid transparent;
+    border-bottom: 0;
+    border-left: 7px solid transparent;
+    transform: translateX(50%);
+  }
+
+  .schematic-connector span {
+    top: 50%;
+    left: 18px;
+    white-space: nowrap;
+    transform: translateY(-50%);
+  }
 }
 
 .phase {

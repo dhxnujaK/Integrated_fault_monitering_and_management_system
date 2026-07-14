@@ -29,34 +29,28 @@ function formatSampleTime(value) {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function LiveTrendPanel({ title, readings, series }) {
+function buildTrendPath(values, min, max, width = 520, height = 112, top = 18) {
+  const range = max - min || 1
+  let started = false
+
+  return values.map((value, index) => {
+    if (value === null) return ''
+    const x = values.length > 1 ? (index / (values.length - 1)) * width : width / 2
+    const bounded = Math.min(max, Math.max(min, value))
+    const y = top + height - ((bounded - min) / range) * height
+    const command = started ? 'L' : 'M'
+    started = true
+    return `${command}${x.toFixed(1)} ${y.toFixed(1)}`
+  }).join(' ')
+}
+
+function LiveTrendPanel({ title, readings, series, min, max, unit }) {
   const samples = [...readings].reverse()
   const plottedSeries = series.map((item) => ({
     ...item,
     values: samples.map((sample) => toNumber(sample.data?.[item.key])),
   }))
   const hasData = plottedSeries.some((item) => item.values.some((value) => value !== null))
-
-  const buildLinePath = (values) => {
-    const available = values.filter((value) => value !== null)
-    if (!available.length) return ''
-    const min = Math.min(...available)
-    const max = Math.max(...available)
-    const range = max - min || 1
-    const width = 520
-    const height = 112
-    const top = 18
-    let started = false
-
-    return values.map((value, index) => {
-      if (value === null) return ''
-      const x = values.length > 1 ? (index / (values.length - 1)) * width : width / 2
-      const y = top + height - ((value - min) / range) * height
-      const command = started ? 'L' : 'M'
-      started = true
-      return `${command}${x.toFixed(1)} ${y.toFixed(1)}`
-    }).join(' ')
-  }
 
   return (
     <SectionCard title={title}>
@@ -69,8 +63,9 @@ function LiveTrendPanel({ title, readings, series }) {
                 <path d="M0 75 H520" />
                 <path d="M0 120 H520" />
               </g>
-              {plottedSeries.map((item) => <path key={item.key} className="telemetry-line" style={{ stroke: item.color }} d={buildLinePath(item.values)} />)}
+              {plottedSeries.map((item) => <path key={item.key} className="telemetry-line" style={{ stroke: item.color }} d={buildTrendPath(item.values, min, max)} />)}
             </svg>
+            <div className="telemetry-scale" aria-hidden="true"><span>{max} {unit}</span><span>{min} {unit}</span></div>
           </div>
           <div className="axis-labels">
             <span>{formatSampleTime(samples[0]?.recordedAt)}</span>
@@ -82,6 +77,38 @@ function LiveTrendPanel({ title, readings, series }) {
           </div>
         </>
       ) : <p className="empty-state">Waiting for live generator readings to draw this trend.</p>}
+    </SectionCard>
+  )
+}
+
+function GeneratorConditionsTrend({ readings }) {
+  const samples = [...readings].reverse()
+  const metrics = [
+    { key: 'frequency_hz', label: 'Frequency', unit: 'Hz', min: 48, max: 52, color: '#4c8cff' },
+    { key: 'room_temperature_c', label: 'Room temperature', unit: '°C', min: 15, max: 50, color: '#ff8a55' },
+  ]
+
+  return (
+    <SectionCard title="Generator Conditions">
+      <div className="condition-trends">
+        {metrics.map((metric) => {
+          const values = samples.map((sample) => toNumber(sample.data?.[metric.key]))
+          const current = values.at(-1)
+          return (
+            <div className="condition-trend" key={metric.key}>
+              <div className="condition-trend-heading">
+                <span>{metric.label}</span>
+                <strong>{current === null || current === undefined ? '—' : `${current.toFixed(1)} ${metric.unit}`}</strong>
+              </div>
+              <svg viewBox="0 0 520 54" role="img" aria-label={`${metric.label} recent trend`}>
+                <path className="condition-baseline" d="M0 46 H520" />
+                <path className="condition-line" style={{ stroke: metric.color }} d={buildTrendPath(values, metric.min, metric.max, 520, 40, 6)} />
+              </svg>
+              <small>Operating band {metric.min}–{metric.max} {metric.unit}</small>
+            </div>
+          )
+        })}
+      </div>
     </SectionCard>
   )
 }
@@ -204,20 +231,16 @@ export default function GeneratorPage({ onAcknowledge }) {
         <LiveTrendPanel
           title="Three-Phase Voltage Trend"
           readings={readings}
+          min={200}
+          max={260}
+          unit="V"
           series={[
             { key: 'voltage_L1', label: 'L1', unit: 'V', color: '#447ae4' },
             { key: 'voltage_L2', label: 'L2', unit: 'V', color: '#79cf6b' },
             { key: 'voltage_L3', label: 'L3', unit: 'V', color: '#b7791f' },
           ]}
         />
-        <LiveTrendPanel
-          title="Frequency & Temperature Trend"
-          readings={readings}
-          series={[
-            { key: 'frequency_hz', label: 'Frequency', unit: 'Hz', color: '#4c8cff' },
-            { key: 'room_temperature_c', label: 'Room temperature', unit: '°C', color: '#ff7842' },
-          ]}
-        />
+        <GeneratorConditionsTrend readings={readings} />
       </div>
 
       {/* 3. Readings Grid: 6 cards for Voltage & Current */}

@@ -122,27 +122,36 @@ export default function ATSPage({ onAcknowledge }) {
 
       {/* 2. Middle Row: Visual Flow & Parameters (content-grid two-even) */}
       <div className="content-grid two-even">
-        {/* Left: SVG Flow map matching App.css absolute coordinate styles */}
-        <SectionCard title="Utility Source Flow Map">
-          <div className="ats-flow" style={{ borderRadius: '4px' }}>
-            <svg className="ats-wires" viewBox="0 0 620 260" aria-hidden="true">
-              <path 
-                className="wire utility" 
-                style={{ stroke: isMainsActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
-                d="M115 82 H278" 
-              />
-              <path 
-                className="wire generator" 
-                style={{ stroke: isGeneratorActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
-                d="M122 190 V148 H278" 
-              />
-              <path className="wire load" style={{ stroke: '#3a6ad8' }} d="M340 116 H505" />
-              <circle className="junction" cx="306" cy="116" r="8" />
-            </svg>
-            <div className={`source ${isMainsActive ? 'green' : 'inactive'} utility-node`}>UTILITY<span>{latestReading.mains_voltage?.toFixed(1) ?? '—'} V</span></div>
-            <div className={`source ${transferStatus === 'FAILED' ? 'danger' : 'teal'} ats-node`}>ATS<span>{transferStatus}</span></div>
-            <div className="source blue load-node">LOAD<span>Active: {activeSource}</span></div>
-            <div className={`source ${isGeneratorActive ? 'green' : 'inactive'} generator-node`}>GENERATOR<span>{latestReading.generator_voltage?.toFixed(1) ?? '—'} V</span></div>
+        <SectionCard title="Live Power Path">
+          <div className="ats-schematic" aria-label={`Live path: ${activeSource} through ATS to load`}>
+            <div className="schematic-sources">
+              <div className={`schematic-node ${isMainsActive ? 'active' : 'standby'}`}>
+                <span>Utility</span>
+                <strong>{latestReading.mains_voltage?.toFixed(1) ?? '—'} V</strong>
+                <small>{isMainsActive ? 'Selected source' : 'Standby source'}</small>
+              </div>
+              <div className={`schematic-node ${isGeneratorActive ? 'active' : 'standby'}`}>
+                <span>Generator</span>
+                <strong>{latestReading.generator_voltage?.toFixed(1) ?? '—'} V</strong>
+                <small>{isGeneratorActive ? 'Selected source' : 'Standby source'}</small>
+              </div>
+            </div>
+            <div className={`schematic-connector input ${transferStatus === 'FAILED' ? 'fault' : 'normal'}`}>
+              <span>{activeSource}</span>
+            </div>
+            <div className={`schematic-node ats ${transferStatus === 'FAILED' ? 'fault' : 'normal'}`}>
+              <span>ATS</span>
+              <strong>{transferStatus}</strong>
+              <small>Transfer controller</small>
+            </div>
+            <div className={`schematic-connector output ${transferStatus === 'FAILED' ? 'fault' : 'normal'}`}>
+              <span>Output</span>
+            </div>
+            <div className="schematic-node load">
+              <span>Load</span>
+              <strong>{activeSource}</strong>
+              <small>Active supply</small>
+            </div>
           </div>
         </SectionCard>
 
