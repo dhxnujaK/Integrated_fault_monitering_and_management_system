@@ -539,6 +539,10 @@ button {
   background: #34a6a8;
 }
 
+.source.inactive {
+  background: #64748b;
+}
+
 .legend {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -966,7 +970,7 @@ dd {
 }
 
 .mini-chart,
-.chart-placeholder {
+.telemetry-chart {
   min-height: 96px;
   border-radius: 18px;
   border: 1px solid rgb(215 222 240 / 88%);
@@ -982,46 +986,33 @@ dd {
     linear-gradient(160deg, #f9fbff, #e6ebf7);
 }
 
-.chart-placeholder {
+.telemetry-chart {
   min-height: 206px;
   display: grid;
   align-items: center;
   padding: 14px 16px 8px;
 }
 
-.chart-placeholder svg {
+.telemetry-chart svg {
   width: 100%;
   height: 150px;
 }
 
-.chart-placeholder path {
+.telemetry-chart path {
   fill: none;
   stroke-width: 7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.chart-placeholder .chart-grid-lines path {
+.telemetry-chart .chart-grid-lines path {
   stroke: #b6c2da;
   stroke-width: 1;
   opacity: .62;
 }
 
-.chart-placeholder.power .line-a,
-.chart-placeholder.engine .line-b {
-  stroke: #79cf6b;
-}
-
-.chart-placeholder.power .line-b {
-  stroke: #447ae4;
-}
-
-.chart-placeholder.engine {
-  background: linear-gradient(180deg, #fff6f1, #ffd8cb);
-}
-
-.chart-placeholder.engine .line-a {
-  stroke: #ff7842;
+.telemetry-chart .telemetry-line {
+  stroke-width: 5;
 }
 
 .chart-legend {
@@ -1040,12 +1031,8 @@ dd {
   height: 5px;
   border-radius: 999px;
   margin-right: 7px;
-  background: #79cf6b;
+  background: var(--legend-color, #79cf6b);
   vertical-align: middle;
-}
-
-.chart-legend span:nth-child(2)::before {
-  background: #447ae4;
 }
 
 .axis-labels {

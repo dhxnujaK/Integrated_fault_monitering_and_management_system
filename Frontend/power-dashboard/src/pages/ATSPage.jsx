@@ -41,6 +41,8 @@ export default function ATSPage() {
 
   const activeSource = (latestReading.active_source ?? 'UNKNOWN').toUpperCase()
   const isMainsActive = activeSource === 'MAINS'
+  const isGeneratorActive = activeSource === 'GENERATOR'
+  const transferStatus = (latestReading.transfer_status ?? 'UNKNOWN').toUpperCase()
   const generatorMode = activeSource === 'MAINS' ? 'Standby' : activeSource === 'GENERATOR' ? 'Active' : 'Unknown'
 
   return (
@@ -72,7 +74,7 @@ export default function ATSPage() {
           </div>
           <div className="divider" />
           <p className="metric-value">{latestReading.mains_voltage?.toFixed(1)} V</p>
-          <span className="metric-note">Frequency: 50.0 Hz</span>
+          <span className="metric-note">{isMainsActive ? 'Supplying the load' : 'Available standby source'}</span>
         </article>
 
         <article className="metric-panel">
@@ -98,12 +100,16 @@ export default function ATSPage() {
         <article className="metric-panel">
           <div className="panel-heading">
             <ShieldCheck size={18} />
-            <h2>ATS Mode</h2>
+            <h2>Transfer Status</h2>
           </div>
           <div className="divider" />
           <div className="mt-2 text-left">
-            <span className="px-2 py-0.5 rounded text-xs font-black tracking-wide bg-green-500/20 text-green-400 border border-green-500/30">
-              AUTO MODE
+            <span className={`px-2 py-0.5 rounded text-xs font-black tracking-wide ${
+              transferStatus === 'FAILED'
+                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+            }`}>
+              {transferStatus}
             </span>
           </div>
           <span className="metric-note">Overall status: {status?.overallStatus ?? 'OFFLINE'}</span>
@@ -123,16 +129,16 @@ export default function ATSPage() {
               />
               <path 
                 className="wire generator" 
-                style={{ stroke: !isMainsActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
+                style={{ stroke: isGeneratorActive ? '#80b95a' : '#e04444', transition: 'stroke 0.4s' }}
                 d="M122 190 V148 H278" 
               />
               <path className="wire load" style={{ stroke: '#3a6ad8' }} d="M340 116 H505" />
               <circle className="junction" cx="306" cy="116" r="8" />
             </svg>
-            <div className="source green utility-node">UTILITY<span>{latestReading.mains_voltage?.toFixed(1)} V<br />50 Hz</span></div>
-            <div className="source teal ats-node">ATS</div>
+            <div className={`source ${isMainsActive ? 'green' : 'inactive'} utility-node`}>UTILITY<span>{latestReading.mains_voltage?.toFixed(1) ?? '—'} V</span></div>
+            <div className={`source ${transferStatus === 'FAILED' ? 'danger' : 'teal'} ats-node`}>ATS<span>{transferStatus}</span></div>
             <div className="source blue load-node">LOAD<span>Active: {activeSource}</span></div>
-            <div className="source green generator-node">GENERATOR<span>{latestReading.generator_voltage?.toFixed(1)} V<br />50 Hz</span></div>
+            <div className={`source ${isGeneratorActive ? 'green' : 'inactive'} generator-node`}>GENERATOR<span>{latestReading.generator_voltage?.toFixed(1) ?? '—'} V</span></div>
           </div>
         </SectionCard>
 
@@ -141,8 +147,9 @@ export default function ATSPage() {
           <dl className="parameter-list">
             <div><dt>Utility Voltage</dt><dd>{latestReading.mains_voltage?.toFixed(1)} V</dd></div>
             <div><dt>Generator Voltage L - L</dt><dd>{latestReading.generator_voltage?.toFixed(1)} V</dd></div>
-            <div><dt>Frequency</dt><dd>50 Hz</dd></div>
+            <div><dt>Active source</dt><dd>{activeSource}</dd></div>
             <div><dt>Phases</dt><dd><span className="phase r">R</span><span className="phase y">Y</span><span className="phase b">B</span></dd></div>
+            <div><dt>Last transfer</dt><dd>{latestReading.last_transfer_at ? new Date(latestReading.last_transfer_at).toLocaleString() : 'No transfer recorded'}</dd></div>
           </dl>
         </SectionCard>
       </div>

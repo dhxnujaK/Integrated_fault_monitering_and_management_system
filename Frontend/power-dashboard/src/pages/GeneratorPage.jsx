@@ -19,60 +19,76 @@ import {
   RefreshCw
 } from 'lucide-react'
 
-// Premium mock ChartPanel to match the theme
-function ChartPanel({ title, variant, legend }) {
-  const chartSeries = {
-    power: {
-      a: [46, 42, 51, 47, 58, 54, 61, 57, 66, 62, 70, 68],
-      b: [32, 34, 37, 36, 42, 40, 45, 44, 49, 47, 52, 50],
-    },
-    engine: {
-      a: [64, 61, 69, 66, 75, 70, 78, 73, 81, 76, 84, 79],
-      b: [42, 48, 45, 55, 50, 59, 53, 62, 58, 64, 60, 66],
-    },
-  }
+function toNumber(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
 
-  const series = chartSeries[variant] ?? chartSeries.power
+function formatSampleTime(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function LiveTrendPanel({ title, readings, series }) {
+  const samples = [...readings].reverse()
+  const plottedSeries = series.map((item) => ({
+    ...item,
+    values: samples.map((sample) => toNumber(sample.data?.[item.key])),
+  }))
+  const hasData = plottedSeries.some((item) => item.values.some((value) => value !== null))
 
   const buildLinePath = (values) => {
-    const max = Math.max(...values)
-    const min = Math.min(...values)
-    const width = 520
-    const height = 118
-    const top = 16
+    const available = values.filter((value) => value !== null)
+    if (!available.length) return ''
+    const min = Math.min(...available)
+    const max = Math.max(...available)
     const range = max - min || 1
-    const points = values.map((value, index) => {
-      const x = (index / (values.length - 1)) * width
+    const width = 520
+    const height = 112
+    const top = 18
+    let started = false
+
+    return values.map((value, index) => {
+      if (value === null) return ''
+      const x = values.length > 1 ? (index / (values.length - 1)) * width : width / 2
       const y = top + height - ((value - min) / range) * height
-      return [x, y]
-    })
-    return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+      const command = started ? 'L' : 'M'
+      started = true
+      return `${command}${x.toFixed(1)} ${y.toFixed(1)}`
+    }).join(' ')
   }
 
   return (
     <SectionCard title={title}>
-      <div className={`chart-placeholder ${variant}`}>
-        <svg viewBox="0 0 520 150" role="img" aria-label={`${title} chart placeholder`}>
-          <g className="chart-grid-lines">
-            <path d="M0 30 H520" />
-            <path d="M0 75 H520" />
-            <path d="M0 120 H520" />
-          </g>
-          <path className="line-a" d={buildLinePath(series.a)} />
-          <path className="line-b" d={buildLinePath(series.b)} />
-        </svg>
-      </div>
-      <div className="axis-labels"><span>9:00</span><span>10:00</span><span>11:00</span><span>12:00</span></div>
-      <div className="chart-legend">
-        {legend.map((item) => <span key={item}>{item}</span>)}
-      </div>
+      {hasData ? (
+        <>
+          <div className="telemetry-chart">
+            <svg viewBox="0 0 520 150" role="img" aria-label={`${title} from recent telemetry`}>
+              <g className="chart-grid-lines">
+                <path d="M0 30 H520" />
+                <path d="M0 75 H520" />
+                <path d="M0 120 H520" />
+              </g>
+              {plottedSeries.map((item) => <path key={item.key} className="telemetry-line" style={{ stroke: item.color }} d={buildLinePath(item.values)} />)}
+            </svg>
+          </div>
+          <div className="axis-labels">
+            <span>{formatSampleTime(samples[0]?.recordedAt)}</span>
+            <span>{formatSampleTime(samples[Math.floor(samples.length / 2)]?.recordedAt)}</span>
+            <span>{formatSampleTime(samples.at(-1)?.recordedAt)}</span>
+          </div>
+          <div className="chart-legend">
+            {plottedSeries.map((item) => <span key={item.key} style={{ '--legend-color': item.color }}>{item.label} ({item.unit})</span>)}
+          </div>
+        </>
+      ) : <p className="empty-state">Waiting for live generator readings to draw this trend.</p>}
     </SectionCard>
   )
 }
 
 export default function GeneratorPage() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('GENERATOR', selectedEquipmentId)
+  const { equipment, selectedEquipment, status, alarms, readings, statusError, refresh } = useEquipmentMonitoring('GENERATOR', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -89,6 +105,13 @@ export default function GeneratorPage() {
 
   // Telemetry mappings
   const latestReading = status?.latestReading ?? {}
+
+  const averageOf = (...values) => {
+    const numbers = values.map(toNumber).filter((value) => value !== null)
+    return numbers.length ? numbers.reduce((total, value) => total + value, 0) / numbers.length : null
+  }
+  const averageVoltage = averageOf(latestReading.voltage_L1, latestReading.voltage_L2, latestReading.voltage_L3)
+  const averageCurrent = averageOf(latestReading.current_L1, latestReading.current_L2, latestReading.current_L3)
 
   const fuelPct = Number.isFinite(latestReading.fuel_level_pct) ? latestReading.fuel_level_pct : null
   const remainingHours = fuelPct === null ? null : (fuelPct * 0.12).toFixed(1)
@@ -144,11 +167,11 @@ export default function GeneratorPage() {
         <article className="metric-panel">
           <div className="panel-heading">
             <Gauge size={18} />
-            <h2>Output Power</h2>
+            <h2>Phase Current</h2>
           </div>
           <div className="divider" />
-          <p className="metric-value">250 kW <span style={{ fontSize: '14px', color: 'var(--muted)' }}>/ 312 kVA</span></p>
-          <span className="metric-note">Balanced phase loads</span>
+          <p className="metric-value">{averageCurrent === null ? '—' : `${averageCurrent.toFixed(1)} A`}</p>
+          <span className="metric-note">Average across L1, L2 and L3</span>
         </article>
 
         <article className="metric-panel">
@@ -164,18 +187,33 @@ export default function GeneratorPage() {
         <article className="metric-panel">
           <div className="panel-heading">
             <Zap size={18} />
-            <h2>Battery Voltage</h2>
+            <h2>Frequency</h2>
           </div>
           <div className="divider" />
-          <p className="metric-value">11.1 V</p>
-          <span className="metric-note">charging active</span>
+          <p className="metric-value">{latestReading.frequency_hz?.toFixed(1) ?? '—'} Hz</p>
+          <span className="metric-note">Live alternator frequency</span>
         </article>
       </section>
 
       {/* 2. Middle Row: Visual Charts (content-grid two-even) */}
       <div className="content-grid two-even">
-        <ChartPanel title="Power & Voltage" variant="power" legend={['Power (kW)', 'Voltage (V)']} />
-        <ChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp (°C)', 'Oil Pressure (psi)']} />
+        <LiveTrendPanel
+          title="Three-Phase Voltage Trend"
+          readings={readings}
+          series={[
+            { key: 'voltage_L1', label: 'L1', unit: 'V', color: '#447ae4' },
+            { key: 'voltage_L2', label: 'L2', unit: 'V', color: '#79cf6b' },
+            { key: 'voltage_L3', label: 'L3', unit: 'V', color: '#b7791f' },
+          ]}
+        />
+        <LiveTrendPanel
+          title="Frequency & Temperature Trend"
+          readings={readings}
+          series={[
+            { key: 'frequency_hz', label: 'Frequency', unit: 'Hz', color: '#4c8cff' },
+            { key: 'room_temperature_c', label: 'Room temperature', unit: '°C', color: '#ff7842' },
+          ]}
+        />
       </div>
 
       {/* 3. Readings Grid: 6 cards for Voltage & Current */}
@@ -296,13 +334,13 @@ export default function GeneratorPage() {
         </SectionCard>
       </div>
 
-      {/* 5. Maintenance Snapshot at the bottom (matching original positions) */}
-      <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
+      {/* 5. Live monitoring snapshot */}
+      <SectionCard title="Live Monitoring Snapshot" icon={ClipboardList}>
         <div className="snapshot-grid">
-          <article><span>Last Service</span><strong>12 Feb 2026</strong></article>
-          <article><span>Runtime Hours</span><strong>1,284 h</strong></article>
-          <article><span>Next Test</span><strong>Weekly run</strong></article>
-          <article><span>Assigned Team</span><strong>Electrical Ops</strong></article>
+          <article><span>Equipment</span><strong>{selectedEquipment?.equipmentCode ?? '—'}</strong></article>
+          <article><span>Last telemetry sample</span><strong>{status?.recordedAt ? new Date(status.recordedAt).toLocaleString() : '—'}</strong></article>
+          <article><span>Average phase voltage</span><strong>{averageVoltage === null ? '—' : `${averageVoltage.toFixed(1)} V`}</strong></article>
+          <article><span>Active alarms</span><strong>{status?.activeAlarmCount ?? '—'}</strong></article>
         </div>
       </SectionCard>
     </div>
