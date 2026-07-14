@@ -781,7 +781,7 @@ function DashboardWorkspace() {
   }, [])
 
   const refreshMonitoring = useCallback(async () => {
-    const [records, summary] = await Promise.all([getAlarms({ unresolved: true }), getDashboardSummary()])
+    const [records, summary] = await Promise.all([getAlarms(), getDashboardSummary()])
     setAlarms(groupAlarmsByEquipmentType(records))
     setDashboardSummary(summary)
     return records
@@ -815,9 +815,9 @@ function DashboardWorkspace() {
     if (!path) return
 
     try {
-      const unresolvedAlarms = await refreshMonitoring()
-      const currentAlarm = unresolvedAlarms.find((item) => String(item.id) === String(alarm.id))
-      if (!currentAlarm) {
+      const allAlarms = await refreshMonitoring()
+      const currentAlarm = allAlarms.find((item) => String(item.id) === String(alarm.id))
+      if (!currentAlarm || String(currentAlarm.status).toUpperCase() === 'RESOLVED') {
         showToast('This alarm has already resolved.')
         return
       }

@@ -841,6 +841,18 @@ button {
   transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
 }
 
+.alarm-row .alarm-action {
+  justify-self: end;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #14336a, #1f6f9a);
+  box-shadow: 0 6px 14px rgb(13 41 91 / 24%);
+}
+
+.alarm-row .alarm-action:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
 .alarm-row.acknowledged {
   opacity: .74;
 }
