@@ -28,6 +28,10 @@ import { acknowledgeAlarm as acknowledgeAlarmRequest, getAlarms } from './api/al
 import { getDashboardSummary } from './api/dashboardApi'
 import { getEquipment, getEquipmentReadings, getEquipmentStatus } from './api/equipmentApi'
 import './App.css'
+import LiveGeneratorPage from './pages/GeneratorPage'
+import LiveATSPage from './pages/ATSPage'
+import LiveMDPPage from './pages/MDPPage'
+import LiveSDPPage from './pages/SDPPage'
 
 const chartSeries = {
   power: {
@@ -413,8 +417,31 @@ function SignIn() {
   )
 }
 
-function Sidebar({ activePage, onNavigate, onLogout }) {
+function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
   const { user } = useAuth()
+  const severityRank = { NORMAL: 0, OFFLINE: 1, WARNING: 2, CRITICAL: 3 }
+  const statusByType = (dashboardSummary?.equipment ?? []).reduce((statuses, equipment) => {
+    const type = String(equipment.equipmentType ?? '').toUpperCase()
+    const nextStatus = String(equipment.overallStatus ?? 'OFFLINE').toUpperCase()
+    const currentStatus = statuses[type]
+    if (!currentStatus || (severityRank[nextStatus] ?? 1) > (severityRank[currentStatus] ?? 1)) {
+      statuses[type] = nextStatus
+    }
+    return statuses
+  }, {})
+  const statusByNavItem = {
+    Generator: statusByType.GENERATOR,
+    'ATS Status': statusByType.ATS,
+    'UPS Status': statusByType.UPS,
+    'MDP Status': statusByType.MDP,
+    'SDP Status': statusByType.SDP,
+  }
+  const statusColorMap = {
+    NORMAL: 'bg-green-500',
+    WARNING: 'bg-amber-500',
+    CRITICAL: 'bg-red-500',
+    OFFLINE: 'bg-slate-500',
+  }
 
   return (
     <aside className="sidebar" aria-label="Primary navigation">
@@ -431,11 +458,17 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
           <button
             key={item.label}
             type="button"
-            className={activePage === item.label ? 'active' : ''}
+            className={`w-full flex items-center ${activePage === item.label ? 'active' : ''}`}
             onClick={() => (item.label === 'Log out' ? onLogout() : onNavigate(item))}
           >
             {createElement(item.icon, { size: 22 })}
-            <span>{item.label}</span>
+            <span className="flex-grow text-left">{item.label}</span>
+            {statusByNavItem[item.label] ? (
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${statusColorMap[statusByNavItem[item.label]] ?? 'bg-slate-500'} ml-auto mr-1`}
+                title={`${item.label} status: ${statusByNavItem[item.label]}`}
+              />
+            ) : null}
           </button>
         ))}
       </nav>
@@ -446,17 +479,17 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
 function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummary, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onAction, alarmFocus, children }) {
   return (
     <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={onLogout} />
+      <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={onLogout} dashboardSummary={dashboardSummary} />
       <main className="workspace">
         <header className="page-header">
           <h1>{activePage}</h1>
         </header>
         {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
-        {activePage === 'Generator' ? <GeneratorPage alarms={alarms.generator} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
-        {activePage === 'ATS Status' ? <AtsPage alarms={alarms.ats} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'Generator' ? <LiveGeneratorPage /> : null}
+        {activePage === 'ATS Status' ? <LiveATSPage /> : null}
         {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
-        {activePage === 'MDP Status' ? <MdpPage alarms={alarms.mdp} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
-        {activePage === 'SDP Status' ? <SdpPage alarms={alarms.sdp} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'MDP Status' ? <LiveMDPPage /> : null}
+        {activePage === 'SDP Status' ? <LiveSDPPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
