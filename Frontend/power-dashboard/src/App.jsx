@@ -19,7 +19,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Zap,
-  Plus,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -1005,6 +1004,7 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
       latestReading: status.latestReading ?? readings[0]?.data ?? {},
     }))
     setUnits(nextUnits)
+    setUnitsError('')
     setSelectedUpsId((current) => {
       const focusedEquipmentId = alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId
       if (focusedEquipmentId && nextUnits.some((unit) => String(unit.id) === String(focusedEquipmentId))) return focusedEquipmentId
@@ -1067,7 +1067,7 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
 }
 
 function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelectUnit }) {
-  const selectedUnit = units.find((unit) => unit.subsystemId === selectedUpsId) ?? units[0]
+  const selectedUnit = units.find((unit) => String(unit.id) === String(selectedUpsId)) ?? units[0]
 
   return (
     <SectionCard title="UPS Fleet Overview" icon={Power}>
@@ -1118,9 +1118,6 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
             <p className={`unit-alert ${unit.tone}`}>{unit.note}</p>
           </article>
         ))}
-        <button type="button" className="ups-add-card" aria-label="Add UPS unit">
-          <Plus size={42} />
-        </button>
       </section>
     </SectionCard>
   )
