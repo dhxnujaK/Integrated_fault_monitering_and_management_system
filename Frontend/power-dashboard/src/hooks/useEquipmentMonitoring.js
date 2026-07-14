@@ -1,28 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getAlarms } from '../api/alarmsApi'
-import { getEquipment, getEquipmentStatus } from '../api/equipmentApi'
+import { useCallback, useMemo } from 'react'
+import { getEquipment, getEquipmentAlarms, getEquipmentStatus } from '../api/equipmentApi'
 import usePolling from './usePolling'
 
 /** Shared generic-equipment monitor used by every subsystem page. */
 export default function useEquipmentMonitoring(equipmentType, selectedEquipmentId) {
-  const [equipment, setEquipment] = useState([])
-  const [equipmentError, setEquipmentError] = useState(null)
-
-  const loadEquipment = useCallback(async () => {
-    try {
-      const items = await getEquipment({ type: equipmentType, enabled: true })
-      setEquipment(items)
-      setEquipmentError(null)
-      return items
-    } catch (error) {
-      setEquipmentError(error)
-      throw error
-    }
-  }, [equipmentType])
-
-  useEffect(() => {
-    loadEquipment().catch(() => {})
-  }, [loadEquipment])
+  const loadEquipment = useCallback(
+    () => getEquipment({ type: equipmentType, enabled: true }),
+    [equipmentType],
+  )
+  const equipmentPolling = usePolling(loadEquipment, 30000)
+  const equipment = useMemo(() => equipmentPolling.data ?? [], [equipmentPolling.data])
 
   const effectiveEquipmentId = selectedEquipmentId ?? equipment[0]?.id
   const selectedEquipment = useMemo(
@@ -36,7 +23,7 @@ export default function useEquipmentMonitoring(equipmentType, selectedEquipmentI
   )
   const fetchAlarms = useCallback(
     () => (effectiveEquipmentId
-      ? getAlarms({ equipmentId: effectiveEquipmentId, unresolved: true })
+      ? getEquipmentAlarms(effectiveEquipmentId, { unresolved: true })
       : Promise.resolve([])),
     [effectiveEquipmentId],
   )
@@ -44,12 +31,12 @@ export default function useEquipmentMonitoring(equipmentType, selectedEquipmentI
   const alarmPolling = usePolling(fetchAlarms, 5000)
 
   const refresh = useCallback(async () => {
-    await Promise.all([loadEquipment(), statusPolling.refresh(), alarmPolling.refresh()])
-  }, [alarmPolling.refresh, loadEquipment, statusPolling.refresh])
+    await Promise.all([equipmentPolling.refresh(), statusPolling.refresh(), alarmPolling.refresh()])
+  }, [alarmPolling, equipmentPolling, statusPolling])
 
   return {
     equipment,
-    equipmentError,
+    equipmentError: equipmentPolling.error,
     selectedEquipment,
     effectiveEquipmentId,
     status: statusPolling.data,

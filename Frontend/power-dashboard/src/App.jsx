@@ -233,9 +233,9 @@ const upsAlarms = [
   },
   {
     id: 'ups-internal',
-    area: 'UPS 04 - Toll Plaza',
+    area: 'UPS 02 - Operations Office',
     subsystemType: 'UPS',
-    subsystemId: 'UPS-04',
+    subsystemId: 'UPS-02',
     alarmCode: 'UPS_FAULT',
     alarmMessage: 'UPS internal fault has been acknowledged by the operator.',
     title: 'UPS Internal Failure',
@@ -248,9 +248,9 @@ const upsAlarms = [
   },
   {
     id: 'ups-overload',
-    area: 'UPS 04 - Toll Plaza',
+    area: 'UPS 02 - Operations Office',
     subsystemType: 'UPS',
-    subsystemId: 'UPS-04',
+    subsystemId: 'UPS-02',
     alarmCode: 'UPS_HIGH_LOAD',
     alarmMessage: 'UPS load is above the safe operating limit.',
     title: 'Overload Warning',
