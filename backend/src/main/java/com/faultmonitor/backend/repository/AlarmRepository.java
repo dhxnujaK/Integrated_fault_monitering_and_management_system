@@ -17,4 +17,6 @@ public interface AlarmRepository extends JpaRepository<Alarm, Long> {
             String alarmCode, String subsystemId, AlarmStatus status);
 
     long countBySubsystemTypeAndStatus(SubsystemType subsystemType, AlarmStatus status);
+
+    List<Alarm> findByEquipmentIsNull();
 }

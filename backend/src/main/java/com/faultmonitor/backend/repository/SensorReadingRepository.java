@@ -13,4 +13,6 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
 
     List<SensorReading> findBySubsystemTypeAndSubsystemIdOrderByRecordedAtDesc(
             SubsystemType subsystemType, String subsystemId);
+
+    List<SensorReading> findByEquipmentIsNull();
 }

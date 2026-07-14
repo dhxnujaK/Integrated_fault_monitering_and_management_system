@@ -4,11 +4,13 @@ import com.faultmonitor.backend.entity.Equipment;
 import com.faultmonitor.backend.entity.SubsystemType;
 import com.faultmonitor.backend.repository.EquipmentRepository;
 import java.util.List;
+import org.springframework.core.annotation.Order;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 /** Seeds only the exact legacy subsystem codes so record backfill is deterministic. */
 @Component
+@Order(1)
 public class EquipmentSeeder implements CommandLineRunner {
 
     private final EquipmentRepository equipmentRepository;
