@@ -1,6 +1,7 @@
 package com.faultmonitor.backend.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.faultmonitor.backend.dto.DashboardSummaryResponse;
 import com.faultmonitor.backend.dto.EquipmentStatusResponse;
@@ -107,7 +108,12 @@ public class MonitoringService {
 
     private Map<String, Object> parseData(SensorReading reading) {
         try {
-            return objectMapper.readValue(reading.getReadingData(), READING_TYPE);
+            String payload = reading.getReadingData();
+            JsonNode json = objectMapper.readTree(payload);
+            if (json.isTextual()) {
+                payload = json.textValue();
+            }
+            return objectMapper.readValue(payload, READING_TYPE);
         } catch (Exception exception) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_READING_DATA",
                     "Stored sensor reading data is invalid.");

@@ -65,4 +65,19 @@ class MonitoringServiceTests {
         assertThat(status.recordedAt()).isNotNull();
         assertThat(status.latestReading()).containsEntry("fuel_level_pct", 80.0);
     }
+
+    @Test
+    void acceptsH2JsonColumnsReturnedAsTextualJson() {
+        sensorReadingRepository.saveAndFlush(SensorReading.builder()
+                .equipment(generator)
+                .subsystemType(generator.getEquipmentType())
+                .subsystemId(generator.getEquipmentCode())
+                .readingData("\"{\\\"fuel_level_pct\\\":80.0,\\\"running_status\\\":\\\"RUNNING\\\"}\"")
+                .build());
+
+        EquipmentStatusResponse status = monitoringService.status(generator.getId());
+
+        assertThat(status.overallStatus()).isEqualTo("NORMAL");
+        assertThat(status.latestReading()).containsEntry("fuel_level_pct", 80.0);
+    }
 }
