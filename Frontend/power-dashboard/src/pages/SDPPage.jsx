@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import SectionCard from '../components/SectionCard'
 import ReadingCard from '../components/ReadingCard'
 import toast from 'react-hot-toast'
@@ -216,39 +217,12 @@ export default function SDPPage() {
       {/* 4. Bottom Row: Active Alarms & Cabinet Indicators (content-grid main-side) */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
-        <SectionCard title={`Active Alarms - ${selectedSdp}`} icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this SDP.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'ACKNOWLEDGED' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'ACKNOWLEDGED' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'ACKNOWLEDGED'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title={`Active Alarms - ${selectedSdp}`}
+          emptyMessage="No active alarms for this SDP."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}
         <SectionCard title="Cabinet Security Indicators" icon={ShieldCheck}>

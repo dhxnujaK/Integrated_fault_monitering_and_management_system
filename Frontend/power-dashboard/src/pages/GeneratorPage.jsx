@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import EquipmentSelector from '../components/EquipmentSelector'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import ReadingCard from '../components/ReadingCard'
 import SectionCard from '../components/SectionCard'
 import toast from 'react-hot-toast'
@@ -223,39 +224,12 @@ export default function GeneratorPage() {
       {/* 4. Bottom Row: Active Alarms and Fault Diagnosis / Relays */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms using the original .alarm-table styling */}
-        <SectionCard title="Active Generator Alarms" icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this generator.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'ACKNOWLEDGED' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'ACKNOWLEDGED' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'ACKNOWLEDGED'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title="Active Generator Alarms"
+          emptyMessage="No active alarms for this generator."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Fault Diagnosis with fuel bar, temperature, and indicators */}
         <SectionCard title="Safety & Diagnostics" icon={AlertTriangle}>
