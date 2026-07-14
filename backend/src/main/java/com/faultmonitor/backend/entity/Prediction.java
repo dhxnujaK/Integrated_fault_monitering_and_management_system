@@ -21,7 +21,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @Table(
         name = "predictions",
         indexes = {
-                @Index(name = "idx_prediction_subsystem_time", columnList = "subsystem_type, predicted_at")
+                @Index(name = "idx_subsystem_time", columnList = "subsystem_type, predicted_at")
         }
 )
 @Getter
