@@ -1,4 +1,4 @@
-import { createElement, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import {
@@ -24,6 +24,9 @@ import {
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
+import { acknowledgeAlarm as acknowledgeAlarmRequest, getAlarms } from './api/alarmsApi'
+import { getDashboardSummary } from './api/dashboardApi'
+import { getEquipment, getEquipmentReadings, getEquipmentStatus } from './api/equipmentApi'
 import './App.css'
 
 const chartSeries = {
@@ -58,42 +61,269 @@ const pathToPage = {
   '/settings': 'Settings',
 }
 
-const statusCards = [
-  { title: 'Generator', value: 'Fault', tone: 'danger' },
-  { title: 'ATS', value: 'Normal', tone: 'ok' },
-  { title: 'UPS', value: 'Normal', tone: 'ok' },
-  { title: 'MDP', value: 'Normal', tone: 'ok' },
-  { title: 'SDP', value: 'Normal', tone: 'ok' },
-]
-
 const dashboardAlarms = [
-  { id: 'dash-ups-battery', source: 'UPS', title: 'Battery Low', time: '10:15 am', tone: 'warning', status: 'active' },
-  { id: 'dash-generator-start', source: 'Generator', title: 'Fail to Start', time: '09:20 am', tone: 'danger', status: 'active' },
-  { id: 'dash-mdp-phase', source: 'MDP', title: 'Phase Loss Warning', time: '08:50 am', tone: 'warning', status: 'active' },
+  {
+    id: 'dash-ups-battery',
+    source: 'UPS',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_BATTERY_LOW',
+    alarmMessage: 'UPS battery charge has dropped below the warning threshold.',
+    title: 'Battery Low',
+    time: '10:15 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'ACTIVE',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-recovered',
+    area: 'UPS 02 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-02',
+    alarmCode: 'UPS_BATTERY_LOW',
+    alarmMessage: 'UPS 02 battery level returned to normal after charger recovery.',
+    title: 'Battery Restored',
+    time: '06:18 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'RESOLVED',
+    triggeredAt: '05:55 am',
+    resolvedAt: '06:18 am',
+    targetPage: '/ups',
+  },
+  {
+    id: 'dash-generator-start',
+    source: 'Generator',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_FAULT',
+    alarmMessage: 'Generator failed to start and is reporting a fault condition.',
+    title: 'Fail to Start',
+    time: '09:20 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'ACTIVE',
+    targetPage: '/generator',
+  },
+  {
+    id: 'dash-mdp-phase',
+    source: 'MDP',
+    subsystemType: 'MDP',
+    subsystemId: 'MDP-01',
+    alarmCode: 'MDP_PHASE_IMBALANCE',
+    alarmMessage: 'Phase difference across the main distribution panel is above the safe limit.',
+    title: 'Phase Loss Warning',
+    time: '08:50 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'ACTIVE',
+    targetPage: '/mdp',
+  },
 ]
 
 const generatorAlarms = [
-  { id: 'gen-coolant', title: 'High Coolant Temperature', detail: 'Radiator fan failed to start', time: '10:15 am', tone: 'danger', status: 'active' },
-  { id: 'gen-fuel', title: 'Low Fuel Warning', detail: 'Utility not available', time: '09:20 am', tone: 'warning', status: 'active' },
-  { id: 'gen-battery', title: 'Battery Low Voltage', detail: 'Battery below normal charging range', time: '08:50 am', tone: 'danger', status: 'acknowledged', acknowledgedAt: '08:58 am' },
+  {
+    id: 'gen-coolant',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_HIGH_TEMP',
+    alarmMessage: 'Radiator fan failed to start and generator temperature is above the limit.',
+    title: 'High Coolant Temperature',
+    detail: 'Radiator fan failed to start',
+    time: '10:15 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'ACTIVE',
+    targetPage: '/generator',
+  },
+  {
+    id: 'gen-fuel',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_LOW_FUEL',
+    alarmMessage: 'Generator fuel level is below the warning threshold.',
+    title: 'Low Fuel Warning',
+    detail: 'Utility not available',
+    time: '09:20 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'ACTIVE',
+    targetPage: '/generator',
+  },
+  {
+    id: 'gen-battery',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_INTRUDER',
+    alarmMessage: 'Generator room battery support circuit is below the nominal range.',
+    title: 'Battery Low Voltage',
+    detail: 'Battery below normal charging range',
+    time: '08:50 am',
+    tone: 'danger',
+    severity: 'WARNING',
+    status: 'ACKNOWLEDGED',
+    acknowledgedAt: '08:58 am',
+    targetPage: '/generator',
+  },
+  {
+    id: 'gen-recovery',
+    subsystemType: 'GENERATOR',
+    subsystemId: 'GENERATOR-01',
+    alarmCode: 'GEN_HIGH_TEMP',
+    alarmMessage: 'Generator temperature returned to normal after the cooling fan restarted.',
+    title: 'Temperature Restored',
+    detail: 'High coolant temperature alarm was created and later cleared.',
+    time: '07:42 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'RESOLVED',
+    triggeredAt: '07:15 am',
+    resolvedAt: '07:42 am',
+    targetPage: '/generator',
+  },
 ]
 
 const upsAlarms = [
-  { id: 'ups-critical-low', area: 'UPS 01 - Server Room', title: 'Battery Critically Low', time: '09:25 am', tone: 'danger', status: 'active' },
-  { id: 'ups-output', area: 'UPS 01 - Server Room', title: 'UPS Output Failure', time: '07:32 am', tone: 'danger', status: 'active' },
-  { id: 'ups-low', area: 'UPS 02 - Server Room', title: 'Battery Low', time: '08:45 am', tone: 'warning', status: 'active' },
-  { id: 'ups-internal', area: 'UPS 04 - Toll Plaza', title: 'UPS Internal Failure', time: '09:15 am', tone: 'danger', status: 'acknowledged', acknowledgedAt: '09:24 am' },
-  { id: 'ups-overload', area: 'UPS 04 - Toll Plaza', title: 'Overload Warning', time: '08:21 am', tone: 'warning', status: 'active' },
+  {
+    id: 'ups-critical-low',
+    area: 'UPS 01 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_BATTERY_CRITICAL',
+    alarmMessage: 'UPS 01 battery charge is critically low and requires immediate action.',
+    title: 'Battery Critically Low',
+    time: '09:25 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'ACTIVE',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-output',
+    area: 'UPS 01 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-01',
+    alarmCode: 'UPS_FAULT',
+    alarmMessage: 'UPS output circuit has failed and output power is not stable.',
+    title: 'UPS Output Failure',
+    time: '07:32 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'ACTIVE',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-low',
+    area: 'UPS 02 - Server Room',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-02',
+    alarmCode: 'UPS_BATTERY_LOW',
+    alarmMessage: 'UPS 02 battery is below the warning threshold.',
+    title: 'Battery Low',
+    time: '08:45 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'ACTIVE',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-internal',
+    area: 'UPS 04 - Toll Plaza',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-04',
+    alarmCode: 'UPS_FAULT',
+    alarmMessage: 'UPS internal fault has been acknowledged by the operator.',
+    title: 'UPS Internal Failure',
+    time: '09:15 am',
+    tone: 'danger',
+    severity: 'CRITICAL',
+    status: 'ACKNOWLEDGED',
+    acknowledgedAt: '09:24 am',
+    targetPage: '/ups',
+  },
+  {
+    id: 'ups-overload',
+    area: 'UPS 04 - Toll Plaza',
+    subsystemType: 'UPS',
+    subsystemId: 'UPS-04',
+    alarmCode: 'UPS_HIGH_LOAD',
+    alarmMessage: 'UPS load is above the safe operating limit.',
+    title: 'Overload Warning',
+    time: '08:21 am',
+    tone: 'warning',
+    severity: 'WARNING',
+    status: 'ACTIVE',
+    targetPage: '/ups',
+  },
 ]
 
-const initialAlarmState = {
+const _initialAlarmState = {
   dashboard: dashboardAlarms,
   generator: generatorAlarms,
   ats: generatorAlarms.slice(1).map((alarm) => ({ ...alarm, id: `ats-${alarm.id}` })),
   ups: upsAlarms,
   mdp: [
-    { id: 'mdp-phase-r', title: 'Phase R Tripped', detail: 'Phase R breaker has automatically tripped due to overload condition.', time: '10:15 am', tone: 'danger', status: 'active' },
-    { id: 'mdp-imbalance', title: 'Imbalanced Phase', detail: 'High/low voltage difference detected across three phases.', time: '08:50 am', tone: 'warning', status: 'acknowledged', acknowledgedAt: '09:05 am' },
+    {
+      id: 'mdp-phase-r',
+      subsystemType: 'MDP',
+      subsystemId: 'MDP-01',
+      alarmCode: 'MDP_PHASE_VOLTAGE',
+      alarmMessage: 'Phase R breaker has automatically tripped due to an overload condition.',
+      title: 'Phase R Tripped',
+      detail: 'Phase R breaker has automatically tripped due to overload condition.',
+      time: '10:15 am',
+      tone: 'danger',
+      severity: 'WARNING',
+      status: 'ACTIVE',
+      targetPage: '/mdp',
+    },
+    {
+      id: 'mdp-imbalance',
+      subsystemType: 'MDP',
+      subsystemId: 'MDP-01',
+      alarmCode: 'MDP_PHASE_IMBALANCE',
+      alarmMessage: 'High and low voltage difference detected across the three phases.',
+      title: 'Imbalanced Phase',
+      detail: 'High/low voltage difference detected across three phases.',
+      time: '08:50 am',
+      tone: 'warning',
+      severity: 'WARNING',
+      status: 'ACKNOWLEDGED',
+      acknowledgedAt: '09:05 am',
+      targetPage: '/mdp',
+    },
+  ],
+  sdp: [
+    {
+      id: 'sdp-lighting',
+      subsystemType: 'SDP',
+      subsystemId: 'SDP-01',
+      alarmCode: 'SDP_PHASE_VOLTAGE',
+      alarmMessage: 'Voltage on the downstream lighting section is outside the safe range.',
+      title: 'Downstream Voltage Warning',
+      detail: 'Voltage on downstream circuit is outside the safe range.',
+      time: '10:05 am',
+      tone: 'warning',
+      severity: 'WARNING',
+      status: 'ACTIVE',
+      targetPage: '/sdp',
+    },
+    {
+      id: 'sdp-intruder',
+      subsystemType: 'SDP',
+      subsystemId: 'SDP-02',
+      alarmCode: 'SDP_INTRUDER',
+      alarmMessage: 'Intruder alarm was detected in SDP-02 cabinet room.',
+      title: 'Intruder Alarm',
+      detail: 'Intruder alarm was detected in the cabinet room.',
+      time: '09:35 am',
+      tone: 'danger',
+      severity: 'WARNING',
+      status: 'ACKNOWLEDGED',
+      acknowledgedAt: '09:42 am',
+      targetPage: '/sdp',
+    },
   ],
 }
 
@@ -213,7 +443,7 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
   )
 }
 
-function AppShell({ activePage, setActivePage, onLogout, alarms, onAcknowledge, onAction, children }) {
+function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummary, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onAction, alarmFocus, children }) {
   return (
     <div className="app-shell">
       <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={onLogout} />
@@ -221,12 +451,12 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, onAcknowledge, 
         <header className="page-header">
           <h1>{activePage}</h1>
         </header>
-        {activePage === 'Dashboard' ? <DashboardPage alarms={alarms.dashboard} onAcknowledge={(id) => onAcknowledge('dashboard', id)} onAction={onAction} /> : null}
-        {activePage === 'Generator' ? <GeneratorPage alarms={alarms.generator} onAcknowledge={(id) => onAcknowledge('generator', id)} onAction={onAction} /> : null}
-        {activePage === 'ATS Status' ? <AtsPage alarms={alarms.ats} onAcknowledge={(id) => onAcknowledge('ats', id)} onAction={onAction} /> : null}
-        {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={(id) => onAcknowledge('ups', id)} onAction={onAction} /> : null}
-        {activePage === 'MDP Status' ? <MdpPage alarms={alarms.mdp} onAcknowledge={(id) => onAcknowledge('mdp', id)} onAction={onAction} /> : null}
-        {activePage === 'SDP Status' ? <SdpPage onAction={onAction} /> : null}
+        {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
+        {activePage === 'Generator' ? <GeneratorPage alarms={alarms.generator} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'ATS Status' ? <AtsPage alarms={alarms.ats} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'MDP Status' ? <MdpPage alarms={alarms.mdp} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'SDP Status' ? <SdpPage alarms={alarms.sdp} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
@@ -285,10 +515,11 @@ function Tabs({ filters = false, tab, onTabChange, filter, onFilterChange }) {
 
 function getVisibleAlarms(alarms, tab, filter) {
   return alarms.filter((alarm) => {
+    const status = String(alarm.status ?? '').toUpperCase()
     const matchesTab =
-      tab === 'History' ||
-      (tab === 'Active' && alarm.status === 'active') ||
-      (tab === 'Acknowledged' && alarm.status === 'acknowledged')
+      (tab === 'History' && status === 'RESOLVED') ||
+      (tab === 'Active' && status === 'ACTIVE') ||
+      (tab === 'Acknowledged' && status === 'ACKNOWLEDGED')
     const matchesFilter =
       filter === 'All' ||
       (filter === 'Critical' && alarm.tone === 'danger') ||
@@ -298,10 +529,127 @@ function getVisibleAlarms(alarms, tab, filter) {
   })
 }
 
-function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onAction, filters = false }) {
-  const [tab, setTab] = useState('Active')
+function getDashboardSummaryAlarms(alarmState) {
+  return Object.entries(alarmState)
+    .filter(([group]) => group !== 'dashboard')
+    .flatMap(([, groupAlarms]) => groupAlarms)
+}
+
+function getAlarmStatusLabel(status) {
+  const normalized = String(status ?? '').trim().toUpperCase()
+  if (!normalized) return 'Unknown'
+
+  return normalized.charAt(0) + normalized.slice(1).toLowerCase()
+}
+
+function getAlarmStatusClass(status) {
+  return String(status ?? '').trim().toLowerCase()
+}
+
+function getAlarmRoute(alarm) {
+  return alarm.targetPage || ({
+    GENERATOR: '/generator',
+    ATS: '/ats',
+    UPS: '/ups',
+    MDP: '/mdp',
+    SDP: '/sdp',
+  }[alarm.subsystemType || alarm.source] ?? '/dashboard')
+}
+
+const emptyAlarmState = {
+  generator: [],
+  ats: [],
+  ups: [],
+  mdp: [],
+  sdp: [],
+}
+
+function formatAlarmTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+function toUiAlarm(alarm) {
+  const equipmentType = String(alarm.equipmentType ?? alarm.subsystemType ?? '').toUpperCase()
+  const equipmentCode = alarm.equipmentCode ?? alarm.subsystemId ?? equipmentType
+  const severity = String(alarm.severity ?? 'WARNING').toUpperCase()
+
+  return {
+    ...alarm,
+    subsystemType: equipmentType,
+    subsystemId: equipmentCode,
+    source: equipmentCode,
+    title: alarm.alarmCode ?? 'Alarm',
+    time: formatAlarmTime(alarm.triggeredAt),
+    tone: severity === 'CRITICAL' ? 'danger' : 'warning',
+    severity,
+    targetPage: getAlarmRoute({ subsystemType: equipmentType }),
+    triggeredAt: formatAlarmTime(alarm.triggeredAt),
+    acknowledgedAt: formatAlarmTime(alarm.acknowledgedAt),
+    resolvedAt: formatAlarmTime(alarm.resolvedAt),
+  }
+}
+
+function groupAlarmsByEquipmentType(apiAlarms) {
+  return apiAlarms.reduce((groups, alarm) => {
+    const uiAlarm = toUiAlarm(alarm)
+    const group = uiAlarm.subsystemType.toLowerCase()
+    if (groups[group]) groups[group].push(uiAlarm)
+    return groups
+  }, { ...emptyAlarmState })
+}
+
+function getAlarmTab(status) {
+  return ({ ACTIVE: 'Active', ACKNOWLEDGED: 'Acknowledged', RESOLVED: 'History' }[
+    String(status ?? '').toUpperCase()
+  ] ?? 'Active')
+}
+
+function formatReading(value, unit = '', fallback = '—') {
+  if (value === null || value === undefined || value === '') return fallback
+  return `${value}${unit ? ` ${unit}` : ''}`
+}
+
+function getStatusTone(status) {
+  return ({ NORMAL: 'ok', WARNING: 'warning', CRITICAL: 'danger', OFFLINE: 'warning' }[
+    String(status ?? '').toUpperCase()
+  ] ?? 'warning')
+}
+
+function toUpsUnit(equipment, status) {
+  const reading = status.latestReading ?? {}
+  const overallStatus = String(status.overallStatus ?? 'OFFLINE').toUpperCase()
+  return {
+    id: equipment.id,
+    subsystemId: equipment.equipmentCode,
+    equipmentCode: equipment.equipmentCode,
+    displayName: equipment.displayName,
+    site: equipment.location,
+    mode: reading.operational_status ?? overallStatus,
+    runtime: formatReading(reading.estimated_runtime_min, 'min'),
+    load: formatReading(reading.load_pct, '%'),
+    output: formatReading(reading.output_voltage_v, 'V'),
+    input: formatReading(reading.input_voltage_v, 'V'),
+    battery: formatReading(reading.battery_charge_pct, '%'),
+    tone: getStatusTone(overallStatus),
+    note: `${overallStatus.charAt(0) + overallStatus.slice(1).toLowerCase()} status recorded ${formatAlarmTime(status.recordedAt)}.`,
+  }
+}
+
+function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigateAlarm, onAction, filters = false, compact = false, requestedTab }) {
+  const [tab, setTab] = useState(() => requestedTab ?? 'Active')
   const [filter, setFilter] = useState('All')
   const visibleAlarms = getVisibleAlarms(alarms, tab, filter)
+
+  async function handleAcknowledge(alarmId) {
+    try {
+      await onAcknowledge?.(alarmId)
+      setTab('Acknowledged')
+    } catch {
+      // The shared acknowledgement handler presents the request error.
+    }
+  }
 
   return (
     <SectionCard title={title} icon={Bell}>
@@ -312,39 +660,84 @@ function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onAction, 
         filter={filter}
         onFilterChange={setFilter}
       />
-      <AlarmTable alarms={visibleAlarms} onAcknowledge={onAcknowledge} />
-      <Actions onAction={onAction} />
+      <div className={`alarm-list-shell ${compact ? 'scrollable' : ''}`}>
+        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={handleAcknowledge} onNavigateAlarm={onNavigateAlarm} />
+      </div>
+      {!compact ? <Actions onAction={onAction} /> : null}
     </SectionCard>
   )
 }
 
-function AlarmTable({ alarms = dashboardAlarms, compact = false, onAcknowledge }) {
+function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAlarm }) {
   if (!alarms.length) {
     return <p className="empty-state">No alarms in this view.</p>
   }
 
   return (
     <div className="alarm-table">
-      {alarms.map((alarm) => (
-        <div className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`} key={alarm.id ?? `${alarm.title}-${alarm.time}`}>
-          <span className={`severity ${alarm.tone}`}>
-            <AlertTriangle size={compact ? 15 : 18} />
-          </span>
-          <strong>{alarm.source ?? alarm.title}</strong>
-          <span>
-            {alarm.source ? alarm.title : alarm.detail ?? alarm.area}
-            {alarm.status === 'acknowledged' ? <small>Acknowledged by Admin at {alarm.acknowledgedAt}</small> : null}
-          </span>
-          <time>{alarm.time}</time>
-          <button
-            type="button"
-            disabled={alarm.status === 'acknowledged'}
-            onClick={() => onAcknowledge?.(alarm.id)}
+      {alarms.map((alarm) => {
+        const alarmStatus = String(alarm.status ?? '').toUpperCase()
+        const alarmStatusLabel = getAlarmStatusLabel(alarm.status)
+        const isAcknowledged = alarmStatus === 'ACKNOWLEDGED'
+
+        return (
+          <article
+            className={`alarm-row ${compact ? 'compact' : 'full'} ${isAcknowledged ? 'acknowledged' : ''}`}
+            key={alarm.id ?? `${alarm.title}-${alarm.time}`}
+            role={compact ? 'button' : undefined}
+            tabIndex={compact ? 0 : undefined}
+            onClick={compact ? () => onNavigateAlarm?.(alarm, getAlarmRoute(alarm)) : undefined}
+            onKeyDown={compact ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onNavigateAlarm?.(alarm, getAlarmRoute(alarm))
+              }
+            } : undefined}
           >
-            {alarm.status === 'acknowledged' ? `Ack ${alarm.acknowledgedAt ?? ''}` : 'Acknowledge'}
-          </button>
-        </div>
-      ))}
+            <span className={`severity ${alarm.tone}`}>
+              <AlertTriangle size={compact ? 15 : 18} />
+            </span>
+            <div className="alarm-main">
+              <strong>{alarm.source ?? alarm.area ?? alarm.subsystemId ?? alarm.title}</strong>
+              <span>
+                {compact ? (
+                  alarm.alarmMessage ?? alarm.detail ?? alarm.title
+                ) : (
+                  <>
+                    <b>{alarm.alarmCode ?? alarm.title}</b>
+                    <small>{alarm.alarmMessage ?? alarm.detail ?? alarm.title}</small>
+                    {alarm.subsystemId ? <small>Subsystem: {alarm.subsystemId}</small> : null}
+                    {isAcknowledged ? <small>Acknowledged by Admin at {alarm.acknowledgedAt}</small> : null}
+                    {alarmStatus === 'RESOLVED' ? (
+                      <>
+                        <small>Created at {alarm.triggeredAt ?? alarm.time}</small>
+                        <small>Closed at {alarm.resolvedAt ?? alarm.time}</small>
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </span>
+            </div>
+            <div className="alarm-meta">
+              <time>{alarm.time}</time>
+              {alarm.severity ? <p className={`alarm-severity ${alarm.severity.toLowerCase()}`}>{alarm.severity}</p> : null}
+              <p className={`alarm-status ${getAlarmStatusClass(alarm.status)}`}>{alarmStatusLabel}</p>
+            </div>
+            {compact ? null : (
+              <button
+                type="button"
+                disabled={isAcknowledged || alarmStatus === 'RESOLVED'}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onAcknowledge?.(alarm.id)
+                }}
+              >
+                {isAcknowledged ? `Acknowledged ${alarm.acknowledgedAt ?? ''}` : 'Acknowledge'}
+              </button>
+            )}
+          </article>
+        )
+      })}
     </div>
   )
 }
@@ -362,23 +755,31 @@ function SectionCard({ title, icon: Icon, children, className = '' }) {
   )
 }
 
-function DashboardPage({ alarms, onAcknowledge, onAction }) {
+function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlarm, onAction }) {
+  const [showAllAlarms, setShowAllAlarms] = useState(false)
+  const equipmentStatuses = dashboardSummary?.equipment ?? []
+
   return (
     <div className="dashboard-layout">
       <section className="status-strip" aria-label="Equipment status">
-        {statusCards.map((card) => (
-          <article className="status-card" key={card.title}>
-            <h2>{card.title}</h2>
+        {equipmentStatuses.length ? equipmentStatuses.map((equipment) => (
+          <article className="status-card" key={equipment.equipmentId}>
+            <h2>{equipment.displayName ?? equipment.equipmentCode}</h2>
             <div className="divider" />
-            <p className={`status-pill ${card.tone}`}>{card.value}</p>
+            <p className={`status-pill ${getStatusTone(equipment.overallStatus)}`}>{equipment.overallStatus}</p>
           </article>
-        ))}
+        )) : <p className="empty-state">Loading equipment status…</p>}
       </section>
 
       <div className="dashboard-grid">
         <SystemOverview />
         <div className="dashboard-stack">
-          <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
+          <AlarmPanel title="Alarm Summary" alarms={alarms} compact={!showAllAlarms} filters={showAllAlarms} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onAction={onAction} />
+          <div className="actions">
+            <button type="button" onClick={() => setShowAllAlarms((current) => !current)}>
+              {showAllAlarms ? 'Show summary' : 'View all alarms'}
+            </button>
+          </div>
           <div className="two-column">
             <UpsSummary />
             <FaultDiagnosis title="UPS Battery is low." />
@@ -482,7 +883,7 @@ function FaultDiagnosis({ title = 'High Coolant temperature' }) {
   )
 }
 
-function GeneratorPage({ alarms, onAcknowledge, onAction }) {
+function GeneratorPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   return (
     <>
       <MetricStrip page="Generator" />
@@ -491,7 +892,7 @@ function GeneratorPage({ alarms, onAcknowledge, onAction }) {
         <ChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp', 'Oil Pressure']} />
       </div>
       <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
+        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
         <FaultDiagnosis title="High Coolant temperature" />
       </div>
       <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
@@ -506,7 +907,7 @@ function GeneratorPage({ alarms, onAcknowledge, onAction }) {
   )
 }
 
-function AtsPage({ alarms, onAcknowledge, onAction }) {
+function AtsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   return (
     <>
       <MetricStrip page="ATS Status" />
@@ -535,7 +936,7 @@ function AtsPage({ alarms, onAcknowledge, onAction }) {
         </SectionCard>
       </div>
       <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
+        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
         <SectionCard title="Transfer Events" icon={PlugZap}>
           <ul className="event-list">
             <li><strong>Transfer Failure</strong><span>10:12 am</span><p>Unable to connect to utility.</p></li>
@@ -549,64 +950,150 @@ function AtsPage({ alarms, onAcknowledge, onAction }) {
   )
 }
 
-function UpsPage({ alarms, onAcknowledge, onAction }) {
-  const [tab, setTab] = useState('Active')
+function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
+  const [units, setUnits] = useState([])
+  const [loadingUnits, setLoadingUnits] = useState(true)
+  const [unitsError, setUnitsError] = useState('')
+  const [selectedUpsId, setSelectedUpsId] = useState(() => alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId ?? null)
+  const [tab, setTab] = useState(() => alarmFocus?.tab ?? 'Active')
   const [filter, setFilter] = useState('All')
-  const visibleAlarms = getVisibleAlarms(alarms, tab, filter)
+  const selectedUnit = units.find((unit) => String(unit.id) === String(selectedUpsId)) ?? units[0]
+  const selectedUnitAlarms = alarms.filter((alarm) => String(alarm.equipmentId) === String(selectedUnit?.id))
+  const visibleAlarms = getVisibleAlarms(selectedUnitAlarms, tab, filter)
+
+  const refreshUps = useCallback(async () => {
+    const equipment = await getEquipment({ type: 'UPS', enabled: true })
+    const equipmentData = await Promise.all(equipment.map(async (item) => {
+      const [status, readings] = await Promise.all([getEquipmentStatus(item.id), getEquipmentReadings(item.id, 1)])
+      return { item, status, readings }
+    }))
+    const nextUnits = equipmentData.map(({ item, status, readings }) => toUpsUnit(item, {
+      ...status,
+      latestReading: status.latestReading ?? readings[0]?.data ?? {},
+    }))
+    setUnits(nextUnits)
+    setSelectedUpsId((current) => {
+      const focusedEquipmentId = alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId
+      if (focusedEquipmentId && nextUnits.some((unit) => String(unit.id) === String(focusedEquipmentId))) return focusedEquipmentId
+      return nextUnits.some((unit) => String(unit.id) === String(current)) ? current : (nextUnits[0]?.id ?? null)
+    })
+  }, [alarms, alarmFocus])
+
+  useEffect(() => {
+    let disposed = false
+    const initialLoadId = window.setTimeout(() => {
+      refreshUps()
+        .catch((error) => { if (!disposed) setUnitsError(error.message || 'Unable to load UPS status.') })
+        .finally(() => { if (!disposed) setLoadingUnits(false) })
+    }, 0)
+    const intervalId = window.setInterval(() => {
+      refreshUps().catch(() => {})
+    }, 5000)
+    return () => {
+      disposed = true
+      window.clearTimeout(initialLoadId)
+      window.clearInterval(intervalId)
+    }
+  }, [refreshUps])
+
+  async function handleAcknowledge(alarmId) {
+    try {
+      await onAcknowledge(alarmId)
+      setTab('Acknowledged')
+    } catch {
+      // The shared acknowledgement handler presents the request error.
+    }
+  }
 
   return (
     <div className="ups-layout">
-      <UpsFleetSummary />
-      <SectionCard title="Active Alarms" icon={Bell}>
+      {loadingUnits ? <p className="empty-state">Loading UPS equipment…</p> : null}
+      {unitsError ? <p className="empty-state">{unitsError}</p> : null}
+      {selectedUnit ? <>
+        <UpsFleetSummary
+          units={units}
+          selectedUpsId={selectedUpsId}
+          selectedUnitAlarmCount={selectedUnitAlarms.length}
+          onSelectUnit={setSelectedUpsId}
+        />
+        <SectionCard title={`Alarms - ${selectedUnit.displayName}`} icon={Bell}>
         <Tabs filters tab={tab} onTabChange={setTab} filter={filter} onFilterChange={setFilter} />
         <div className="grouped-alarms">
           {visibleAlarms.length ? visibleAlarms.map((alarm) => (
             <article key={`${alarm.area}-${alarm.title}`} className="grouped-alarm">
               <p>{alarm.area}</p>
-              <AlarmTable alarms={[alarm]} compact onAcknowledge={onAcknowledge} />
+              <AlarmTable alarms={[alarm]} onAcknowledge={handleAcknowledge} />
             </article>
           )) : <p className="empty-state">No UPS alarms in this view.</p>}
         </div>
         <Actions onAction={onAction} />
-      </SectionCard>
+        </SectionCard>
+      </> : null}
     </div>
   )
 }
 
-function UpsFleetSummary() {
-  const units = [
-    { name: 'UPS 01', site: 'Server Room', mode: 'ON BATTERY', runtime: '1h 21min', load: '80%', output: '230V / 50Hz', alert: 'Critical Alarms', tone: 'danger' },
-    { name: 'UPS 02', site: 'Server Room', mode: 'ON AC', runtime: '1h 42min', load: '87%', output: '230V / 50Hz', alert: 'No Critical Alarms', tone: 'ok' },
-    { name: 'UPS 04', site: 'Toll Plaza', mode: 'BYPASS', runtime: '0h 20min', load: '80%', output: '230V / 50Hz', alert: 'Warnings', tone: 'warning' },
-  ]
+function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelectUnit }) {
+  const selectedUnit = units.find((unit) => unit.subsystemId === selectedUpsId) ?? units[0]
 
   return (
-    <section className="ups-fleet" aria-label="UPS fleet status">
-      {units.map((unit) => (
-        <article className="ups-unit" key={unit.name}>
-          <div className="ups-unit-head">
-            <div>
-              <strong>{unit.name}</strong>
-              <span>{unit.site}</span>
+    <SectionCard title="UPS Fleet Overview" icon={Power}>
+      <div className="ups-selected-summary">
+        <div>
+          <p className="ups-selected-label">Selected equipment</p>
+          <strong>{selectedUnit.displayName}</strong>
+          <span>{selectedUnit.site}</span>
+        </div>
+        <div className={`mode-chip ${selectedUnit.tone}`}>{selectedUnit.mode}</div>
+      </div>
+      <dl className="ups-selected-metrics">
+        <div><dt>Runtime</dt><dd>{selectedUnit.runtime}</dd></div>
+        <div><dt>Load</dt><dd>{selectedUnit.load}</dd></div>
+        <div><dt>Battery</dt><dd>{selectedUnit.battery}</dd></div>
+        <div><dt>Output</dt><dd>{selectedUnit.output}</dd></div>
+        <div><dt>Input</dt><dd>{selectedUnit.input}</dd></div>
+        <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
+      </dl>
+      <p className="ups-selected-note">{selectedUnit.note}</p>
+      <section className="ups-fleet" aria-label="UPS fleet status">
+        {units.map((unit) => (
+          <article
+            className={`ups-unit ${String(selectedUpsId) === String(unit.id) ? 'selected' : ''}`}
+            key={unit.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelectUnit(unit.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onSelectUnit(unit.id)
+              }
+            }}
+          >
+            <div className="ups-unit-head">
+              <div>
+                <strong>{unit.displayName}</strong>
+                <span>{unit.site}</span>
+              </div>
+              <p className={`mode-chip ${unit.tone}`}>{unit.mode}</p>
             </div>
-            <p className={`mode-chip ${unit.tone}`}>{unit.mode}</p>
-          </div>
-          <dl>
-            <div><dt>Runtime</dt><dd>{unit.runtime}</dd></div>
-            <div><dt>Load</dt><dd>{unit.load}</dd></div>
-            <div><dt>Output</dt><dd>{unit.output}</dd></div>
-          </dl>
-          <p className={`unit-alert ${unit.tone}`}>{unit.alert}</p>
-        </article>
-      ))}
-      <button type="button" className="ups-add-card" aria-label="Add UPS unit">
-        <Plus size={42} />
-      </button>
-    </section>
+            <dl>
+              <div><dt>Runtime</dt><dd>{unit.runtime}</dd></div>
+              <div><dt>Load</dt><dd>{unit.load}</dd></div>
+              <div><dt>Output</dt><dd>{unit.output}</dd></div>
+            </dl>
+            <p className={`unit-alert ${unit.tone}`}>{unit.note}</p>
+          </article>
+        ))}
+        <button type="button" className="ups-add-card" aria-label="Add UPS unit">
+          <Plus size={42} />
+        </button>
+      </section>
+    </SectionCard>
   )
 }
 
-function MdpPage({ alarms, onAcknowledge, onAction }) {
+function MdpPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   return (
     <div className="mdp-layout">
       <div className="state-bar">
@@ -635,12 +1122,12 @@ function MdpPage({ alarms, onAcknowledge, onAction }) {
           <article><span>Thermal Margin</span><strong>12%</strong></article>
         </div>
       </SectionCard>
-      <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} />
+      <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
     </div>
   )
 }
 
-function SdpPage({ onAction }) {
+function SdpPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   const loads = [
     { name: 'Highway Lighting Section A', status: 'ON', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'ok' },
     { name: 'CCTV Cluster Section A', status: 'ON', active: '12/12', power: '0.8kW', voltage: '230 V', tone: 'ok' },
@@ -674,6 +1161,7 @@ function SdpPage({ onAction }) {
             <div><span>CCTV Power Supply Audit</span><span>15 Nov 2026</span><em>Upcoming</em><button type="button" onClick={() => onAction?.('CCTV task opened')}>View Task</button></div>
           </div>
         </SectionCard>
+        <AlarmPanel title="Active Alarms" alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
         <SectionCard title="Environmental Monitoring">
           <p className="large-status">Cabinet Temp <strong>20C</strong></p>
           <p className="large-status">Cabinet Door <strong>Closed</strong></p>
@@ -792,29 +1280,57 @@ function DashboardWorkspace() {
   const navigate = useNavigate()
   const location = useLocation()
   const { logout } = useAuth()
-  const [alarms, setAlarms] = useState(initialAlarmState)
+  const [alarms, setAlarms] = useState(emptyAlarmState)
+  const [dashboardSummary, setDashboardSummary] = useState(null)
   const [toast, setToast] = useState('')
   const toastTimer = useRef()
 
   const activePage = pathToPage[location.pathname] || 'Dashboard'
 
-  function showToast(message) {
+  const showToast = useCallback((message) => {
     setToast(message)
     window.clearTimeout(toastTimer.current)
     toastTimer.current = window.setTimeout(() => setToast(''), 2400)
+  }, [])
+
+  const refreshMonitoring = useCallback(async () => {
+    const [records, summary] = await Promise.all([getAlarms(), getDashboardSummary()])
+    setAlarms(groupAlarmsByEquipmentType(records))
+    setDashboardSummary(summary)
+  }, [])
+
+  useEffect(() => {
+    const initialLoadId = window.setTimeout(() => {
+      refreshMonitoring().catch((error) => showToast(`Unable to load monitoring data: ${error.message}`))
+    }, 0)
+    const intervalId = window.setInterval(() => {
+      refreshMonitoring().catch(() => {})
+    }, 10000)
+    return () => {
+      window.clearTimeout(initialLoadId)
+      window.clearInterval(intervalId)
+    }
+  }, [refreshMonitoring, showToast])
+
+  async function acknowledgeAlarm(alarmId) {
+    try {
+      await acknowledgeAlarmRequest(alarmId)
+      await refreshMonitoring()
+      showToast('Alarm acknowledged')
+    } catch (error) {
+      showToast(`Unable to acknowledge alarm: ${error.message}`)
+      throw error
+    }
   }
 
-  function acknowledgeAlarm(group, alarmId) {
-    const acknowledgedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()
-
-    setAlarms((current) => ({
-      ...current,
-      [group]: current[group].map((alarm) => (
-        alarm.id === alarmId ? { ...alarm, status: 'acknowledged', acknowledgedAt } : alarm
-      )),
-    }))
-    showToast('Alarm acknowledged')
+  function openAlarm(alarm, path) {
+    if (path) {
+      navigate(path, { state: { alarmId: alarm.id, tab: getAlarmTab(alarm.status) } })
+      showToast(`${alarm.source ?? alarm.title} alarm opened`)
+    }
   }
+
+  const dashboardSummaryAlarms = getDashboardSummaryAlarms(alarms)
 
   return (
     <AppShell
@@ -823,7 +1339,11 @@ function DashboardWorkspace() {
         navigate(item.path)
       }}
       alarms={alarms}
+      dashboardSummary={dashboardSummary}
+      dashboardSummaryAlarms={dashboardSummaryAlarms}
       onAcknowledge={acknowledgeAlarm}
+      onAlarmNavigate={openAlarm}
+      alarmFocus={location.state?.alarmId ? { id: location.state.alarmId, tab: location.state.tab } : null}
       onAction={showToast}
       onLogout={() => {
         logout()
