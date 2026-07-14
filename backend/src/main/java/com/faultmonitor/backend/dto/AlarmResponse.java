@@ -6,7 +6,7 @@ import com.faultmonitor.backend.entity.AlarmStatus;
 import com.faultmonitor.backend.entity.SubsystemType;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 
 public record AlarmResponse(
         Long id,
@@ -42,7 +42,7 @@ public record AlarmResponse(
     }
 
     private static Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 
     public record AcknowledgedUser(Long id, String username) {

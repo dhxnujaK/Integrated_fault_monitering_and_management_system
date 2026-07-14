@@ -14,7 +14,7 @@ import com.faultmonitor.backend.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +109,7 @@ public class AlarmService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
                         "Authenticated user was not found."));
         alarm.setStatus(AlarmStatus.ACKNOWLEDGED);
-        alarm.setAcknowledgedAt(LocalDateTime.now(ZoneOffset.UTC));
+        alarm.setAcknowledgedAt(LocalDateTime.now());
         alarm.setAcknowledgedBy(user);
         alarm.setAcknowledgementNote(note == null || note.isBlank() ? null : note.trim());
         return AlarmResponse.from(alarm);
@@ -173,7 +173,7 @@ public class AlarmService {
                     .status(AlarmStatus.ACTIVE)
                     .build());
         } else if (!conditionActive && !existing.isEmpty()) {
-            LocalDateTime resolvedAt = LocalDateTime.now(ZoneOffset.UTC);
+            LocalDateTime resolvedAt = LocalDateTime.now();
             existing.forEach(alarm -> {
                 alarm.setStatus(AlarmStatus.RESOLVED);
                 alarm.setResolvedAt(resolvedAt);
@@ -209,11 +209,11 @@ public class AlarmService {
             }
             if (from != null) {
                 predicates.add(builder.greaterThanOrEqualTo(
-                        root.get("triggeredAt"), LocalDateTime.ofInstant(from, ZoneOffset.UTC)));
+                        root.get("triggeredAt"), LocalDateTime.ofInstant(from, ZoneId.systemDefault())));
             }
             if (to != null) {
                 predicates.add(builder.lessThanOrEqualTo(
-                        root.get("triggeredAt"), LocalDateTime.ofInstant(to, ZoneOffset.UTC)));
+                        root.get("triggeredAt"), LocalDateTime.ofInstant(to, ZoneId.systemDefault())));
             }
             return builder.and(predicates.toArray(Predicate[]::new));
         };

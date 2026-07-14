@@ -15,7 +15,7 @@ import com.faultmonitor.backend.repository.EquipmentRepository;
 import com.faultmonitor.backend.repository.SensorReadingRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -89,7 +89,7 @@ public class MonitoringService {
 
     private String overallStatus(SensorReading reading, AlarmCounts counts) {
         if (reading == null || reading.getRecordedAt().isBefore(
-                LocalDateTime.now(ZoneOffset.UTC).minusSeconds(OFFLINE_TIMEOUT_SECONDS))) {
+                LocalDateTime.now().minusSeconds(OFFLINE_TIMEOUT_SECONDS))) {
             return "OFFLINE";
         }
         boolean critical = alarmRepository.existsByEquipmentIdAndStatusNotAndSeverity(
@@ -115,7 +115,7 @@ public class MonitoringService {
     }
 
     private Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 
     private record AlarmCounts(long active, long acknowledged) {
