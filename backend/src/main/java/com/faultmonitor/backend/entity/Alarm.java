@@ -72,8 +72,12 @@ public class Alarm {
     @Column(name = "acknowledged_at")
     private LocalDateTime acknowledgedAt;
 
-    @Column(name = "acknowledged_by")
-    private Long acknowledgedBy;
+    @ManyToOne
+    @JoinColumn(name = "acknowledged_by")
+    private User acknowledgedBy;
+
+    @Column(name = "acknowledgement_note", length = 500)
+    private String acknowledgementNote;
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
