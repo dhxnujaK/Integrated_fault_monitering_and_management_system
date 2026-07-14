@@ -335,11 +335,26 @@ button {
   box-shadow: 0 8px 18px rgb(5 11 24 / 10%);
 }
 
-.status-pill.danger {
-  background: #ffd4d7;
+.status-pill.normal {
+  background: #3c8e5d;
+  color: #fff;
 }
 
-.status-pill.ok,
+.status-pill.warning {
+  background: #b7791f;
+  color: #fff;
+}
+
+.status-pill.critical {
+  background: #c53b3b;
+  color: #fff;
+}
+
+.status-pill.offline {
+  background: #64748b;
+  color: #fff;
+}
+
 .status-chip {
   background: #fff;
 }
@@ -501,6 +516,7 @@ button {
 
 .legend {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 8px;
   padding: 12px;
@@ -511,37 +527,33 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #3d4a65;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: #fff;
   font-weight: 800;
 }
 
 .legend i {
-  width: 34px;
-  border-top: 4px solid var(--red);
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 86%);
 }
 
-.legend .green-line {
-  border-color: var(--green);
+.legend .normal {
+  background: #3c8e5d;
 }
 
-.legend .blue-line {
-  border-color: #2f5ccf;
+.legend .warning {
+  background: #b7791f;
 }
 
-.legend .normal-line {
-  border-color: #3c8e5d;
+.legend .critical {
+  background: #c53b3b;
 }
 
-.legend .warning-line {
-  border-color: #b7791f;
-}
-
-.legend .critical-line {
-  border-color: #c53b3b;
-}
-
-.legend .offline-line {
-  border-color: #64748b;
+.legend .offline {
+  background: #64748b;
 }
 
 .system-overview-note {

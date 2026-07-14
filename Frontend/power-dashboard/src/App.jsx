@@ -481,7 +481,7 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
           <article className="status-card" key={equipment.equipmentId}>
             <h2>{equipment.displayName ?? equipment.equipmentCode}</h2>
             <div className="divider" />
-            <p className={`status-pill ${getStatusTone(equipment.overallStatus)}`}>{equipment.overallStatus}</p>
+            <p className={`status-pill ${statusClass(equipment.overallStatus)}`}>{equipment.overallStatus}</p>
           </article>
         )) : <p className="empty-state">Loading equipment status…</p>}
       </section>
@@ -539,10 +539,10 @@ function SystemOverview({ equipment }) {
         ))}
       </div>
       <div className="legend" aria-label="Status legend">
-        <span><i className="normal-line" />Normal</span>
-        <span><i className="warning-line" />Warning</span>
-        <span><i className="critical-line" />Critical</span>
-        <span><i className="offline-line" />Offline</span>
+        <span className="normal"><i />Normal</span>
+        <span className="warning"><i />Warning</span>
+        <span className="critical"><i />Critical</span>
+        <span className="offline"><i />Offline</span>
       </div>
     </section>
   )
