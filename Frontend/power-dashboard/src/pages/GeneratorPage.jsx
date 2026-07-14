@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react'
-import api from '../api/axios'
-import usePolling from '../hooks/usePolling'
-import StatusBadge from '../components/StatusBadge'
+import React, { useState } from 'react'
+import { acknowledgeAlarm } from '../api/alarmsApi'
+import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import EquipmentSelector from '../components/EquipmentSelector'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import ReadingCard from '../components/ReadingCard'
 import SectionCard from '../components/SectionCard'
 import toast from 'react-hot-toast'
@@ -70,26 +71,15 @@ function ChartPanel({ title, variant, legend }) {
 }
 
 export default function GeneratorPage() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  // 1. Poll Generator Status
-  const fetchStatus = useCallback(() => {
-    return api.get('/api/generator/status').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
-
-  // 2. Poll Active Generator Alarms
-  const fetchAlarms = useCallback(() => {
-    return api.get('/api/generator/alarms').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: alarms } = usePolling(fetchAlarms, 5000)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('GENERATOR', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via Generator page' })
+      await acknowledgeAlarm(id, 'Acknowledged via Generator page')
       toast.success('Alarm acknowledged')
-      setRefreshTrigger(prev => prev + 1)
+      await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
     }
@@ -98,39 +88,30 @@ export default function GeneratorPage() {
   const isOffline = !!statusError
 
   // Telemetry mappings
-  const latestReading = status?.latestReading || {
-    voltage_L1: 230.5,
-    voltage_L2: 229.8,
-    voltage_L3: 231.2,
-    current_L1: 45.2,
-    current_L2: 44.8,
-    current_L3: 45.5,
-    fuel_level_pct: 75.0,
-    frequency_hz: 50.1,
-    running_status: 'RUNNING',
-    breaker_status: 'CLOSED',
-    room_temperature_c: 28.5,
-    intruder_alarm: false,
-    fire_alarm: false
-  }
+  const latestReading = status?.latestReading ?? {}
 
   const fuelPct = latestReading.fuel_level_pct || 0
   const remainingHours = (fuelPct * 0.12).toFixed(1)
   let fuelBarColor = '#76d33f' // green
-  if (fuelPct < 10) {
+  if (fuelPct < 20) {
     fuelBarColor = '#e23a3a' // red
-  } else if (fuelPct < 20) {
+  } else if (fuelPct < 40) {
     fuelBarColor = '#f28b2d' // amber
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <EquipmentSelector
+        equipment={equipment}
+        selectedEquipmentId={selectedEquipment?.id}
+        onChange={setSelectedEquipmentId}
+      />
       {/* Offline warning banner if backend is unavailable */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
           <button 
-            onClick={() => setRefreshTrigger(p => p + 1)} 
+            onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
           >
             <RefreshCw size={12} /> Retry
@@ -243,39 +224,12 @@ export default function GeneratorPage() {
       {/* 4. Bottom Row: Active Alarms and Fault Diagnosis / Relays */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms using the original .alarm-table styling */}
-        <SectionCard title="Active Generator Alarms" icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this generator.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'acknowledged'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title="Active Generator Alarms"
+          emptyMessage="No active alarms for this generator."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Fault Diagnosis with fuel bar, temperature, and indicators */}
         <SectionCard title="Safety & Diagnostics" icon={AlertTriangle}>

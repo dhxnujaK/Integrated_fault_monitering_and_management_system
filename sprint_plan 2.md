@@ -47,7 +47,8 @@ This revision replaces the original task-only plan. It records the work already 
 | Area | Implemented | Missing or incomplete |
 |---|---|---|
 | Sprint 1 foundation | JPA entities/repositories, JWT authentication, protected React routing, FastAPI health and placeholder prediction | Automated tests cover only application startup; environment configuration still contains development defaults |
-| Dhanuja Sprint 2–3 | Generator, ATS, MDP and SDP simulation; threshold checks and alarm creation for those types | UPS simulation/rules; automatic alarm resolution; equipment-driven simulation |
+| Dhanuja Sprint 2–3 | Generator, ATS, MDP and SDP simulation; threshold checks and alarm creation for those types | UPS simulation/rules; equipment-driven simulation |
+| Nethmini Sprint 2–3 | Authentication foundation | Generic monitoring APIs, persisted alarm acknowledgement and automatic alarm resolution |
 | Backend REST API | Authentication endpoints | Equipment, dashboard, status, readings, alarms, acknowledgement, history and subsystem APIs |
 | Current `Dev_main` UI | Builds successfully; complete mock visual shell | Operational pages still use mock/local state and do not consume live monitoring APIs |
 | `Achani_New` | Live Generator, ATS, MDP and SDP pages; polling hook; shared cards/badges; subsystem alarm acknowledgement calls | Calls backend endpoints that do not exist; hardcodes equipment IDs in places; branch has no merge base with `Dev_main` |
@@ -89,6 +90,14 @@ MySQL
 ```
 
 No developer may introduce a second API shape, enum spelling, equipment list, or alarm lifecycle inside their feature. Shared behaviour belongs in the shared layer described below.
+
+### Integration invariants
+
+1. `equipmentId` is an additive, nullable relationship during migration. Existing `subsystemType` and `subsystemId` remain populated and compatible until historical records are backfilled.
+2. Seeded `equipmentCode` values must exactly match the current subsystem IDs: `GENERATOR-01`, `ATS-01`, `MDP-01`, `SDP-01`, `SDP-02`, `UPS-01`, and `UPS-02`.
+3. The unresolved alarm deduplication key transitions from legacy `alarmCode + subsystemId` to `alarmCode + equipmentId` only after `equipmentId` has been backfilled.
+4. Nethmini owns persisted lifecycle transitions: users acknowledge `ACTIVE -> ACKNOWLEDGED`; the backend automatically resolves `ACTIVE` or `ACKNOWLEDGED -> RESOLVED` when the triggering condition clears. There is no manual resolve action.
+5. DTO fields are endpoint-scoped. Status responses use `activeAlarmCount` and `acknowledgedAlarmCount`; dashboard totals use their documented summary fields; alarm-list responses use the Section 7.5 alarm object. Fixtures must match the endpoint they emulate.
 
 ---
 

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react'
-import api from '../api/axios'
-import usePolling from '../hooks/usePolling'
-import StatusBadge from '../components/StatusBadge'
+import React, { useState } from 'react'
+import { acknowledgeAlarm } from '../api/alarmsApi'
+import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import EquipmentSelector from '../components/EquipmentSelector'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import ReadingCard from '../components/ReadingCard'
 import SectionCard from '../components/SectionCard'
 import toast from 'react-hot-toast'
@@ -19,26 +20,15 @@ import {
 } from 'lucide-react'
 
 export default function ATSPage() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  // 1. Poll ATS Status
-  const fetchStatus = useCallback(() => {
-    return api.get('/api/ats/status').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
-
-  // 2. Poll Active ATS Alarms
-  const fetchAlarms = useCallback(() => {
-    return api.get('/api/ats/alarms').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: alarms } = usePolling(fetchAlarms, 5000)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via ATS page' })
+      await acknowledgeAlarm(id, 'Acknowledged via ATS page')
       toast.success('Alarm acknowledged')
-      setRefreshTrigger(prev => prev + 1)
+      await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
     }
@@ -47,29 +37,24 @@ export default function ATSPage() {
   const isOffline = !!statusError
 
   // Telemetry mappings
-  const latestReading = status?.latestReading || {
-    active_source: 'MAINS',
-    mains_voltage: 230.2,
-    generator_voltage: 229.8,
-    transfer_status: 'NORMAL',
-    breaker_status: 'CLOSED',
-    last_transfer_at: '2024-01-15T10:30:00',
-    room_temperature_c: 26.0,
-    intruder_alarm: false,
-    fire_alarm: false
-  }
+  const latestReading = status?.latestReading ?? {}
 
   const activeSource = (latestReading.active_source || 'MAINS').toUpperCase()
   const isMainsActive = activeSource === 'MAINS'
 
   return (
     <div className="flex flex-col gap-4">
+      <EquipmentSelector
+        equipment={equipment}
+        selectedEquipmentId={selectedEquipment?.id}
+        onChange={setSelectedEquipmentId}
+      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
           <button 
-            onClick={() => setRefreshTrigger(p => p + 1)} 
+            onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
           >
             <RefreshCw size={12} /> Retry
@@ -106,7 +91,7 @@ export default function ATSPage() {
           </div>
           <div className="divider" />
           <p className="metric-value" style={{ fontSize: '20px', marginTop: '16px' }}>Load on {activeSource}</p>
-          <span className="metric-note">Switch position active</span>
+          <span className="metric-note">Transfer: {latestReading.transfer_status || 'UNKNOWN'}</span>
         </article>
 
         <article className="metric-panel">
@@ -188,39 +173,12 @@ export default function ATSPage() {
       {/* 4. Bottom Row: Active Alarms and Events List */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
-        <SectionCard title="Active ATS Alarms" icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this ATS.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'acknowledged'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title="Active ATS Alarms"
+          emptyMessage="No active alarms for this ATS."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Cabinet protection relays and last transfer timestamp */}
         <SectionCard title="ATS Cabinet Relays" icon={PlugZap}>

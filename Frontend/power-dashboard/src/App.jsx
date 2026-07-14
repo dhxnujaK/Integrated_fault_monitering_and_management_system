@@ -16,10 +16,7 @@ import {
   Power,
   ServerCog,
   Settings,
-  ShieldCheck,
   SlidersHorizontal,
-  Zap,
-  Plus,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -32,17 +29,6 @@ import LiveGeneratorPage from './pages/GeneratorPage'
 import LiveATSPage from './pages/ATSPage'
 import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
-
-const chartSeries = {
-  power: {
-    a: [46, 42, 51, 47, 58, 54, 61, 57, 66, 62, 70, 68],
-    b: [32, 34, 37, 36, 42, 40, 45, 44, 49, 47, 52, 50],
-  },
-  engine: {
-    a: [64, 61, 69, 66, 75, 70, 78, 73, 81, 76, 84, 79],
-    b: [42, 48, 45, 55, 50, 59, 53, 62, 58, 64, 60, 66],
-  },
-}
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -63,291 +49,6 @@ const pathToPage = {
   '/mdp': 'MDP Status',
   '/sdp': 'SDP Status',
   '/settings': 'Settings',
-}
-
-const dashboardAlarms = [
-  {
-    id: 'dash-ups-battery',
-    source: 'UPS',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-01',
-    alarmCode: 'UPS_BATTERY_LOW',
-    alarmMessage: 'UPS battery charge has dropped below the warning threshold.',
-    title: 'Battery Low',
-    time: '10:15 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'ACTIVE',
-    targetPage: '/ups',
-  },
-  {
-    id: 'ups-recovered',
-    area: 'UPS 02 - Server Room',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-02',
-    alarmCode: 'UPS_BATTERY_LOW',
-    alarmMessage: 'UPS 02 battery level returned to normal after charger recovery.',
-    title: 'Battery Restored',
-    time: '06:18 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'RESOLVED',
-    triggeredAt: '05:55 am',
-    resolvedAt: '06:18 am',
-    targetPage: '/ups',
-  },
-  {
-    id: 'dash-generator-start',
-    source: 'Generator',
-    subsystemType: 'GENERATOR',
-    subsystemId: 'GENERATOR-01',
-    alarmCode: 'GEN_FAULT',
-    alarmMessage: 'Generator failed to start and is reporting a fault condition.',
-    title: 'Fail to Start',
-    time: '09:20 am',
-    tone: 'danger',
-    severity: 'CRITICAL',
-    status: 'ACTIVE',
-    targetPage: '/generator',
-  },
-  {
-    id: 'dash-mdp-phase',
-    source: 'MDP',
-    subsystemType: 'MDP',
-    subsystemId: 'MDP-01',
-    alarmCode: 'MDP_PHASE_IMBALANCE',
-    alarmMessage: 'Phase difference across the main distribution panel is above the safe limit.',
-    title: 'Phase Loss Warning',
-    time: '08:50 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'ACTIVE',
-    targetPage: '/mdp',
-  },
-]
-
-const generatorAlarms = [
-  {
-    id: 'gen-coolant',
-    subsystemType: 'GENERATOR',
-    subsystemId: 'GENERATOR-01',
-    alarmCode: 'GEN_HIGH_TEMP',
-    alarmMessage: 'Radiator fan failed to start and generator temperature is above the limit.',
-    title: 'High Coolant Temperature',
-    detail: 'Radiator fan failed to start',
-    time: '10:15 am',
-    tone: 'danger',
-    severity: 'CRITICAL',
-    status: 'ACTIVE',
-    targetPage: '/generator',
-  },
-  {
-    id: 'gen-fuel',
-    subsystemType: 'GENERATOR',
-    subsystemId: 'GENERATOR-01',
-    alarmCode: 'GEN_LOW_FUEL',
-    alarmMessage: 'Generator fuel level is below the warning threshold.',
-    title: 'Low Fuel Warning',
-    detail: 'Utility not available',
-    time: '09:20 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'ACTIVE',
-    targetPage: '/generator',
-  },
-  {
-    id: 'gen-battery',
-    subsystemType: 'GENERATOR',
-    subsystemId: 'GENERATOR-01',
-    alarmCode: 'GEN_INTRUDER',
-    alarmMessage: 'Generator room battery support circuit is below the nominal range.',
-    title: 'Battery Low Voltage',
-    detail: 'Battery below normal charging range',
-    time: '08:50 am',
-    tone: 'danger',
-    severity: 'WARNING',
-    status: 'ACKNOWLEDGED',
-    acknowledgedAt: '08:58 am',
-    targetPage: '/generator',
-  },
-  {
-    id: 'gen-recovery',
-    subsystemType: 'GENERATOR',
-    subsystemId: 'GENERATOR-01',
-    alarmCode: 'GEN_HIGH_TEMP',
-    alarmMessage: 'Generator temperature returned to normal after the cooling fan restarted.',
-    title: 'Temperature Restored',
-    detail: 'High coolant temperature alarm was created and later cleared.',
-    time: '07:42 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'RESOLVED',
-    triggeredAt: '07:15 am',
-    resolvedAt: '07:42 am',
-    targetPage: '/generator',
-  },
-]
-
-const upsAlarms = [
-  {
-    id: 'ups-critical-low',
-    area: 'UPS 01 - Server Room',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-01',
-    alarmCode: 'UPS_BATTERY_CRITICAL',
-    alarmMessage: 'UPS 01 battery charge is critically low and requires immediate action.',
-    title: 'Battery Critically Low',
-    time: '09:25 am',
-    tone: 'danger',
-    severity: 'CRITICAL',
-    status: 'ACTIVE',
-    targetPage: '/ups',
-  },
-  {
-    id: 'ups-output',
-    area: 'UPS 01 - Server Room',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-01',
-    alarmCode: 'UPS_FAULT',
-    alarmMessage: 'UPS output circuit has failed and output power is not stable.',
-    title: 'UPS Output Failure',
-    time: '07:32 am',
-    tone: 'danger',
-    severity: 'CRITICAL',
-    status: 'ACTIVE',
-    targetPage: '/ups',
-  },
-  {
-    id: 'ups-low',
-    area: 'UPS 02 - Server Room',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-02',
-    alarmCode: 'UPS_BATTERY_LOW',
-    alarmMessage: 'UPS 02 battery is below the warning threshold.',
-    title: 'Battery Low',
-    time: '08:45 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'ACTIVE',
-    targetPage: '/ups',
-  },
-  {
-    id: 'ups-internal',
-    area: 'UPS 04 - Toll Plaza',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-04',
-    alarmCode: 'UPS_FAULT',
-    alarmMessage: 'UPS internal fault has been acknowledged by the operator.',
-    title: 'UPS Internal Failure',
-    time: '09:15 am',
-    tone: 'danger',
-    severity: 'CRITICAL',
-    status: 'ACKNOWLEDGED',
-    acknowledgedAt: '09:24 am',
-    targetPage: '/ups',
-  },
-  {
-    id: 'ups-overload',
-    area: 'UPS 04 - Toll Plaza',
-    subsystemType: 'UPS',
-    subsystemId: 'UPS-04',
-    alarmCode: 'UPS_HIGH_LOAD',
-    alarmMessage: 'UPS load is above the safe operating limit.',
-    title: 'Overload Warning',
-    time: '08:21 am',
-    tone: 'warning',
-    severity: 'WARNING',
-    status: 'ACTIVE',
-    targetPage: '/ups',
-  },
-]
-
-const _initialAlarmState = {
-  dashboard: dashboardAlarms,
-  generator: generatorAlarms,
-  ats: generatorAlarms.slice(1).map((alarm) => ({ ...alarm, id: `ats-${alarm.id}` })),
-  ups: upsAlarms,
-  mdp: [
-    {
-      id: 'mdp-phase-r',
-      subsystemType: 'MDP',
-      subsystemId: 'MDP-01',
-      alarmCode: 'MDP_PHASE_VOLTAGE',
-      alarmMessage: 'Phase R breaker has automatically tripped due to an overload condition.',
-      title: 'Phase R Tripped',
-      detail: 'Phase R breaker has automatically tripped due to overload condition.',
-      time: '10:15 am',
-      tone: 'danger',
-      severity: 'WARNING',
-      status: 'ACTIVE',
-      targetPage: '/mdp',
-    },
-    {
-      id: 'mdp-imbalance',
-      subsystemType: 'MDP',
-      subsystemId: 'MDP-01',
-      alarmCode: 'MDP_PHASE_IMBALANCE',
-      alarmMessage: 'High and low voltage difference detected across the three phases.',
-      title: 'Imbalanced Phase',
-      detail: 'High/low voltage difference detected across three phases.',
-      time: '08:50 am',
-      tone: 'warning',
-      severity: 'WARNING',
-      status: 'ACKNOWLEDGED',
-      acknowledgedAt: '09:05 am',
-      targetPage: '/mdp',
-    },
-  ],
-  sdp: [
-    {
-      id: 'sdp-lighting',
-      subsystemType: 'SDP',
-      subsystemId: 'SDP-01',
-      alarmCode: 'SDP_PHASE_VOLTAGE',
-      alarmMessage: 'Voltage on the downstream lighting section is outside the safe range.',
-      title: 'Downstream Voltage Warning',
-      detail: 'Voltage on downstream circuit is outside the safe range.',
-      time: '10:05 am',
-      tone: 'warning',
-      severity: 'WARNING',
-      status: 'ACTIVE',
-      targetPage: '/sdp',
-    },
-    {
-      id: 'sdp-intruder',
-      subsystemType: 'SDP',
-      subsystemId: 'SDP-02',
-      alarmCode: 'SDP_INTRUDER',
-      alarmMessage: 'Intruder alarm was detected in SDP-02 cabinet room.',
-      title: 'Intruder Alarm',
-      detail: 'Intruder alarm was detected in the cabinet room.',
-      time: '09:35 am',
-      tone: 'danger',
-      severity: 'WARNING',
-      status: 'ACKNOWLEDGED',
-      acknowledgedAt: '09:42 am',
-      targetPage: '/sdp',
-    },
-  ],
-}
-
-const metricPages = {
-  Generator: {
-    cards: [
-      { label: 'Generator Running', value: 'Auto Mode', icon: ShieldCheck, badge: true },
-      { label: 'Output Power', value: '250 kW / 312 kVA', icon: Gauge },
-      { label: 'Fuel Level', value: '65% - 8 Hours', icon: SlidersHorizontal },
-      { label: 'Battery Voltage', value: '11.1v charging', icon: Zap },
-    ],
-  },
-  'ATS Status': {
-    cards: [
-      { label: 'Utility Supply', value: '250 v / 31 hz', icon: PlugZap },
-      { label: 'Generator', value: 'AVAILABLE', note: 'Ready for Transfer', icon: Gauge },
-      { label: 'ATS Position', value: 'Load on GENERATOR', icon: ClipboardList },
-      { label: 'ATS Mode', value: 'Auto Mode', icon: ShieldCheck, badge: true },
-    ],
-  },
 }
 
 function SignIn() {
@@ -494,24 +195,6 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {children}
       </main>
     </div>
-  )
-}
-
-function MetricStrip({ page }) {
-  return (
-    <section className="metric-strip" aria-label={`${page} metrics`}>
-      {metricPages[page].cards.map((card) => (
-        <article className="metric-panel" key={card.label}>
-          <div className="panel-heading">
-            {createElement(card.icon, { size: 18 })}
-            <h2>{card.label}</h2>
-          </div>
-          <div className="divider" />
-          <p className={card.badge ? 'white-pill' : 'metric-value'}>{card.value}</p>
-          {card.note ? <span className="metric-note">{card.note}</span> : null}
-        </article>
-      ))}
-    </section>
   )
 }
 
@@ -916,73 +599,6 @@ function FaultDiagnosis({ title = 'High Coolant temperature' }) {
   )
 }
 
-function GeneratorPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
-  return (
-    <>
-      <MetricStrip page="Generator" />
-      <div className="content-grid two-even">
-        <ChartPanel title="Power & Voltage" variant="power" legend={['Power', 'Voltage']} />
-        <ChartPanel title="Engine Parameters" variant="engine" legend={['Coolant Temp', 'Oil Pressure']} />
-      </div>
-      <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
-        <FaultDiagnosis title="High Coolant temperature" />
-      </div>
-      <SectionCard title="Generator Maintenance Snapshot" icon={ClipboardList}>
-        <div className="snapshot-grid">
-          <article><span>Last Service</span><strong>12 Feb 2026</strong></article>
-          <article><span>Runtime Hours</span><strong>1,284 h</strong></article>
-          <article><span>Next Test</span><strong>Weekly run</strong></article>
-          <article><span>Assigned Team</span><strong>Electrical Ops</strong></article>
-        </div>
-      </SectionCard>
-    </>
-  )
-}
-
-function AtsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
-  return (
-    <>
-      <MetricStrip page="ATS Status" />
-      <div className="content-grid two-even">
-        <SectionCard title="Utility Source">
-          <div className="ats-flow">
-            <svg className="ats-wires" viewBox="0 0 620 260" aria-hidden="true">
-              <path className="wire utility" d="M115 82 H278" />
-              <path className="wire generator" d="M122 190 V148 H278" />
-              <path className="wire load" d="M340 116 H505" />
-              <circle className="junction" cx="306" cy="116" r="8" />
-            </svg>
-            <div className="source green utility-node">UTILITY<span>415 V<br />50 Hz</span></div>
-            <div className="source teal ats-node">ATS</div>
-            <div className="source blue load-node">LOAD<span>100 Hz</span></div>
-            <div className="source green generator-node">GENERATOR<span>400 V<br />50 Hz</span></div>
-          </div>
-        </SectionCard>
-        <SectionCard title="Electrical Parameters" icon={Zap}>
-          <dl className="parameter-list">
-            <div><dt>Utility Voltage</dt><dd>415 V</dd></div>
-            <div><dt>Generator Voltage L - L</dt><dd>400 V</dd></div>
-            <div><dt>Frequency</dt><dd>50 Hz</dd></div>
-            <div><dt>Phases</dt><dd><span className="phase r">R</span><span className="phase y">Y</span><span className="phase b">B</span></dd></div>
-          </dl>
-        </SectionCard>
-      </div>
-      <div className="content-grid main-side">
-        <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
-        <SectionCard title="Transfer Events" icon={PlugZap}>
-          <ul className="event-list">
-            <li><strong>Transfer Failure</strong><span>10:12 am</span><p>Unable to connect to utility.</p></li>
-            <li><strong>Load transferred to Generator</strong><span>10:12 am</span><p>Utility not available.</p></li>
-            <li><strong>Load transferred to Utility</strong><span>09:15 am</span><p>Utility restored.</p></li>
-          </ul>
-          <Actions secondary="Initiate Test Transfer" onAction={onAction} />
-        </SectionCard>
-      </div>
-    </>
-  )
-}
-
 function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   const [units, setUnits] = useState([])
   const [loadingUnits, setLoadingUnits] = useState(true)
@@ -1005,6 +621,7 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
       latestReading: status.latestReading ?? readings[0]?.data ?? {},
     }))
     setUnits(nextUnits)
+    setUnitsError('')
     setSelectedUpsId((current) => {
       const focusedEquipmentId = alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId
       if (focusedEquipmentId && nextUnits.some((unit) => String(unit.id) === String(focusedEquipmentId))) return focusedEquipmentId
@@ -1067,7 +684,7 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
 }
 
 function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelectUnit }) {
-  const selectedUnit = units.find((unit) => unit.subsystemId === selectedUpsId) ?? units[0]
+  const selectedUnit = units.find((unit) => String(unit.id) === String(selectedUpsId)) ?? units[0]
 
   return (
     <SectionCard title="UPS Fleet Overview" icon={Power}>
@@ -1118,89 +735,8 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
             <p className={`unit-alert ${unit.tone}`}>{unit.note}</p>
           </article>
         ))}
-        <button type="button" className="ups-add-card" aria-label="Add UPS unit">
-          <Plus size={42} />
-        </button>
       </section>
     </SectionCard>
-  )
-}
-
-function MdpPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
-  return (
-    <div className="mdp-layout">
-      <div className="state-bar">
-        <span>Current Status</span>
-        <strong>Normal</strong>
-      </div>
-      <SectionCard title="Phase Status" icon={Gauge}>
-        <div className="phase-grid">
-          {['Phase R', 'Phase Y', 'Phase B'].map((phase, index) => (
-            <article className="phase-card" key={phase}>
-              <h3>{phase}</h3>
-              <dl>
-                <div><dt>Voltage</dt><dd>{index === 1 ? '228 V' : index === 2 ? '0 V' : '230 V'}</dd></div>
-                <div><dt>Current</dt><dd>{index === 2 ? '0 A' : `${index === 1 ? '41' : '42'} A`}</dd></div>
-                <div><dt>Status</dt><dd className={index === 2 ? 'bad' : 'good'}>{index === 2 ? 'Tripped' : 'Okay'}</dd></div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-      <SectionCard title="Panel Protection Summary" icon={ShieldCheck}>
-        <div className="snapshot-grid">
-          <article><span>Earth Fault Relay</span><strong>Healthy</strong></article>
-          <article><span>Overcurrent Relay</span><strong>Healthy</strong></article>
-          <article><span>Surge Protection</span><strong>Online</strong></article>
-          <article><span>Thermal Margin</span><strong>12%</strong></article>
-        </div>
-      </SectionCard>
-      <AlarmPanel alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
-    </div>
-  )
-}
-
-function SdpPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
-  const loads = [
-    { name: 'Highway Lighting Section A', status: 'ON', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'ok' },
-    { name: 'CCTV Cluster Section A', status: 'ON', active: '12/12', power: '0.8kW', voltage: '230 V', tone: 'ok' },
-    { name: 'Emergency Call Boxes', status: 'Standby', active: '48/50', power: '1.2kW', voltage: '228 V', tone: 'warning' },
-    { name: 'Highway Lighting Section B', status: 'ON', active: '2/2', power: '0.4kW', voltage: '229 V', tone: 'ok' },
-  ]
-
-  return (
-    <>
-      <SectionCard title="Load Distribution" icon={ServerCog}>
-        <div className="load-grid">
-          {loads.map((load) => (
-            <article className="load-card" key={load.name}>
-              <h3>{load.name}</h3>
-              <p className={`status-chip ${load.tone === 'warning' ? 'warning' : ''}`}>{load.status}</p>
-              <dl>
-                <div><dt>Active Poles</dt><dd>{load.active}</dd></div>
-                <div><dt>Power Draw</dt><dd>{load.power}</dd></div>
-                <div><dt>Voltage</dt><dd>{load.voltage}</dd></div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-      <div className="content-grid main-side">
-        <SectionCard title="Maintenance Schedule" icon={ClipboardList}>
-          <div className="schedule-table">
-            <div><strong>Service Item</strong><strong>Due Date</strong><strong>Status</strong><strong>Action</strong></div>
-            <div><span>SPD Replacement</span><span>15 Nov 2026</span><em>Pending</em><button type="button" onClick={() => onAction?.('SPD task opened')}>View Task</button></div>
-            <div><span>Lighting Section A</span><span>15 Nov 2026</span><em>Scheduled</em><button type="button" onClick={() => onAction?.('Lighting task opened')}>View Task</button></div>
-            <div><span>CCTV Power Supply Audit</span><span>15 Nov 2026</span><em>Upcoming</em><button type="button" onClick={() => onAction?.('CCTV task opened')}>View Task</button></div>
-          </div>
-        </SectionCard>
-        <AlarmPanel title="Active Alarms" alarms={alarms} onAcknowledge={onAcknowledge} onAction={onAction} focusedAlarmId={alarmFocus?.id} requestedTab={alarmFocus?.tab} />
-        <SectionCard title="Environmental Monitoring">
-          <p className="large-status">Cabinet Temp <strong>20C</strong></p>
-          <p className="large-status">Cabinet Door <strong>Closed</strong></p>
-        </SectionCard>
-      </div>
-    </>
   )
 }
 
@@ -1254,46 +790,6 @@ function SliderRow({ label, value }) {
       <span className="slider-control"><input type="range" defaultValue="68" /><strong>{value}</strong></span>
     </label>
   )
-}
-
-function ChartPanel({ title, variant, legend }) {
-  const series = chartSeries[variant] ?? chartSeries.power
-
-  return (
-    <SectionCard title={title}>
-      <div className={`chart-placeholder ${variant}`}>
-        <svg viewBox="0 0 520 150" role="img" aria-label={`${title} chart placeholder`}>
-          <g className="chart-grid-lines">
-            <path d="M0 30 H520" />
-            <path d="M0 75 H520" />
-            <path d="M0 120 H520" />
-          </g>
-          <path className="line-a" d={buildLinePath(series.a)} />
-          <path className="line-b" d={buildLinePath(series.b)} />
-        </svg>
-      </div>
-      <div className="axis-labels"><span>9:00</span><span>10:00</span><span>11:00</span><span>12:00</span></div>
-      <div className="chart-legend">
-        {legend.map((item) => <span key={item}>{item}</span>)}
-      </div>
-    </SectionCard>
-  )
-}
-
-function buildLinePath(values) {
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const width = 520
-  const height = 118
-  const top = 16
-  const range = max - min || 1
-  const points = values.map((value, index) => {
-    const x = (index / (values.length - 1)) * width
-    const y = top + height - ((value - min) / range) * height
-    return [x, y]
-  })
-
-  return points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
 }
 
 function ChartPlaceholder({ variant = 'cool' }) {

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react'
-import api from '../api/axios'
-import usePolling from '../hooks/usePolling'
-import StatusBadge from '../components/StatusBadge'
+import React, { useState } from 'react'
+import { acknowledgeAlarm } from '../api/alarmsApi'
+import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import EquipmentSelector from '../components/EquipmentSelector'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import SectionCard from '../components/SectionCard'
 import ReadingCard from '../components/ReadingCard'
 import toast from 'react-hot-toast'
@@ -103,26 +104,15 @@ function VoltageBarChart({ vr, vy, vb }) {
 }
 
 export default function MDPPage() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  // 1. Poll MDP Status
-  const fetchStatus = useCallback(() => {
-    return api.get('/api/mdp/status').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
-
-  // 2. Poll Active MDP Alarms
-  const fetchAlarms = useCallback(() => {
-    return api.get('/api/mdp/alarms').then(res => res.data)
-  }, [refreshTrigger])
-  const { data: alarms } = usePolling(fetchAlarms, 5000)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: 'Acknowledged via MDP page' })
+      await acknowledgeAlarm(id, 'Acknowledged via MDP page')
       toast.success('Alarm acknowledged')
-      setRefreshTrigger(prev => prev + 1)
+      await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
     }
@@ -130,29 +120,23 @@ export default function MDPPage() {
 
   const isOffline = !!statusError
 
-  const latestReading = status?.latestReading || {
-    voltage_R: 230.1,
-    voltage_Y: 229.5,
-    voltage_B: 230.8,
-    current_R: 80.2,
-    current_Y: 79.8,
-    current_B: 80.5,
-    main_breaker_status: 'CLOSED',
-    room_temperature_c: 27.0,
-    intruder_alarm: false,
-    fire_alarm: false
-  }
+  const latestReading = status?.latestReading ?? {}
 
   const overallStatus = status?.overallStatus || 'NORMAL'
 
   return (
     <div className="flex flex-col gap-4">
+      <EquipmentSelector
+        equipment={equipment}
+        selectedEquipmentId={selectedEquipment?.id}
+        onChange={setSelectedEquipmentId}
+      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
           <button 
-            onClick={() => setRefreshTrigger(p => p + 1)} 
+            onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
           >
             <RefreshCw size={12} /> Retry
@@ -221,39 +205,12 @@ export default function MDPPage() {
       {/* 4. Bottom Row: Active Alarms & Cabinet Indicators (content-grid main-side) */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
-        <SectionCard title="Active MDP Alarms" icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this MDP.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'acknowledged'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title="Active MDP Alarms"
+          emptyMessage="No active alarms for this MDP."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}
         <SectionCard title="Cabinet Protection Relays" icon={ShieldCheck}>

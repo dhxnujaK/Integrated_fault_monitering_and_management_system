@@ -2,10 +2,13 @@ package com.faultmonitor.backend.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.faultmonitor.backend.entity.Equipment;
 import com.faultmonitor.backend.entity.SensorReading;
 import com.faultmonitor.backend.entity.SubsystemType;
+import com.faultmonitor.backend.repository.EquipmentRepository;
 import com.faultmonitor.backend.repository.SensorReadingRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -22,28 +25,29 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(name = "simulation.enabled", havingValue = "true")
 public class DataSimulationService {
 
-    private static final String GENERATOR_ID = "GENERATOR-01";
-    private static final String ATS_ID = "ATS-01";
-    private static final String MDP_ID = "MDP-01";
-    private static final String SDP_01_ID = "SDP-01";
-    private static final String SDP_02_ID = "SDP-02";
-
     private final SensorReadingRepository sensorReadingRepository;
+    private final EquipmentRepository equipmentRepository;
     private final AlarmService alarmService;
     private final ObjectMapper objectMapper;
 
     private final AtomicInteger generatorTicks = new AtomicInteger();
     private final AtomicInteger atsTicks = new AtomicInteger();
     private final AtomicInteger mdpTicks = new AtomicInteger();
-    private double generatorFuelLevel = 100.0;
+    private final Map<String, Double> generatorFuelLevels = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Scheduled(fixedRate = 5000)
     public void simulateGenerator() {
+        enabledEquipment(SubsystemType.GENERATOR).forEach(this::simulateGenerator);
+    }
+
+    private void simulateGenerator(Equipment equipment) {
         int tick = generatorTicks.incrementAndGet();
+        double generatorFuelLevel = generatorFuelLevels.getOrDefault(equipment.getEquipmentCode(), 100.0);
         generatorFuelLevel = Math.max(0.0, generatorFuelLevel - 0.01);
         if (tick % 500 == 0) {
             generatorFuelLevel = Math.max(0.0, generatorFuelLevel - 5.0);
         }
+        generatorFuelLevels.put(equipment.getEquipmentCode(), generatorFuelLevel);
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("voltage_L1", varied(230.0, 5.0));
@@ -60,12 +64,16 @@ public class DataSimulationService {
         data.put("intruder_alarm", false);
         data.put("fire_alarm", false);
 
-        saveReading(SubsystemType.GENERATOR, GENERATOR_ID, data);
+        saveReading(equipment, data);
         alarmService.checkGenerator(data);
     }
 
     @Scheduled(fixedRate = 5000)
     public void simulateATS() {
+        enabledEquipment(SubsystemType.ATS).forEach(this::simulateATS);
+    }
+
+    private void simulateATS(Equipment equipment) {
         int tick = atsTicks.incrementAndGet();
         boolean transferTest = tick % 200 >= 0 && tick % 200 < 10;
 
@@ -80,12 +88,16 @@ public class DataSimulationService {
         data.put("intruder_alarm", false);
         data.put("fire_alarm", false);
 
-        saveReading(SubsystemType.ATS, ATS_ID, data);
+        saveReading(equipment, data);
         alarmService.checkATS(data);
     }
 
     @Scheduled(fixedRate = 5000)
     public void simulateMDP() {
+        enabledEquipment(SubsystemType.MDP).forEach(this::simulateMDP);
+    }
+
+    private void simulateMDP(Equipment equipment) {
         int tick = mdpTicks.incrementAndGet();
         boolean injectImbalance = tick % 300 == 0;
 
@@ -108,17 +120,16 @@ public class DataSimulationService {
         data.put("intruder_alarm", false);
         data.put("fire_alarm", false);
 
-        saveReading(SubsystemType.MDP, MDP_ID, data);
+        saveReading(equipment, data);
         alarmService.checkMDP(data);
     }
 
     @Scheduled(fixedRate = 5000)
     public void simulateSDP() {
-        simulateSingleSDP(SDP_01_ID);
-        simulateSingleSDP(SDP_02_ID);
+        enabledEquipment(SubsystemType.SDP).forEach(this::simulateSingleSDP);
     }
 
-    private void simulateSingleSDP(String subsystemId) {
+    private void simulateSingleSDP(Equipment equipment) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("voltage_R", varied(228.0, 5.0));
         data.put("voltage_Y", varied(228.0, 5.0));
@@ -131,20 +142,45 @@ public class DataSimulationService {
         data.put("intruder_alarm", false);
         data.put("fire_alarm", false);
 
-        saveReading(SubsystemType.SDP, subsystemId, data);
-        alarmService.checkSDP(data, subsystemId);
+        saveReading(equipment, data);
+        alarmService.checkSDP(data, equipment.getEquipmentCode());
     }
 
-    private void saveReading(SubsystemType subsystemType, String subsystemId, Map<String, Object> data) {
+    /** UPS alarm evaluation is intentionally left to Nethmini's lifecycle work. */
+    @Scheduled(fixedRate = 5000)
+    public void simulateUPS() {
+        enabledEquipment(SubsystemType.UPS).forEach(this::simulateUPS);
+    }
+
+    private void simulateUPS(Equipment equipment) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("operational_status", "ONLINE");
+        data.put("battery_charge_pct", varied(85.0, 3.0));
+        data.put("battery_voltage_v", varied(48.0, 1.0));
+        data.put("input_voltage_v", varied(230.0, 4.0));
+        data.put("output_voltage_v", varied(230.0, 2.0));
+        data.put("load_pct", varied(45.0, 5.0));
+        data.put("estimated_runtime_min", Math.round(varied(120.0, 12.0)));
+        data.put("temperature_c", varied(27.0, 2.0));
+        data.put("fault_code", null);
+        saveReading(equipment, data);
+    }
+
+    private List<Equipment> enabledEquipment(SubsystemType type) {
+        return equipmentRepository.findByEnabledTrueAndEquipmentType(type);
+    }
+
+    private void saveReading(Equipment equipment, Map<String, Object> data) {
         try {
             sensorReadingRepository.save(SensorReading.builder()
-                    .subsystemType(subsystemType)
-                    .subsystemId(subsystemId)
+                    .subsystemType(equipment.getEquipmentType())
+                    .subsystemId(equipment.getEquipmentCode())
+                    .equipment(equipment)
                     .readingData(objectMapper.writeValueAsString(data))
                     .build());
         } catch (JsonProcessingException ex) {
             log.warn("Skipping simulated {} reading for {} because JSON serialization failed.",
-                    subsystemType, subsystemId, ex);
+                    equipment.getEquipmentType(), equipment.getEquipmentCode(), ex);
         }
     }
 

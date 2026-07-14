@@ -5,9 +5,9 @@ import { getEquipment, getEquipmentStatus } from './equipmentApi'
 export async function getDashboardSummary() {
   if (monitoringUsesMockData) {
     const equipment = await getEquipment()
-    const upsStatuses = await Promise.all(equipment.filter((item) => item.equipmentType === 'UPS').map(getEquipmentStatus))
+    const equipmentStatuses = await Promise.all(equipment.map(getEquipmentStatus))
     return {
-      equipment: upsStatuses.map((status) => ({
+      equipment: equipmentStatuses.map((status) => ({
         equipmentId: status.equipmentId,
         equipmentCode: status.equipmentCode,
         equipmentType: status.equipmentType,

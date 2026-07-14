@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import api from '../api/axios'
-import usePolling from '../hooks/usePolling'
-import StatusBadge from '../components/StatusBadge'
+import React, { useState } from 'react'
+import { acknowledgeAlarm } from '../api/alarmsApi'
+import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import SectionCard from '../components/SectionCard'
 import ReadingCard from '../components/ReadingCard'
 import toast from 'react-hot-toast'
@@ -103,46 +103,16 @@ function VoltageBarChart({ vr, vy, vb }) {
 }
 
 export default function SDPPage() {
-  const [sdpIds, setSdpIds] = useState(['SDP-01', 'SDP-02'])
-  const [selectedSdp, setSelectedSdp] = useState('SDP-01')
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  // 1. Fetch SDP IDs list on mount
-  useEffect(() => {
-    let active = true
-    api.get('/api/sdp')
-      .then(res => {
-        if (active && Array.isArray(res.data) && res.data.length > 0) {
-          setSdpIds(res.data)
-          setSelectedSdp(res.data[0])
-        }
-      })
-      .catch(err => {
-        console.warn('Could not fetch SDP IDs list from API, using default IDs list', err)
-      })
-    return () => {
-      active = false
-    }
-  }, [])
-
-  // 2. Poll SDP Status
-  const fetchStatus = useCallback(() => {
-    return api.get(`/api/sdp/${selectedSdp}/status`).then(res => res.data)
-  }, [selectedSdp, refreshTrigger])
-  const { data: status, error: statusError } = usePolling(fetchStatus, 5000)
-
-  // 3. Poll Active SDP Alarms
-  const fetchAlarms = useCallback(() => {
-    return api.get(`/api/sdp/${selectedSdp}/alarms`).then(res => res.data)
-  }, [selectedSdp, refreshTrigger])
-  const { data: alarms } = usePolling(fetchAlarms, 5000)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', selectedEquipmentId)
+  const selectedSdp = selectedEquipment?.equipmentCode ?? 'SDP'
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await api.put(`/api/alarms/${id}/acknowledge`, { note: `Acknowledged via SDP ${selectedSdp} page` })
+      await acknowledgeAlarm(id, `Acknowledged via SDP ${selectedSdp} page`)
       toast.success('Alarm acknowledged')
-      setRefreshTrigger(prev => prev + 1)
+      await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
     }
@@ -150,18 +120,7 @@ export default function SDPPage() {
 
   const isOffline = !!statusError
 
-  const latestReading = status?.latestReading || {
-    voltage_R: 228.5,
-    voltage_Y: 229.0,
-    voltage_B: 228.8,
-    current_R: 30.2,
-    current_Y: 29.8,
-    current_B: 30.1,
-    breaker_status: 'CLOSED',
-    room_temperature_c: 25.5,
-    intruder_alarm: false,
-    fire_alarm: false
-  }
+  const latestReading = status?.latestReading ?? {}
 
   const overallStatus = status?.overallStatus || 'NORMAL'
 
@@ -170,9 +129,9 @@ export default function SDPPage() {
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend Offline - Displaying simulated fallback telemetry.</span>
+          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
           <button 
-            onClick={() => setRefreshTrigger(p => p + 1)} 
+            onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
           >
             <RefreshCw size={12} /> Retry
@@ -182,17 +141,17 @@ export default function SDPPage() {
 
       {/* Tabs at the top to toggle between SDP panels */}
       <div className="flex border-b border-[#344364] gap-2 mb-2">
-        {sdpIds.map((id) => (
+        {equipment.map((item) => (
           <button
-            key={id}
-            onClick={() => setSelectedSdp(id)}
+            key={item.id}
+            onClick={() => setSelectedEquipmentId(item.id)}
             className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded-t transition-all border-t border-l border-r ${
-              selectedSdp === id
+              String(selectedEquipment?.id) === String(item.id)
                 ? 'bg-[#172341] border-[#344364] text-[#66d7e6]'
                 : 'bg-transparent border-transparent text-[#aeb9d5] hover:text-[#f8fbff]'
             }`}
           >
-            {id}
+            {item.equipmentCode}
           </button>
         ))}
       </div>
@@ -258,39 +217,12 @@ export default function SDPPage() {
       {/* 4. Bottom Row: Active Alarms & Cabinet Indicators (content-grid main-side) */}
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
-        <SectionCard title={`Active Alarms - ${selectedSdp}`} icon={Bell}>
-          {!alarms || alarms.length === 0 ? (
-            <p className="empty-state py-8">No active alarms for this SDP.</p>
-          ) : (
-            <div className="alarm-table max-h-60 overflow-y-auto">
-              {alarms.map((alarm) => (
-                <div 
-                  key={alarm.id} 
-                  className={`alarm-row ${alarm.status === 'acknowledged' ? 'acknowledged' : ''}`}
-                >
-                  <span className={`severity ${alarm.severity === 'CRITICAL' ? 'danger' : 'warning'}`}>
-                    <AlertTriangle size={18} />
-                  </span>
-                  <strong>{alarm.alarmCode}</strong>
-                  <span>
-                    {alarm.alarmMessage}
-                    {alarm.status === 'acknowledged' && <small>Acknowledged</small>}
-                  </span>
-                  <time>
-                    {new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </time>
-                  <button
-                    type="button"
-                    disabled={alarm.status === 'acknowledged'}
-                    onClick={() => handleAcknowledge(alarm.id)}
-                  >
-                    Acknowledge
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+        <ContextualAlarmPanel
+          title={`Active Alarms - ${selectedSdp}`}
+          emptyMessage="No active alarms for this SDP."
+          alarms={alarms}
+          onAcknowledge={handleAcknowledge}
+        />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}
         <SectionCard title="Cabinet Security Indicators" icon={ShieldCheck}>

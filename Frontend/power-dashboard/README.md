@@ -13,6 +13,7 @@ The remaining Sprint 2–3 live monitoring screens also use:
 - `GET /api/equipment?type=UPS&enabled=true`;
 - `GET /api/equipment/{equipmentId}/status`;
 - `GET /api/equipment/{equipmentId}/readings?limit=1`.
+- `GET /api/equipment/{equipmentId}/alarms?unresolved=true`.
 
 Dashboard summary/alarm data refreshes every 10 seconds. The UPS equipment, status, and latest-reading data refreshes every 5 seconds. An acknowledgement immediately refreshes the dashboard alarm data instead of waiting for polling.
 
@@ -20,9 +21,17 @@ To verify the frontend before those endpoints are merged, create a local `.env.l
 
 ```text
 VITE_USE_MOCK_MONITORING=true
+VITE_API_BASE_URL=http://localhost:8080
 ```
 
 Then run `npm run dev` and sign in. The monitoring mock is used only when that flag is exactly `true`; it is never the production default.
+
+## Shared integration rules
+
+- The frontend uses only the generic equipment endpoints above. Do not add old per-subsystem paths such as `/api/generator/status`.
+- Equipment is selected by numeric `equipmentId`; `equipmentCode` is the stable display and backfill key.
+- Status responses use `latestReading`, `overallStatus`, `activeAlarmCount`, and `acknowledgedAlarmCount`.
+- A failed real request displays an unavailable state. It must not be replaced by mock readings unless `VITE_USE_MOCK_MONITORING=true` is explicitly set.
 
 Check the following:
 
