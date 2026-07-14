@@ -1,4 +1,47 @@
-# React + Vite
+# Power Dashboard
+
+## Alarm-flow verification before backend integration
+
+The alarm UI is designed for the shared Spring Boot contract in `sprint_plan 2.md`:
+
+- `GET /api/alarms?status=&unresolved=&equipmentType=&equipmentId=&severity=&from=&to=&page=&size=`;
+- `PUT /api/alarms/{alarmId}/acknowledge` with `{ "note": "" }`.
+
+The remaining Sprint 2–3 live monitoring screens also use:
+
+- `GET /api/dashboard/summary`;
+- `GET /api/equipment?type=UPS&enabled=true`;
+- `GET /api/equipment/{equipmentId}/status`;
+- `GET /api/equipment/{equipmentId}/readings?limit=1`.
+- `GET /api/equipment/{equipmentId}/alarms?unresolved=true`.
+
+Dashboard summary/alarm data refreshes every 10 seconds. The UPS equipment, status, and latest-reading data refreshes every 5 seconds. An acknowledgement immediately refreshes the dashboard alarm data instead of waiting for polling.
+
+To verify the frontend before those endpoints are merged, create a local `.env.local` file containing:
+
+```text
+VITE_USE_MOCK_MONITORING=true
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Then run `npm run dev` and sign in. The monitoring mock is used only when that flag is exactly `true`; it is never the production default.
+
+## Shared integration rules
+
+- The frontend uses only the generic equipment endpoints above. Do not add old per-subsystem paths such as `/api/generator/status`.
+- Equipment is selected by numeric `equipmentId`; `equipmentCode` is the stable display and backfill key.
+- Status responses use `latestReading`, `overallStatus`, `activeAlarmCount`, and `acknowledgedAlarmCount`.
+- A failed real request displays an unavailable state. It must not be replaced by mock readings unless `VITE_USE_MOCK_MONITORING=true` is explicitly set.
+
+Check the following:
+
+1. Dashboard > Alarm Summary: click an Active UPS or Generator alarm. You should land on that equipment page with its **Active** tab selected.
+2. On the equipment page, click **Acknowledge**. The item must immediately disappear from Active and the **Acknowledged** tab must open with that item present.
+3. Return to Dashboard: the acknowledged alarm is still shown as unresolved, with status **Acknowledged**.
+4. Open the MDP page and choose **History**. The resolved mock alarm displays its created and closed timestamps.
+5. Open UPS Status. The UPS cards and the selected-unit values are loaded through the equipment/status/reading contract, not the old hardcoded fleet values. Select each UPS card and confirm the contextual alarm list changes with the selection.
+
+For Nethmini's backend integration, remove the local flag (or use `false`) and repeat the same checks with the Spring Boot API running. The backend is responsible for automatically setting `RESOLVED` and `resolvedAt` once the triggering condition clears.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

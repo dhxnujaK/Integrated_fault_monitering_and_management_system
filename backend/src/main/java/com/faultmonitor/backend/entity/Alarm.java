@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -43,6 +45,11 @@ public class Alarm {
     @Column(name = "subsystem_id", nullable = false, length = 50)
     private String subsystemId;
 
+    /** See SensorReading.equipment for the additive relationship migration. */
+    @ManyToOne
+    @JoinColumn(name = "equipment_id")
+    private Equipment equipment;
+
     @Column(name = "alarm_code", nullable = false, length = 100)
     private String alarmCode;
 
@@ -65,8 +72,12 @@ public class Alarm {
     @Column(name = "acknowledged_at")
     private LocalDateTime acknowledgedAt;
 
-    @Column(name = "acknowledged_by")
-    private Long acknowledgedBy;
+    @ManyToOne
+    @JoinColumn(name = "acknowledged_by")
+    private User acknowledgedBy;
+
+    @Column(name = "acknowledgement_note", length = 500)
+    private String acknowledgementNote;
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;

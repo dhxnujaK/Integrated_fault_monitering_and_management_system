@@ -13,12 +13,19 @@ body {
 }
 
 body {
-  font-family: 'Aptos', 'Trebuchet MS', 'Segoe UI', sans-serif;
-  background: #0b1223;
+  font-family: 'Segoe UI Variable Text', 'Aptos', 'Segoe UI', 'Trebuchet MS', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgb(102 215 230 / 12%), transparent 28%),
+    radial-gradient(circle at top right, rgb(126 211 75 / 12%), transparent 24%),
+    linear-gradient(180deg, #081022 0%, #0b1326 42%, #0f1730 100%);
   color: #f8fbff;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
 }
 
 button,

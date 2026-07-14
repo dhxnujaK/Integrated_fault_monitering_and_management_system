@@ -1,6 +1,8 @@
 # Integrated Fault Monitoring & Management System
 ## Sprint Coordination Document — Power Module
 
+> Superseded by `sprint_plan 2.md`, the working source of truth for Sprint 2–3 integration, shared contracts, and ownership.
+
 **Team:** Dhanuja · Nethmini · Achani · Onel  
 **Sprints:** 5 × 2 weeks = 10 weeks  
 **Stack:** React + Tailwind · Spring Boot · Python FastAPI · MySQL · AWS
