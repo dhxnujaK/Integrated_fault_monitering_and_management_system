@@ -90,12 +90,12 @@ export default function GeneratorPage() {
   // Telemetry mappings
   const latestReading = status?.latestReading ?? {}
 
-  const fuelPct = latestReading.fuel_level_pct || 0
-  const remainingHours = (fuelPct * 0.12).toFixed(1)
-  let fuelBarColor = '#76d33f' // green
-  if (fuelPct < 20) {
+  const fuelPct = Number.isFinite(latestReading.fuel_level_pct) ? latestReading.fuel_level_pct : null
+  const remainingHours = fuelPct === null ? null : (fuelPct * 0.12).toFixed(1)
+  let fuelBarColor = '#64748b'
+  if (fuelPct !== null && fuelPct < 20) {
     fuelBarColor = '#e23a3a' // red
-  } else if (fuelPct < 40) {
+  } else if (fuelPct !== null && fuelPct < 40) {
     fuelBarColor = '#f28b2d' // amber
   }
 
@@ -138,7 +138,7 @@ export default function GeneratorPage() {
               {latestReading.running_status || 'UNKNOWN'}
             </span>
           </div>
-          <span className="metric-note">Overall status: {status?.overallStatus || 'NORMAL'}</span>
+          <span className="metric-note">Overall status: {status?.overallStatus ?? 'OFFLINE'}</span>
         </article>
 
         <article className="metric-panel">
@@ -157,8 +157,8 @@ export default function GeneratorPage() {
             <h2>Fuel Level</h2>
           </div>
           <div className="divider" />
-          <p className="metric-value">{fuelPct.toFixed(1)}%</p>
-          <span className="metric-note">Est. runtime: {remainingHours} Hours</span>
+          <p className="metric-value">{fuelPct === null ? '—' : `${fuelPct.toFixed(1)}%`}</p>
+          <span className="metric-note">Est. runtime: {remainingHours === null ? '—' : `${remainingHours} Hours`}</span>
         </article>
 
         <article className="metric-panel">
@@ -238,12 +238,12 @@ export default function GeneratorPage() {
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between text-xs font-bold text-[#aeb9d5]">
                 <span>Fuel Reservoir Level</span>
-                <span className="text-[#f8fbff]">{fuelPct.toFixed(1)}%</span>
+                <span className="text-[#f8fbff]">{fuelPct === null ? '—' : `${fuelPct.toFixed(1)}%`}</span>
               </div>
               <div className="w-full bg-[#101a33] h-3.5 rounded p-[1px] border border-[#344364]">
                 <div 
                   className="h-full rounded transition-all duration-500"
-                  style={{ width: `${fuelPct}%`, backgroundColor: fuelBarColor }}
+                  style={{ width: `${fuelPct ?? 0}%`, backgroundColor: fuelBarColor }}
                 />
               </div>
             </div>
@@ -267,7 +267,7 @@ export default function GeneratorPage() {
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
-                {latestReading.breaker_status || 'OPEN'}
+                {latestReading.breaker_status ?? 'UNKNOWN'}
               </span>
             </div>
 

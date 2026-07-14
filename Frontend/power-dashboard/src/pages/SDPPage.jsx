@@ -122,7 +122,8 @@ export default function SDPPage() {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus || 'NORMAL'
+  const overallStatus = status?.overallStatus ?? 'OFFLINE'
+  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
 
   return (
     <div className="flex flex-col gap-4">
@@ -159,7 +160,7 @@ export default function SDPPage() {
       {/* 1. State bar representing selected SDP overallStatus */}
       <div className="state-bar">
         <span>Current Status - {selectedSdp}</span>
-        <strong className={overallStatus === 'CRITICAL' ? 'bad' : 'good'}>
+        <strong className={overallStatusClass}>
           {overallStatus}
         </strong>
       </div>
@@ -234,7 +235,7 @@ export default function SDPPage() {
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
-                {latestReading.breaker_status || 'OPEN'}
+                {latestReading.breaker_status ?? 'UNKNOWN'}
               </span>
             </div>
 

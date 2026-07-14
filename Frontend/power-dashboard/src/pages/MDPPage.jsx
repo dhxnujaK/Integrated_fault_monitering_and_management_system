@@ -122,7 +122,8 @@ export default function MDPPage() {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus || 'NORMAL'
+  const overallStatus = status?.overallStatus ?? 'OFFLINE'
+  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
 
   return (
     <div className="flex flex-col gap-4">
@@ -147,7 +148,7 @@ export default function MDPPage() {
       {/* 1. State bar at the top (exactly as in original mockup) */}
       <div className="state-bar">
         <span>Current Status</span>
-        <strong className={overallStatus === 'CRITICAL' ? 'bad' : 'good'}>
+        <strong className={overallStatusClass}>
           {overallStatus}
         </strong>
       </div>
@@ -222,7 +223,7 @@ export default function MDPPage() {
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
-                {latestReading.main_breaker_status || 'OPEN'}
+                {latestReading.main_breaker_status ?? 'UNKNOWN'}
               </span>
             </div>
 

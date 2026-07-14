@@ -39,8 +39,9 @@ export default function ATSPage() {
   // Telemetry mappings
   const latestReading = status?.latestReading ?? {}
 
-  const activeSource = (latestReading.active_source || 'MAINS').toUpperCase()
+  const activeSource = (latestReading.active_source ?? 'UNKNOWN').toUpperCase()
   const isMainsActive = activeSource === 'MAINS'
+  const generatorMode = activeSource === 'MAINS' ? 'Standby' : activeSource === 'GENERATOR' ? 'Active' : 'Unknown'
 
   return (
     <div className="flex flex-col gap-4">
@@ -81,7 +82,7 @@ export default function ATSPage() {
           </div>
           <div className="divider" />
           <p className="metric-value">{latestReading.generator_voltage?.toFixed(1)} V</p>
-          <span className="metric-note">Status: {isMainsActive ? 'Standby' : 'Active'}</span>
+          <span className="metric-note">Status: {generatorMode}</span>
         </article>
 
         <article className="metric-panel">
@@ -105,7 +106,7 @@ export default function ATSPage() {
               AUTO MODE
             </span>
           </div>
-          <span className="metric-note">Overall status: {status?.overallStatus || 'NORMAL'}</span>
+          <span className="metric-note">Overall status: {status?.overallStatus ?? 'OFFLINE'}</span>
         </article>
       </section>
 
@@ -190,7 +191,7 @@ export default function ATSPage() {
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
-                {latestReading.breaker_status || 'OPEN'}
+                {latestReading.breaker_status ?? 'UNKNOWN'}
               </span>
             </div>
 
