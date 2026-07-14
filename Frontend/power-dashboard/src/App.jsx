@@ -823,7 +823,7 @@ function DashboardWorkspace() {
   }, [])
 
   const refreshMonitoring = useCallback(async () => {
-    const [records, summary] = await Promise.all([getAlarms(), getDashboardSummary()])
+    const [records, summary] = await Promise.all([getAlarms({ unresolved: true }), getDashboardSummary()])
     setAlarms(groupAlarmsByEquipmentType(records))
     setDashboardSummary(summary)
   }, [])
