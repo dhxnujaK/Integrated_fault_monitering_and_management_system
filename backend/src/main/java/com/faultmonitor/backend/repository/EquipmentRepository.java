@@ -10,5 +10,18 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
     Optional<Equipment> findByEquipmentCode(String equipmentCode);
 
+    boolean existsByEquipmentCodeIgnoreCase(String equipmentCode);
+
+    List<Equipment> findAllByOrderByEquipmentCodeAsc();
+
+    List<Equipment> findByEquipmentTypeOrderByEquipmentCodeAsc(SubsystemType equipmentType);
+
+    List<Equipment> findByEnabledOrderByEquipmentCodeAsc(boolean enabled);
+
+    List<Equipment> findByEquipmentTypeAndEnabledOrderByEquipmentCodeAsc(
+            SubsystemType equipmentType, boolean enabled);
+
+    List<Equipment> findByEnabledTrueOrderByEquipmentCodeAsc();
+
     List<Equipment> findByEnabledTrueAndEquipmentType(SubsystemType equipmentType);
 }
