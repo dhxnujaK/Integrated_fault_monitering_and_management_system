@@ -102,7 +102,7 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function SDPPage() {
+export default function SDPPage({ onAcknowledge }) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
   const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', selectedEquipmentId)
   const selectedSdp = selectedEquipment?.equipmentCode ?? 'SDP'
@@ -110,8 +110,12 @@ export default function SDPPage() {
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await acknowledgeAlarm(id, `Acknowledged via SDP ${selectedSdp} page`)
-      toast.success('Alarm acknowledged')
+      if (onAcknowledge) {
+        await onAcknowledge(id)
+      } else {
+        await acknowledgeAlarm(id, `Acknowledged via SDP ${selectedSdp} page`)
+        toast.success('Alarm acknowledged')
+      }
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')

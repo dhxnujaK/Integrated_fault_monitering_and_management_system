@@ -19,15 +19,19 @@ import {
   RefreshCw
 } from 'lucide-react'
 
-export default function ATSPage() {
+export default function ATSPage({ onAcknowledge }) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
   const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await acknowledgeAlarm(id, 'Acknowledged via ATS page')
-      toast.success('Alarm acknowledged')
+      if (onAcknowledge) {
+        await onAcknowledge(id)
+      } else {
+        await acknowledgeAlarm(id, 'Acknowledged via ATS page')
+        toast.success('Alarm acknowledged')
+      }
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')

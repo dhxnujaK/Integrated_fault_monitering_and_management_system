@@ -185,11 +185,11 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
           <h1>{activePage}</h1>
         </header>
         {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
-        {activePage === 'Generator' ? <LiveGeneratorPage /> : null}
-        {activePage === 'ATS Status' ? <LiveATSPage /> : null}
+        {activePage === 'Generator' ? <LiveGeneratorPage onAcknowledge={onAcknowledge} /> : null}
+        {activePage === 'ATS Status' ? <LiveATSPage onAcknowledge={onAcknowledge} /> : null}
         {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
-        {activePage === 'MDP Status' ? <LiveMDPPage /> : null}
-        {activePage === 'SDP Status' ? <LiveSDPPage /> : null}
+        {activePage === 'MDP Status' ? <LiveMDPPage onAcknowledge={onAcknowledge} /> : null}
+        {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>

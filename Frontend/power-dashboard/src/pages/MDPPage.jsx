@@ -103,15 +103,19 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function MDPPage() {
+export default function MDPPage({ onAcknowledge }) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
   const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await acknowledgeAlarm(id, 'Acknowledged via MDP page')
-      toast.success('Alarm acknowledged')
+      if (onAcknowledge) {
+        await onAcknowledge(id)
+      } else {
+        await acknowledgeAlarm(id, 'Acknowledged via MDP page')
+        toast.success('Alarm acknowledged')
+      }
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')

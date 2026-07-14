@@ -86,15 +86,19 @@ function LiveTrendPanel({ title, readings, series }) {
   )
 }
 
-export default function GeneratorPage() {
+export default function GeneratorPage({ onAcknowledge }) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
   const { equipment, selectedEquipment, status, alarms, readings, statusError, refresh } = useEquipmentMonitoring('GENERATOR', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
     try {
-      await acknowledgeAlarm(id, 'Acknowledged via Generator page')
-      toast.success('Alarm acknowledged')
+      if (onAcknowledge) {
+        await onAcknowledge(id)
+      } else {
+        await acknowledgeAlarm(id, 'Acknowledged via Generator page')
+        toast.success('Alarm acknowledged')
+      }
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
