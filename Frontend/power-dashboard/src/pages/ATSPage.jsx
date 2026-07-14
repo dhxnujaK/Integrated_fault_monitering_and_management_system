@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
+import EquipmentSelector from '../components/EquipmentSelector'
 import ReadingCard from '../components/ReadingCard'
 import SectionCard from '../components/SectionCard'
 import toast from 'react-hot-toast'
@@ -18,7 +19,8 @@ import {
 } from 'lucide-react'
 
 export default function ATSPage() {
-  const { status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS')
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS', selectedEquipmentId)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -41,6 +43,11 @@ export default function ATSPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <EquipmentSelector
+        equipment={equipment}
+        selectedEquipmentId={selectedEquipment?.id}
+        onChange={setSelectedEquipmentId}
+      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
