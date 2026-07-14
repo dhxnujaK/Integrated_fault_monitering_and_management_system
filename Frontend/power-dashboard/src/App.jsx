@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
+  ChevronRight,
   CircleUserRound,
   ClipboardList,
   Gauge,
@@ -487,6 +488,7 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
       </section>
 
       <div className="dashboard-grid">
+        <SystemOverview equipment={equipmentStatuses} />
         <div className="dashboard-stack">
           <AlarmPanel title="Alarm Summary" alarms={alarms} compact={!showAllAlarms} filters={showAllAlarms} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onAction={onAction} />
           <div className="actions">
@@ -498,6 +500,67 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
       </div>
     </div>
   )
+}
+
+function SystemOverview({ equipment }) {
+  const severityRank = { NORMAL: 0, OFFLINE: 1, WARNING: 2, CRITICAL: 3 }
+  const statuses = equipment.reduce((byType, item) => {
+    const type = String(item.equipmentType ?? '').toUpperCase()
+    const status = String(item.overallStatus ?? 'OFFLINE').toUpperCase()
+    if (!byType[type] || severityRank[status] > severityRank[byType[type].overallStatus]) {
+      byType[type] = { equipmentCode: item.equipmentCode, overallStatus: status }
+    }
+    return byType
+  }, {})
+  const node = (type, label) => ({
+    label: statuses[type]?.equipmentCode ?? label,
+    status: statuses[type]?.overallStatus ?? 'OFFLINE',
+  })
+  const rows = [
+    [node('GENERATOR', 'GENERATOR'), node('ATS', 'ATS')],
+    [node('ATS', 'ATS'), node('MDP', 'MDP')],
+    [node('MDP', 'MDP'), {
+      label: equipment.filter((item) => item.equipmentType === 'SDP').length > 1 ? 'SDP FLEET' : 'SDP',
+      status: statuses.SDP?.overallStatus ?? 'OFFLINE',
+    }],
+    [node('UPS', 'UPS'), { label: 'CRITICAL LOAD', status: statuses.UPS?.overallStatus ?? 'OFFLINE' }],
+  ]
+
+  return (
+    <section className="system-overview" aria-label="Live system overview">
+      <h2>Live System Overview</h2>
+      <p className="system-overview-note">Equipment status updates from the monitoring service.</p>
+      <div className="divider" />
+      <div className="flow-map">
+        {rows.map(([from, to]) => (
+          <div className="flow-row" key={`${from.label}-${to.label}`}>
+            <FlowNode {...from} />
+            <ChevronRight className={`flow-arrow ${statusClass(to.status)}`} size={22} />
+            <FlowNode {...to} />
+          </div>
+        ))}
+      </div>
+      <div className="legend" aria-label="Status legend">
+        <span><i className="normal-line" />Normal</span>
+        <span><i className="warning-line" />Warning</span>
+        <span><i className="critical-line" />Critical</span>
+        <span><i className="offline-line" />Offline</span>
+      </div>
+    </section>
+  )
+}
+
+function FlowNode({ label, status }) {
+  return (
+    <div className={`flow-node ${statusClass(status)}`} title={`${label}: ${status}`}>
+      <strong>{label}</strong>
+      <small>{status}</small>
+    </div>
+  )
+}
+
+function statusClass(status) {
+  return String(status ?? 'OFFLINE').toLowerCase()
 }
 
 function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {

@@ -458,6 +458,43 @@ button {
   background: #3e5d98;
 }
 
+.flow-node.normal {
+  background: #3c8e5d;
+}
+
+.flow-node.warning {
+  background: #b7791f;
+}
+
+.flow-node.critical {
+  background: #c53b3b;
+}
+
+.flow-node.offline {
+  background: #64748b;
+}
+
+.flow-node small {
+  font-size: 10px;
+  opacity: .9;
+}
+
+.flow-arrow.normal {
+  color: #3c8e5d;
+}
+
+.flow-arrow.warning {
+  color: #b7791f;
+}
+
+.flow-arrow.critical {
+  color: #c53b3b;
+}
+
+.flow-arrow.offline {
+  color: #64748b;
+}
+
 .source.teal {
   background: #34a6a8;
 }
@@ -489,6 +526,30 @@ button {
 
 .legend .blue-line {
   border-color: #2f5ccf;
+}
+
+.legend .normal-line {
+  border-color: #3c8e5d;
+}
+
+.legend .warning-line {
+  border-color: #b7791f;
+}
+
+.legend .critical-line {
+  border-color: #c53b3b;
+}
+
+.legend .offline-line {
+  border-color: #64748b;
+}
+
+.system-overview-note {
+  margin: 6px 0 0;
+  color: #526082;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .tabs {
