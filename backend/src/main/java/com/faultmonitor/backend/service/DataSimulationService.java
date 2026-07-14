@@ -146,7 +146,6 @@ public class DataSimulationService {
         alarmService.checkSDP(equipment, data);
     }
 
-    /** UPS alarm evaluation is added by the UPS feature owner. */
     @Scheduled(fixedRate = 5000)
     public void simulateUPS() {
         enabledEquipment(SubsystemType.UPS).forEach(this::simulateUPS);
@@ -164,6 +163,7 @@ public class DataSimulationService {
         data.put("temperature_c", varied(27.0, 2.0));
         data.put("fault_code", null);
         saveReading(equipment, data);
+        alarmService.checkUPS(equipment, data);
     }
 
     private List<Equipment> enabledEquipment(SubsystemType type) {

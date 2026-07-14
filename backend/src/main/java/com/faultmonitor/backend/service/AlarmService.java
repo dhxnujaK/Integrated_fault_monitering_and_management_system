@@ -37,6 +37,9 @@ public class AlarmService {
     private static final double GENERATOR_CRITICAL_FUEL = 10.0;
     private static final double GENERATOR_HIGH_TEMP = 45.0;
     private static final double PHASE_IMBALANCE_LIMIT = 5.0;
+    private static final double UPS_LOW_BATTERY = 40.0;
+    private static final double UPS_CRITICAL_BATTERY = 20.0;
+    private static final double UPS_HIGH_LOAD = 80.0;
     private static final List<AlarmStatus> UNRESOLVED = List.of(
             AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED);
 
@@ -94,6 +97,20 @@ public class AlarmService {
                 bool(data, "fire_alarm"));
         synchronizeCondition(equipment, "SDP_INTRUDER", "SDP intruder alarm is active.", AlarmSeverity.WARNING,
                 bool(data, "intruder_alarm"));
+    }
+
+    @Transactional
+    public void checkUPS(Equipment equipment, Map<String, Object> data) {
+        synchronizeCondition(equipment, "UPS_BATTERY_LOW", "UPS battery charge is below 40%.",
+                AlarmSeverity.WARNING, lessThan(data, "battery_charge_pct", UPS_LOW_BATTERY));
+        synchronizeCondition(equipment, "UPS_BATTERY_CRITICAL", "UPS battery charge is below 20%.",
+                AlarmSeverity.CRITICAL, lessThan(data, "battery_charge_pct", UPS_CRITICAL_BATTERY));
+        synchronizeCondition(equipment, "UPS_HIGH_LOAD", "UPS load is above 80%.",
+                AlarmSeverity.WARNING, greaterThan(data, "load_pct", UPS_HIGH_LOAD));
+        synchronizeCondition(equipment, "UPS_ON_BATTERY", "UPS is operating on battery power.",
+                AlarmSeverity.WARNING, "ON_BATTERY".equals(string(data, "operational_status")));
+        synchronizeCondition(equipment, "UPS_FAULT", "UPS operational status is FAULT.",
+                AlarmSeverity.CRITICAL, "FAULT".equals(string(data, "operational_status")));
     }
 
     @Transactional

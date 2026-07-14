@@ -14,6 +14,7 @@ import com.faultmonitor.backend.repository.AlarmRepository;
 import com.faultmonitor.backend.repository.EquipmentRepository;
 import com.faultmonitor.backend.repository.UserRepository;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +40,14 @@ class AlarmLifecycleServiceTests {
     private UserRepository userRepository;
 
     private Equipment generator;
+    private Equipment ups;
     private User operator;
 
     @BeforeEach
     void setUp() {
         alarmRepository.deleteAll();
         generator = equipmentRepository.findByEquipmentCode("GENERATOR-01").orElseThrow();
+        ups = equipmentRepository.findByEquipmentCode("UPS-01").orElseThrow();
         operator = userRepository.save(User.builder()
                 .username("lifecycle-operator")
                 .passwordHash("not-used-in-test")
@@ -77,5 +80,32 @@ class AlarmLifecycleServiceTests {
                 generator.getId(), "GEN_LOW_FUEL", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
                 .hasSize(1)
                 .first().extracting(Alarm::getId).isNotEqualTo(resolved.getId());
+    }
+
+    @Test
+    void upsConditionCreatesAndAutomaticallyResolvesAlarm() {
+        alarmService.checkUPS(ups, Map.of(
+                "operational_status", "ON_BATTERY",
+                "battery_charge_pct", 15.0,
+                "load_pct", 85.0));
+
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                ups.getId(), "UPS_BATTERY_CRITICAL", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .hasSize(1);
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                ups.getId(), "UPS_ON_BATTERY", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .hasSize(1);
+
+        alarmService.checkUPS(ups, Map.of(
+                "operational_status", "ONLINE",
+                "battery_charge_pct", 80.0,
+                "load_pct", 40.0));
+
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                ups.getId(), "UPS_BATTERY_CRITICAL", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .isEmpty();
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                ups.getId(), "UPS_ON_BATTERY", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .isEmpty();
     }
 }
