@@ -3,3 +3,13 @@ __pycache__/
 *.pyc
 venv/
 .env
+
+# macOS
+.DS_Store
+
+# Large ML datasets — shared via Google Drive, NOT git (see ml-service/data/README.md).
+# The small catalogue + feature config stay tracked; the big training CSVs do not.
+ml-service/data/*.csv
+!ml-service/data/fault_solution_catalog.csv
+ml-service/data/by_equipment_type/
+outputs/

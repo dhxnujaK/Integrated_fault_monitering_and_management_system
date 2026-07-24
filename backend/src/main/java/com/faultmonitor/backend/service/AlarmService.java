@@ -54,7 +54,8 @@ public class AlarmService {
         synchronizeCondition(equipment, "GEN_CRITICAL_FUEL", "Generator fuel level is below 10%.", AlarmSeverity.CRITICAL,
                 lessThan(data, "fuel_level_pct", GENERATOR_CRITICAL_FUEL));
         synchronizeCondition(equipment, "GEN_VOLTAGE_ABNORMAL", "Generator phase voltage is outside the safe range.",
-                AlarmSeverity.WARNING, voltageAbnormal(data, "voltage_L1", "voltage_L2", "voltage_L3"));
+                AlarmSeverity.WARNING, generatorOutputActive(data)
+                        && voltageAbnormal(data, "voltage_L1", "voltage_L2", "voltage_L3"));
         synchronizeCondition(equipment, "GEN_HIGH_TEMP", "Generator room temperature is above 45C.", AlarmSeverity.WARNING,
                 greaterThan(data, "room_temperature_c", GENERATOR_HIGH_TEMP));
         synchronizeCondition(equipment, "GEN_FIRE", "Generator fire alarm is active.", AlarmSeverity.CRITICAL,
@@ -239,6 +240,19 @@ public class AlarmService {
     private boolean voltageAbnormal(Map<String, Object> data, String... keys) {
         for (String key : keys) {
             if (outsideSafeVoltage(number(data, key))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean generatorOutputActive(Map<String, Object> data) {
+        if ("RUNNING".equals(string(data, "running_status"))) {
+            return true;
+        }
+        for (String key : List.of("voltage_L1", "voltage_L2", "voltage_L3")) {
+            Double voltage = number(data, key);
+            if (voltage != null && voltage > 1.0) {
                 return true;
             }
         }
