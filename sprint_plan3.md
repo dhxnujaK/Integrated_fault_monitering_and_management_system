@@ -49,6 +49,43 @@ The remaining work is not to rebuild the monitoring foundation. It is to complet
 
 ---
 
+## 3. Member Dependencies and Prerequisites
+
+Main dependency chain:
+
+`Member 1 model artifacts -> Member 2 FastAPI inference -> Member 2 and Member 3 Spring Boot prediction APIs -> Member 4 prediction UI -> Sprint 5 tickets, reports, settings and deployment`
+
+### Member prerequisite table
+
+| Member | Can start immediately | Depends on | Required handoff / prerequisite |
+| --- | --- | --- | --- |
+| Member 1 | Data audit, feature design, model training pipeline, evaluation plan | Team agreement on equipment types, sensor fields, failure labels and prediction output contract | Cleaned dataset, final feature list, trained models in `ml-service/saved_models/`, `feature_config.json`, model version, metrics and sample requests |
+| Member 2 | FastAPI structure, validation, health endpoint, Spring Boot ML-client skeleton, scheduler structure | Member 1 model files and `feature_config.json`; agreed prediction response contract with Members 3 and 4 | Working FastAPI inference, model-loading health check, Spring Boot scheduler, persisted predictions and prediction API results |
+| Member 3 | Backend DTOs, pagination, error responses, ticket/report/settings service skeletons, authorization test setup | Member 2 prediction persistence behavior; agreed API examples for Member 4 | Stable Spring Boot prediction, ticket, report, settings and user-management API contracts with tests |
+| Member 4 | Frontend routes, API modules, reusable loading/empty/error states, page shells and navigation | Stable Spring Boot APIs from Members 2 and 3; confirmed Admin/Operator role behavior | Working Predictions, Tickets, Reports and Admin Settings UI connected to backend APIs |
+
+### Blocking points table
+
+| Blocked work | Waiting for | Reason |
+| --- | --- | --- |
+| Member 2 real prediction completion | Member 1 model artifacts | FastAPI cannot perform real inference without trained model files and feature config |
+| Member 4 real prediction display | Members 2 and 3 prediction APIs | UI must use persisted Spring Boot prediction results, not FastAPI or mock data |
+| Sprint 5 ticket UI | Member 3 ticket endpoints | UI needs create, list, detail and update endpoints |
+| Sprint 5 report UI | Member 3 report endpoints | UI needs authenticated PDF/CSV download API |
+| Sprint 5 settings and user-management UI | Member 3 admin endpoints | UI needs persisted threshold, equipment and user-management APIs |
+| Deployment rehearsal | All members' integration work | RDS, Spring Boot, FastAPI, React build and environment values must be ready together |
+
+### Immediate parallel work table
+
+| Member | Work that can begin now |
+| --- | --- |
+| Member 1 | Data audit, feature design, training pipeline and evaluation plan |
+| Member 2 | FastAPI validation, health endpoint, Spring Boot ML-client skeleton and scheduler structure |
+| Member 3 | API contracts, DTOs, pagination/error-response design, ticket/report/settings skeletons and authorization tests |
+| Member 4 | Routes, API modules, reusable UI states, Predictions/Tickets/Reports/Settings page shells and navigation |
+
+---
+
 # Section A — ML Implementation
 
 ## Sprint 4 — Train and Integrate Predictive Maintenance
@@ -269,7 +306,7 @@ Configure one enabled equipment item, generate a reading, run the prediction sch
 
 ---
 
-## 3. Final End-to-End Definition of Done
+## 4. Final End-to-End Definition of Done
 
 The project is complete when the team can demonstrate the following sequence:
 
