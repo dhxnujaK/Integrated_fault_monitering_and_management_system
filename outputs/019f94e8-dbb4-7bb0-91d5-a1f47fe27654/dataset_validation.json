@@ -1,0 +1,65 @@
+{
+  "csvPath": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/expressway_power_training_dataset.csv",
+  "byTypePaths": {
+    "GENERATOR": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/by_equipment_type/generator_training_dataset.csv",
+    "ATS": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/by_equipment_type/ats_training_dataset.csv",
+    "MDP": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/by_equipment_type/mdp_training_dataset.csv",
+    "SDP": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/by_equipment_type/sdp_training_dataset.csv",
+    "UPS": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/ml-service/data/by_equipment_type/ups_training_dataset.csv"
+  },
+  "workbookPath": "/Volumes/Dhanuja.K/Integrated_fault_monitering_and_management_system/outputs/019f94e8-dbb4-7bb0-91d5-a1f47fe27654/expressway_power_dataset.xlsx",
+  "totalRecords": 362880,
+  "expectedRecords": 362880,
+  "dateRange": [
+    "2025-01-01T00:00:00Z",
+    "2025-06-29T23:55:00Z"
+  ],
+  "intervalMinutes": 5,
+  "equipmentCount": 7,
+  "uniqueFailureEvents": 123,
+  "statsByType": {
+    "GENERATOR": {
+      "records": 51840,
+      "active": 861,
+      "within60": 468,
+      "within6h": 1948,
+      "maintenance": 2789
+    },
+    "ATS": {
+      "records": 51840,
+      "active": 355,
+      "within60": 0,
+      "within6h": 0,
+      "maintenance": 331
+    },
+    "MDP": {
+      "records": 51840,
+      "active": 1013,
+      "within60": 156,
+      "within6h": 508,
+      "maintenance": 1502
+    },
+    "SDP": {
+      "records": 103680,
+      "active": 1802,
+      "within60": 180,
+      "within6h": 821,
+      "maintenance": 2582
+    },
+    "UPS": {
+      "records": 103680,
+      "active": 2281,
+      "within60": 312,
+      "within6h": 1512,
+      "maintenance": 3793
+    }
+  },
+  "splitCounts": {
+    "TRAIN": 254016,
+    "VALIDATION": 54432,
+    "TEST": 54432
+  },
+  "formulaErrors": "{\"kind\":\"notice\",\"message\":\"Cell search matched 0 entries.\"}",
+  "overviewInspection": "{\"kind\":\"table\",\"sheet\":\"Overview\",\"address\":\"A1:F13\",\"rows\":13,\"cols\":6,\"values\":[[\"Expressway Power Training Dataset\",null,null,null,null,null],[null,null,null,null,null,null],[\"Metric\",\"Value\",null,null,null,null],[\"Dataset period\",\"2025-01-01T00:00:00Z to 2025-06-29T23:55:00Z\",null,null,null,null],[\"Sampling interval\",\"5 minutes\",null,null,null,null],[\"Equipment records\",362880,null,null,null,null],[\"Equipment units\",7,null,null,null,null],[\"Failure events\",123,null,null,null,null],[\"60-minute pre-failure rows\",1116,null,null,null,null],[\"Active-fault rows\",6312,null,null,null,null],[null,null,null,null,null,null],[\"Design rule\",\"Normal operation\",\"Pre-failure\",\"Active fault\",\"Recovery\",\"Training split\"],[\"Time-series states are kept in chronological order.\",\"Includes load cycles, safe voltage transients, routine tests, noise, standby states and source transfers.\",\"Gradual drift is labelled only before predictable failures.\",\"Sudden alarms remain sudden and do not receive artificial warning labels.\",\"Temperature and load signals recover gradually after the event window.\",\"70% train, 15% validation, 15% test by time.\"]]}",
+  "qaInspection": "{\"kind\":\"table\",\"sheet\":\"QA Summary\",\"address\":\"A1:L16\",\"rows\":16,\"cols\":12,\"values\":[[\"Equipment Type\",\"Records\",\"Active Fault Rows\",\"Failure Within 60 Min\",\"Failure Within 6 Hours\",\"Maintenance-labelled Rows\",null,\"Split\",\"Rows\",null,\"Active Failure Type\",\"Rows\"],[\"GENERATOR\",51840,861,468,1948,2789,null,\"TRAIN\",254016,null,\"ATS_TRANSFER_FAILURE\",331],[\"ATS\",51840,355,0,0,331,null,\"VALIDATION\",54432,null,\"FIRE_ALARM\",46],[\"MDP\",51840,1013,156,508,1502,null,\"TEST\",54432,null,\"GEN_LOW_FUEL\",414],[\"SDP\",103680,1802,180,821,2582,null,null,null,null,\"GEN_OVERHEAT\",251],[\"UPS\",103680,2281,312,1512,3793,null,null,null,null,\"GEN_VOLTAGE_INSTABILITY\",176],[null,null,null,null,null,null,null,null,null,null,\"INTRUDER_ALARM\",58],[null,null,null,null,null,null,null,null,null,null,\"MDP_PHASE_IMBALANCE\",249],[null,null,null,null,null,null,null,null,null,null,\"MDP_SUPPLY_LOSS\",745],[null,null,null,null,null,null,null,null,null,null,\"SDP_BREAKER_TRIP\",271],[null,null,null,null,null,null,null,null,null,null,\"SDP_SUPPLY_LOSS\",1490],[null,null,null,null,null,null,null,null,null,null,\"UPS_BATTERY_DEGRADATION\",292],[null,null,null,null,null,null,null,null,null,null,\"UPS_INPUT_POWER_LOSS\",1761],[null,null,null,null,null,null,null,null,null,null,\"UPS_OVERLOAD\",228],[null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null]]}"
+}
