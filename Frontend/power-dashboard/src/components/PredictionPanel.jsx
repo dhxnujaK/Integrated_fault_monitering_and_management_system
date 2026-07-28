@@ -1,36 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback } from 'react'
 import { Activity, AlertTriangle, BrainCircuit, RefreshCw } from 'lucide-react'
 import SectionCard from './SectionCard'
 import { getEquipmentPredictions } from '../api/predictionApi'
 import { formatProbability, predictionRiskLevel } from './predictionRisk'
+import usePredictionPolling from '../hooks/usePredictionPolling'
 
 export default function PredictionPanel({ equipmentId, title = 'Latest Prediction' }) {
-  const [prediction, setPrediction] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
   const loadPrediction = useCallback(async () => {
     if (!equipmentId) {
-      setPrediction(null)
-      return
+      return null
     }
-    setLoading(true)
-    try {
-      const page = await getEquipmentPredictions(equipmentId, { page: 0, size: 1 })
-      setPrediction(page.items?.[0] ?? null)
-      setError('')
-    } catch (err) {
-      setError(err.message || 'Unable to load predictions.')
-    } finally {
-      setLoading(false)
-    }
+    const page = await getEquipmentPredictions(equipmentId, { page: 0, size: 1 })
+    return page.items?.[0] ?? null
   }, [equipmentId])
-
-  useEffect(() => {
-    loadPrediction()
-    const intervalId = window.setInterval(loadPrediction, 60000)
-    return () => window.clearInterval(intervalId)
-  }, [loadPrediction])
+  const { data: prediction, loading, error, refresh } = usePredictionPolling(
+    loadPrediction,
+    60000,
+    equipmentId ?? 'none',
+  )
 
   const risk = predictionRiskLevel(prediction?.failureProbability)
 
@@ -41,7 +28,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
         <div className="panel-state error">
           <AlertTriangle size={16} />
           <span>{error}</span>
-          <button type="button" onClick={loadPrediction}><RefreshCw size={14} />Retry</button>
+          <button type="button" onClick={refresh}><RefreshCw size={14} />Retry</button>
         </div>
       ) : null}
       {!loading && !error && !prediction ? (
