@@ -27,8 +27,8 @@ export default function DiagnosisPanel({ alarms = [], title = 'Fault Diagnosis' 
                   <div>
                     <div className="mini-heading">Probable causes</div>
                     <ul className="diagnosis-points">
-                      {diagnosis.probableCauses.map((cause, index) => (
-                        <li key={cause}><span>{index + 1}</span>{cause}</li>
+                      {diagnosis.probableCauses.map((cause) => (
+                        <li key={cause}><span />{cause}</li>
                       ))}
                     </ul>
                   </div>
@@ -36,7 +36,7 @@ export default function DiagnosisPanel({ alarms = [], title = 'Fault Diagnosis' 
                     <div className="mini-heading">Corrective actions</div>
                     <ol className="diagnosis-points action-points">
                       {diagnosis.correctiveActions.map((step) => (
-                        <li key={`${alarm.id}-${step.step}`}><span>{step.step}</span>{step.action}</li>
+                        <li key={`${alarm.id}-${step.step}`}><span />{step.action}</li>
                       ))}
                     </ol>
                   </div>

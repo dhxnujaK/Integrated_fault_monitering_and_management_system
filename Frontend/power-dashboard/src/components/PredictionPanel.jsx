@@ -63,13 +63,13 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
             {prediction.recommendedActions?.length ? (
               <ol className="diagnosis-points action-points">
                 {prediction.recommendedActions.map((action, index) => (
-                  <li key={`${action}-${index}`}><span>{index + 1}</span>{action}</li>
+                  <li key={`${action}-${index}`}><span />{action}</li>
                 ))}
               </ol>
             ) : prediction.diagnosis?.correctiveActions?.length ? (
               <ol className="diagnosis-points action-points">
                 {prediction.diagnosis.correctiveActions.map((step) => (
-                  <li key={step.step}><span>{step.step}</span>{step.action}</li>
+                  <li key={step.step}><span />{step.action}</li>
                 ))}
               </ol>
             ) : <p>No model action was returned.</p>}
@@ -78,8 +78,8 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
             <div className="prediction-actions">
               <div className="mini-heading">Probable causes</div>
               <ul className="diagnosis-points">
-                {prediction.diagnosis.probableCauses.map((cause, index) => (
-                  <li key={cause}><span>{index + 1}</span>{cause}</li>
+                {prediction.diagnosis.probableCauses.map((cause) => (
+                  <li key={cause}><span />{cause}</li>
                 ))}
               </ul>
             </div>

@@ -1892,8 +1892,8 @@ dd {
 
 .diagnosis-points li {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
   color: #e6edf9;
   font-size: 13px;
@@ -1901,22 +1901,12 @@ dd {
 }
 
 .diagnosis-points li span {
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid #455779;
+  display: block;
   border-radius: 999px;
-  width: 22px;
-  height: 22px;
-  background: #162441;
-  color: #f8fbff;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.action-points li span {
-  border-color: rgb(102 215 230 / 50%);
-  background: rgb(102 215 230 / 14%);
-  color: #bdebf2;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  background: #66d7e6;
 }
 
 .prediction-actions p {
