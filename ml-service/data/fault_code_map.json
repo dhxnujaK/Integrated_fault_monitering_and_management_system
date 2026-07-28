@@ -1,7 +1,7 @@
 {
   "_meta": {
     "purpose": "Reconciles the 13 dataset target_failure_type values against the 23 alarm codes AlarmService raises, so diagnosis and prediction never disagree about what a fault is called. Frozen artifact (sprint_plan 3.md §5), authored by Dhanuja.",
-    "status": "DRAFT — Dhanuja must verify every entry, especially those with \"review\": true. Do not freeze until reviewed.",
+    "status": "FROZEN",
     "datasetFailureTypeCount": 13,
     "alarmCodeCount": 23,
     "coverageRule": "Every one of the 23 alarm codes must appear exactly once, either in an entry's alarmCodes[] or in diagnosisOnlyAlarmCodes[]. Nethmini's coverage test asserts this.",
@@ -14,8 +14,8 @@
       "alarmCodes": ["GEN_LOW_FUEL", "GEN_CRITICAL_FUEL"],
       "primaryAlarmCode": "GEN_LOW_FUEL",
       "predictable": true,
-      "review": true,
-      "note": "GEN_CRITICAL_FUEL grouped here as the escalated state of the same fuel-depletion fault. VERIFY: do you want critical fuel treated as the same predicted type, or as its own diagnosis-only code?"
+      "review": false,
+      "note": "GEN_CRITICAL_FUEL is the escalated state of GEN_LOW_FUEL and shares the same diagnosis and corrective workflow."
     },
     {
       "datasetFailureType": "GEN_OVERHEAT",
@@ -37,9 +37,9 @@
       "datasetFailureType": "ATS_TRANSFER_FAILURE",
       "alarmCodes": ["ATS_TRANSFER_FAIL"],
       "primaryAlarmCode": "ATS_TRANSFER_FAIL",
-      "predictable": true,
+      "predictable": false,
       "review": false,
-      "note": "One-character mismatch: dataset ...FAILURE vs code ...FAIL. Same fault."
+      "note": "One-character mismatch: dataset ...FAILURE vs code ...FAIL. The dataset contains active examples but no six-hour precursor labels, so this is diagnosis-only."
     },
     {
       "datasetFailureType": "MDP_PHASE_IMBALANCE",
@@ -53,44 +53,44 @@
       "datasetFailureType": "MDP_SUPPLY_LOSS",
       "alarmCodes": ["MDP_PHASE_VOLTAGE"],
       "primaryAlarmCode": "MDP_PHASE_VOLTAGE",
-      "predictable": true,
-      "review": true,
-      "note": "No dedicated supply-loss code exists; supply loss manifests as MDP_PHASE_VOLTAGE (phases collapse out of the safe range). VERIFY: (a) is MDP_PHASE_VOLTAGE the right manifesting code, and (b) supply loss is an upstream-ATS cascade — should it be predictable:false (reactive) rather than forecast?"
+      "predictable": false,
+      "review": false,
+      "note": "Supply loss manifests as MDP_PHASE_VOLTAGE. It is an upstream cascade with no six-hour precursor labels and is handled reactively."
     },
     {
       "datasetFailureType": "SDP_BREAKER_TRIP",
       "alarmCodes": ["SDP_PHASE_VOLTAGE"],
       "primaryAlarmCode": "SDP_PHASE_VOLTAGE",
       "predictable": true,
-      "review": true,
+      "review": false,
       "ambiguousWith": "SDP_SUPPLY_LOSS",
-      "note": "AMBIGUITY: both SDP_BREAKER_TRIP and SDP_SUPPLY_LOSS surface as the single code SDP_PHASE_VOLTAGE, so an SDP_PHASE_VOLTAGE alarm cannot be reversed to one dataset type from telemetry alone. The correlation engine disambiguates: SDP_SUPPLY_LOSS co-occurs with upstream MDP/ATS alarms; SDP_BREAKER_TRIP is isolated. Assigned primary = SDP_BREAKER_TRIP (local, actionable). VERIFY the primary choice."
+      "note": "SDP_PHASE_VOLTAGE resolves to SDP_BREAKER_TRIP when isolated. Correlation with an upstream MDP or ATS supply alarm resolves it to SDP_SUPPLY_LOSS."
     },
     {
       "datasetFailureType": "SDP_SUPPLY_LOSS",
       "alarmCodes": [],
       "primaryAlarmCode": null,
-      "predictable": true,
-      "review": true,
+      "predictable": false,
+      "review": false,
       "ambiguousWith": "SDP_BREAKER_TRIP",
       "sharesManifestingCode": "SDP_PHASE_VOLTAGE",
-      "note": "Shares SDP_PHASE_VOLTAGE with SDP_BREAKER_TRIP (see above). Left with no owned alarm code to keep the 23-code coverage a clean 1:1; identified at runtime by correlation with upstream alarms, not by an SDP-local code. VERIFY this modelling choice, or introduce a dedicated SDP_SUPPLY_LOSS alarm code in AlarmService."
+      "note": "Shares SDP_PHASE_VOLTAGE with SDP_BREAKER_TRIP and is selected only when an upstream MDP or ATS supply alarm is active. It has no six-hour precursor labels."
     },
     {
       "datasetFailureType": "UPS_INPUT_POWER_LOSS",
       "alarmCodes": ["UPS_ON_BATTERY"],
       "primaryAlarmCode": "UPS_ON_BATTERY",
-      "predictable": true,
-      "review": true,
-      "note": "Input power loss forces the UPS onto battery, so UPS_ON_BATTERY is its manifesting code. VERIFY: UPS going on-battery is often a NORMAL response during a mains transfer, not a fault — the correlation engine should suppress this when it coincides with an ATS source change (see the ATS-transfer correlation rule)."
+      "predictable": false,
+      "review": false,
+      "note": "Input power loss forces the UPS onto battery. Suppress the alarm during a successful ATS source change; otherwise diagnose it reactively because it has no six-hour precursor labels."
     },
     {
       "datasetFailureType": "UPS_BATTERY_DEGRADATION",
       "alarmCodes": ["UPS_BATTERY_LOW", "UPS_BATTERY_CRITICAL"],
       "primaryAlarmCode": "UPS_BATTERY_LOW",
       "predictable": true,
-      "review": true,
-      "note": "SEMANTIC CHECK NEEDED: dataset UPS_BATTERY_DEGRADATION = capacity loss over time (runtime/voltage decline faster than expected). Code UPS_BATTERY_LOW/CRITICAL = current charge below a threshold. These are related but not identical faults. VERIFY the mapping, or split degradation (predictive) from low-charge (reactive)."
+      "review": false,
+      "note": "The predictor forecasts battery degradation. UPS_BATTERY_LOW and UPS_BATTERY_CRITICAL are its operational escalation states and share the same battery inspection workflow."
     },
     {
       "datasetFailureType": "UPS_OVERLOAD",
@@ -136,12 +136,10 @@
     }
   ],
 
-  "reviewFlags": [
-    "GEN_CRITICAL_FUEL: grouped with GEN_LOW_FUEL, or its own code?",
-    "UPS_BATTERY_DEGRADATION vs UPS_BATTERY_LOW/CRITICAL: same fault or split predictive/reactive?",
-    "UPS_INPUT_POWER_LOSS / UPS_ON_BATTERY: suppress during normal ATS transfer.",
-    "MDP_SUPPLY_LOSS and SDP_SUPPLY_LOSS: cascade consequences — forecast (true) or reactive (false)?",
-    "SDP_PHASE_VOLTAGE: shared by SDP_BREAKER_TRIP and SDP_SUPPLY_LOSS; confirm primary and correlation disambiguation.",
-    "Consider adding dedicated MDP_SUPPLY_LOSS / SDP_SUPPLY_LOSS / SDP_BREAKER_TRIP alarm codes to AlarmService so the reverse mapping becomes 1:1 instead of correlation-dependent."
+  "decisions": [
+    "Only fault types with non-active six-hour precursor labels are forecastable.",
+    "Escalated fuel and battery alarm codes share their parent fault-family diagnosis.",
+    "UPS_ON_BATTERY is suppressed during a successful ATS transfer.",
+    "SDP_PHASE_VOLTAGE is disambiguated using upstream alarm correlation."
   ]
 }

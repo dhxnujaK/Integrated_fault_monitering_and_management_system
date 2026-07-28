@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 venv/
+.venv/
 ml-service/.venv/
 .env
 
@@ -14,3 +15,6 @@ ml-service/data/*.csv
 !ml-service/data/fault_solution_catalog.csv
 ml-service/data/by_equipment_type/
 outputs/
+
+# Trained ML artifacts are delivered with the ML service release, not ordinary git history.
+ml-service/saved_models/*.joblib
