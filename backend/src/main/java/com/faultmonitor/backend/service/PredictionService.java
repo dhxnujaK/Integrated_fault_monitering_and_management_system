@@ -38,6 +38,7 @@ public class PredictionService {
     private final SensorReadingRepository sensorReadingRepository;
     private final PredictionRepository predictionRepository;
     private final EquipmentService equipmentService;
+    private final DiagnosisService diagnosisService;
     private final MlClient mlClient;
     private final ObjectMapper objectMapper;
 
@@ -102,7 +103,17 @@ public class PredictionService {
     }
 
     private PredictionResponse toResponse(Prediction prediction) {
-        return PredictionResponse.from(prediction, readActions(prediction.getRecommendedActions()));
+        return PredictionResponse.from(
+                prediction,
+                readActions(prediction.getRecommendedActions()),
+                diagnosisService.findByAlarmCode(prediction.getPredictedFailureType())
+                        .orElseGet(() -> {
+                            try {
+                                return diagnosisService.requireByKey(prediction.getPredictedFailureType());
+                            } catch (ApiException exception) {
+                                return null;
+                            }
+                        }));
     }
 
     private Map<String, Object> parseReading(SensorReading reading) {

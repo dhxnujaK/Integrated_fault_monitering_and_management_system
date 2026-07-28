@@ -17,9 +17,13 @@ public record PredictionResponse(
         List<String> recommendedActions,
         Double confidence,
         String modelVersion,
-        Instant predictedAt
+        Instant predictedAt,
+        DiagnosisResponse diagnosis
 ) {
-    public static PredictionResponse from(Prediction prediction, List<String> recommendedActions) {
+    public static PredictionResponse from(
+            Prediction prediction,
+            List<String> recommendedActions,
+            DiagnosisResponse diagnosis) {
         return new PredictionResponse(
                 prediction.getId(),
                 prediction.getEquipment() == null ? null : prediction.getEquipment().getId(),
@@ -30,7 +34,8 @@ public record PredictionResponse(
                 recommendedActions,
                 prediction.getConfidence(),
                 prediction.getModelVersion(),
-                toInstant(prediction.getPredictedAt()));
+                toInstant(prediction.getPredictedAt()),
+                diagnosis);
     }
 
     private static Instant toInstant(LocalDateTime value) {
