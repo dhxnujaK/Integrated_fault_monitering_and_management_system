@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { BrainCircuit, Play, RefreshCw } from 'lucide-react'
 import SectionCard from '../components/SectionCard'
 import {
   getEquipmentPredictions,
@@ -11,6 +10,10 @@ import {
 import { formatProbability, predictionRiskLevel } from '../components/predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
 import PredictionRiskBadge from '../components/PredictionRiskBadge'
+
+function getPredictedFaultLabel(predictedFailureType) {
+  return predictedFailureType && predictedFailureType !== 'UNKNOWN' ? predictedFailureType : 'No failure predicted'
+}
 
 export default function PredictionsPage() {
   const [runMessage, setRunMessage] = useState('')
@@ -73,15 +76,15 @@ export default function PredictionsPage() {
         <article><span>Medium risk</span><strong>{summary.mediumRisk}</strong></article>
         <article><span>Low risk</span><strong>{summary.lowRisk}</strong></article>
       </section>
-      <SectionCard title="Prediction Comparison" icon={BrainCircuit}>
+      <SectionCard title="Prediction Comparison">
         <div className="prediction-toolbar">
           <span>{predictions.length} equipment predictions</span>
           <div className="prediction-toolbar-actions">
             <span className={`ml-health ${health?.reachable ? 'online' : 'offline'}`}>
               ML {health?.reachable ? 'online' : 'offline'}
             </span>
-            <button type="button" onClick={handleRunPredictions}><Play size={14} />Run</button>
-            <button type="button" onClick={refresh}><RefreshCw size={14} />Refresh</button>
+            <button type="button" onClick={handleRunPredictions}>Run</button>
+            <button type="button" onClick={refresh}>Refresh</button>
           </div>
         </div>
         {runMessage ? <p className="prediction-run-message">{runMessage}</p> : null}
@@ -108,13 +111,13 @@ export default function PredictionsPage() {
                     }
                   }}
                 >
-                  <div>
+                  <div className="prediction-equipment-cell">
                     <strong>{prediction.equipmentCode}</strong>
                     <span>{prediction.equipmentType}</span>
                   </div>
                   <div>
-                    <span>Fault</span>
-                    <strong>{prediction.predictedFailureType || 'UNKNOWN'}</strong>
+                    <span>Predicted fault</span>
+                    <strong>{getPredictedFaultLabel(prediction.predictedFailureType)}</strong>
                   </div>
                   <div>
                     <span>Probability</span>
@@ -125,7 +128,7 @@ export default function PredictionsPage() {
                     <strong>{formatProbability(prediction.confidence)}</strong>
                   </div>
                   <div>
-                    <span>Model</span>
+                    <span>Model version</span>
                     <strong>{prediction.modelVersion || 'unversioned'}</strong>
                   </div>
                 </article>
@@ -134,7 +137,7 @@ export default function PredictionsPage() {
           </div>
         ) : null}
       </SectionCard>
-      <SectionCard title="Prediction History" icon={BrainCircuit}>
+      <SectionCard title="Prediction History">
         {selectedEquipmentId ? (
           <>
             {historyError ? <p className="empty-state">{historyError}</p> : null}
@@ -144,7 +147,7 @@ export default function PredictionsPage() {
                 {visibleHistory.map((item) => (
                   <article key={item.id}>
                     <strong>{formatProbability(item.failureProbability)}</strong>
-                    <span>{item.predictedFailureType || 'UNKNOWN'}</span>
+                    <span>{getPredictedFaultLabel(item.predictedFailureType)}</span>
                     <time>{item.predictedAt ? new Date(item.predictedAt).toLocaleString() : '--'}</time>
                   </article>
                 ))}

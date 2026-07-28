@@ -1752,7 +1752,6 @@ dd {
 .prediction-toolbar button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   border: 1px solid #344364;
   border-radius: 6px;
   min-height: 30px;
@@ -2069,20 +2068,41 @@ dd {
 
 .prediction-table {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .prediction-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.3fr) repeat(4, minmax(110px, 1fr));
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(210px, 1.2fr) minmax(150px, .9fr) minmax(120px, .7fr) minmax(190px, 1fr);
+  gap: 16px;
+  align-items: stretch;
   border: 1px solid #344364;
   border-left-width: 4px;
   border-radius: 7px;
-  padding: 12px;
+  padding: 14px;
   background: #101a33;
   cursor: pointer;
+}
+
+.prediction-row > div {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.prediction-equipment-cell {
+  border-right: 1px solid rgb(52 67 100 / 75%);
+  padding-right: 14px;
+}
+
+.prediction-equipment-cell strong {
+  font-size: 14px;
+}
+
+.prediction-equipment-cell span {
+  font-size: 11px;
+  color: #66d7e6;
 }
 
 .prediction-row.selected {

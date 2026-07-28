@@ -6,6 +6,10 @@ import { formatProbability, predictionRiskLevel } from './predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
 import PredictionRiskBadge from './PredictionRiskBadge'
 
+function getPredictedFaultLabel(predictedFailureType) {
+  return predictedFailureType && predictedFailureType !== 'UNKNOWN' ? predictedFailureType : 'No failure predicted'
+}
+
 export default function PredictionPanel({ equipmentId, title = 'Latest Prediction' }) {
   const [runState, setRunState] = useState({ loading: false, message: '', error: '' })
   const loadPrediction = useCallback(async () => {
@@ -75,9 +79,9 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
             <PredictionRiskBadge probability={prediction.failureProbability} />
           </div>
           <dl className="prediction-details">
-            <div><dt>Predicted fault</dt><dd>{prediction.predictedFailureType || 'UNKNOWN'}</dd></div>
+            <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(prediction.predictedFailureType)}</dd></div>
             <div><dt>Confidence</dt><dd>{formatProbability(prediction.confidence)}</dd></div>
-            <div><dt>Model</dt><dd>{prediction.modelVersion || 'unversioned'}</dd></div>
+            <div><dt>Model version</dt><dd>{prediction.modelVersion || 'unversioned'}</dd></div>
             <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">
@@ -94,7 +98,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
                   <li key={step.step}><span />{step.action}</li>
                 ))}
               </ol>
-            ) : <p>No model action was returned.</p>}
+            ) : <p>No corrective action required for this low-risk prediction.</p>}
           </div>
           {prediction.diagnosis ? (
             <div className="prediction-actions">
