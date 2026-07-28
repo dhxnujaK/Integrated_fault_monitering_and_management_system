@@ -1845,6 +1845,7 @@ dd {
 }
 
 .prediction-actions ol,
+.prediction-actions ul,
 .diagnosis-item ol,
 .diagnosis-item ul {
   margin: 0;

@@ -54,6 +54,14 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
               </ol>
             ) : <p>No model action was returned.</p>}
           </div>
+          {prediction.diagnosis ? (
+            <div className="prediction-actions">
+              <div className="mini-heading"><Activity size={14} />Probable causes</div>
+              <ul>
+                {prediction.diagnosis.probableCauses.map((cause) => <li key={cause}>{cause}</li>)}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </SectionCard>
