@@ -44,6 +44,10 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean enabled = true;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -54,6 +58,9 @@ public class User {
         }
         if (role == null) {
             role = Role.OPERATOR;
+        }
+        if (enabled == null) {
+            enabled = true;
         }
     }
 }
