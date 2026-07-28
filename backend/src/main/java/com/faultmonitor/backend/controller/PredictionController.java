@@ -3,6 +3,7 @@ package com.faultmonitor.backend.controller;
 import com.faultmonitor.backend.dto.PageResponse;
 import com.faultmonitor.backend.dto.MlHealthResponse;
 import com.faultmonitor.backend.dto.PredictionResponse;
+import com.faultmonitor.backend.dto.PredictionRunResponse;
 import com.faultmonitor.backend.ml.MlClient;
 import com.faultmonitor.backend.service.PredictionService;
 import jakarta.validation.constraints.Max;
@@ -13,9 +14,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.Instant;
 
 @Validated
 @RestController
@@ -35,6 +38,12 @@ public class PredictionController {
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
     public MlHealthResponse mlHealth() {
         return mlClient.health();
+    }
+
+    @PostMapping("/api/predictions/run")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    public PredictionRunResponse runPredictions() {
+        return new PredictionRunResponse(predictionService.runPredictionsForEnabledEquipment(), Instant.now());
     }
 
     @GetMapping("/api/equipment/{equipmentId}/predictions")
