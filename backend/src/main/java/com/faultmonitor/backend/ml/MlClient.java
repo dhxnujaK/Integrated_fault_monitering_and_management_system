@@ -1,8 +1,11 @@
 package com.faultmonitor.backend.ml;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.faultmonitor.backend.dto.MlHealthResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -16,6 +19,8 @@ public class MlClient {
 
     private final RestTemplate restTemplate;
     private final String predictUrl;
+    private final String healthUrl;
+    private final String baseUrl;
     private final int retryCount;
 
     public MlClient(
@@ -27,8 +32,23 @@ public class MlClient {
                 .connectTimeout(Duration.ofMillis(timeoutMs))
                 .readTimeout(Duration.ofMillis(timeoutMs))
                 .build();
-        this.predictUrl = baseUrl.replaceAll("/+$", "") + "/predict";
+        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        this.predictUrl = this.baseUrl + "/predict";
+        this.healthUrl = this.baseUrl + "/health";
         this.retryCount = Math.max(0, retryCount);
+    }
+
+    public MlHealthResponse health() {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> details = restTemplate.getForObject(healthUrl, Map.class);
+            String status = String.valueOf(details == null ? "UNKNOWN" : details.getOrDefault("status", "UNKNOWN"));
+            return new MlHealthResponse(status, baseUrl, true, details == null ? Map.of() : details, Instant.now());
+        } catch (RestClientException exception) {
+            log.warn("ML health check failed: {}", exception.getMessage());
+            return new MlHealthResponse("UNREACHABLE", baseUrl, false,
+                    Map.of("error", exception.getMessage()), Instant.now());
+        }
     }
 
     public MlPredictionResult predict(MlPredictionRequest request) {

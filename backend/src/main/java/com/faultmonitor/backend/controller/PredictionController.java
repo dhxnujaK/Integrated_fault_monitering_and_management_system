@@ -1,7 +1,9 @@
 package com.faultmonitor.backend.controller;
 
 import com.faultmonitor.backend.dto.PageResponse;
+import com.faultmonitor.backend.dto.MlHealthResponse;
 import com.faultmonitor.backend.dto.PredictionResponse;
+import com.faultmonitor.backend.ml.MlClient;
 import com.faultmonitor.backend.service.PredictionService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,11 +23,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class PredictionController {
 
     private final PredictionService predictionService;
+    private final MlClient mlClient;
 
     @GetMapping("/api/predictions/latest")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
     public List<PredictionResponse> latest() {
         return predictionService.latest();
+    }
+
+    @GetMapping("/api/predictions/ml-health")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    public MlHealthResponse mlHealth() {
+        return mlClient.health();
     }
 
     @GetMapping("/api/equipment/{equipmentId}/predictions")
