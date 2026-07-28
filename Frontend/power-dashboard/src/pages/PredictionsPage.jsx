@@ -10,6 +10,7 @@ import {
 } from '../api/predictionApi'
 import { formatProbability, predictionRiskLevel } from '../components/predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
+import PredictionRiskBadge from '../components/PredictionRiskBadge'
 
 export default function PredictionsPage() {
   const [runMessage, setRunMessage] = useState('')
@@ -111,7 +112,7 @@ export default function PredictionsPage() {
                   </div>
                   <div>
                     <span>Probability</span>
-                    <strong>{formatProbability(prediction.failureProbability)}</strong>
+                    <PredictionRiskBadge probability={prediction.failureProbability} />
                   </div>
                   <div>
                     <span>Confidence</span>

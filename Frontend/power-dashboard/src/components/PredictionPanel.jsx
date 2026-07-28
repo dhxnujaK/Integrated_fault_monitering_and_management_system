@@ -4,6 +4,7 @@ import SectionCard from './SectionCard'
 import { getEquipmentPredictions } from '../api/predictionApi'
 import { formatProbability, predictionRiskLevel } from './predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
+import PredictionRiskBadge from './PredictionRiskBadge'
 
 export default function PredictionPanel({ equipmentId, title = 'Latest Prediction' }) {
   const loadPrediction = useCallback(async () => {
@@ -38,7 +39,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
         <div className={`prediction-summary ${risk}`}>
           <div className="prediction-score">
             <span>Failure probability</span>
-            <strong>{formatProbability(prediction.failureProbability)}</strong>
+            <PredictionRiskBadge probability={prediction.failureProbability} />
           </div>
           <dl className="prediction-details">
             <div><dt>Predicted fault</dt><dd>{prediction.predictedFailureType || 'UNKNOWN'}</dd></div>

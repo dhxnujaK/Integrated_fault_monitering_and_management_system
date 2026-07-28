@@ -1788,12 +1788,6 @@ dd {
   font-weight: 800;
 }
 
-.prediction-score strong {
-  font-size: 34px;
-  line-height: 1;
-  color: #f8fbff;
-}
-
 .prediction-summary.high .prediction-score {
   border-color: rgb(248 113 113 / 50%);
   background: rgb(127 29 29 / 20%);
@@ -1832,6 +1826,41 @@ dd {
   font-size: 13px;
   font-weight: 900;
   overflow-wrap: anywhere;
+}
+
+.prediction-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #344364;
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 10px;
+  color: #c7d2ee;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.prediction-risk-badge strong {
+  color: #f8fbff;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.prediction-risk-badge.high {
+  border-color: rgb(248 113 113 / 50%);
+  color: #fecaca;
+}
+
+.prediction-risk-badge.medium {
+  border-color: rgb(251 191 36 / 45%);
+  color: #fde68a;
+}
+
+.prediction-risk-badge.low {
+  border-color: rgb(74 222 128 / 35%);
+  color: #86efac;
 }
 
 .mini-heading {
