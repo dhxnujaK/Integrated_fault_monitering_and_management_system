@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-28T18:03:25.890983+00:00",
+  "target": "target_failure_within_6_hours",
+  "models": {
+    "GENERATOR": {
+      "artifact": "generator_failure_6h.joblib",
+      "modelVersion": "generator-failure-6h-20260728-v1",
+      "threshold": 0.4223242396486936,
+      "selectedCandidate": "random_forest",
+      "sizeBytes": 977673,
+      "sha256": "69e97b805b43ccaba1dd460e77d4b2aaf836a98aa48f3f09a9c15d22ce120861"
+    },
+    "MDP": {
+      "artifact": "mdp_failure_6h.joblib",
+      "modelVersion": "mdp-failure-6h-20260728-v1",
+      "threshold": 0.9913139748848986,
+      "selectedCandidate": "logistic_regression",
+      "sizeBytes": 3112,
+      "sha256": "10fcdb3c572df06426f51f623cbc6cd40fd3fa20ec84065373db262c4b2ddd0b"
+    },
+    "SDP": {
+      "artifact": "sdp_failure_6h.joblib",
+      "modelVersion": "sdp-failure-6h-20260728-v1",
+      "threshold": 0.8833255792571997,
+      "selectedCandidate": "logistic_regression",
+      "sizeBytes": 3089,
+      "sha256": "7dfe8e12da8ca21148912897999eed77725db63e90c846bd883c1a6827e1ee43"
+    },
+    "UPS": {
+      "artifact": "ups_failure_6h.joblib",
+      "modelVersion": "ups-failure-6h-20260728-v1",
+      "threshold": 0.6691436771906637,
+      "selectedCandidate": "logistic_regression",
+      "sizeBytes": 4166,
+      "sha256": "82ee3dcb9f4ae11dc30d338b63dd23af96877b5f5334493370c53d342b4caec0"
+    }
+  }
+}
