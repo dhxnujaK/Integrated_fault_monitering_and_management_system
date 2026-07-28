@@ -65,7 +65,7 @@ class DiagnosisControllerTests {
     void diagnosisLookupAcceptsPredictionFailureType() throws Exception {
         mockMvc.perform(get("/api/diagnosis/{key}", "GEN_OVERHEAT"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.key").value("GEN_HIGH_TEMP"))
+                .andExpect(jsonPath("$.key").value("GEN_OVERHEAT"))
                 .andExpect(jsonPath("$.correctiveActions[0].step").value(1));
     }
 

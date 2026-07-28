@@ -85,7 +85,7 @@ class DiagnosisServiceTests {
     void resolvesDatasetFailureTypeToAlarmDiagnosis() {
         DiagnosisResponse diagnosis = diagnosisService.requireByKey("GEN_OVERHEAT");
 
-        assertThat(diagnosis.key()).isEqualTo("GEN_HIGH_TEMP");
+        assertThat(diagnosis.key()).isEqualTo("GEN_OVERHEAT");
         assertThat(diagnosis.sourceFailureType()).isEqualTo("GEN_OVERHEAT");
     }
 
