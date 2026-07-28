@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { BrainCircuit, Play, RefreshCw, ServerPulse } from 'lucide-react'
+import { BrainCircuit, Play, RefreshCw, Activity } from 'lucide-react'
 import SectionCard from '../components/SectionCard'
 import {
   getEquipmentPredictions,
@@ -30,6 +30,7 @@ export default function PredictionsPage() {
   const predictions = data?.predictions ?? []
   const summary = data?.summary ?? { total: 0, highRisk: 0, mediumRisk: 0, lowRisk: 0 }
   const health = data?.health
+  const visibleHistory = selectedEquipmentId ? history : []
 
   async function handleRunPredictions() {
     setRunMessage('')
@@ -40,7 +41,6 @@ export default function PredictionsPage() {
 
   useEffect(() => {
     if (!selectedEquipmentId) {
-      setHistory([])
       return
     }
     let disposed = false
@@ -72,7 +72,7 @@ export default function PredictionsPage() {
           <span>{predictions.length} equipment predictions</span>
           <div className="prediction-toolbar-actions">
             <span className={`ml-health ${health?.reachable ? 'online' : 'offline'}`}>
-              <ServerPulse size={14} />ML {health?.reachable ? 'online' : 'offline'}
+              <Activity size={14} />ML {health?.reachable ? 'online' : 'offline'}
             </span>
             <button type="button" onClick={handleRunPredictions}><Play size={14} />Run</button>
             <button type="button" onClick={refresh}><RefreshCw size={14} />Refresh</button>
@@ -132,10 +132,10 @@ export default function PredictionsPage() {
         {selectedEquipmentId ? (
           <>
             {historyError ? <p className="empty-state">{historyError}</p> : null}
-            {!historyError && !history.length ? <p className="empty-state">No history for the selected equipment.</p> : null}
-            {history.length ? (
+            {!historyError && !visibleHistory.length ? <p className="empty-state">No history for the selected equipment.</p> : null}
+            {visibleHistory.length ? (
               <div className="prediction-history">
-                {history.map((item) => (
+                {visibleHistory.map((item) => (
                   <article key={item.id}>
                     <strong>{formatProbability(item.failureProbability)}</strong>
                     <span>{item.predictedFailureType || 'UNKNOWN'}</span>
