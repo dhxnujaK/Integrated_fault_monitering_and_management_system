@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import SectionCard from './SectionCard'
 import { getEquipmentPredictions, runPredictions } from '../api/predictionApi'
@@ -7,6 +7,7 @@ import usePredictionPolling from '../hooks/usePredictionPolling'
 import PredictionRiskBadge from './PredictionRiskBadge'
 
 export default function PredictionPanel({ equipmentId, title = 'Latest Prediction' }) {
+  const [runState, setRunState] = useState({ loading: false, message: '', error: '' })
   const loadPrediction = useCallback(async () => {
     if (!equipmentId) {
       return null
@@ -21,6 +22,27 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
   )
 
   const risk = predictionRiskLevel(prediction?.failureProbability)
+
+  async function handleRunPrediction() {
+    setRunState({ loading: true, message: '', error: '' })
+    try {
+      const result = await runPredictions()
+      await refresh()
+      setRunState({
+        loading: false,
+        message: result.savedCount > 0
+          ? `${result.savedCount} prediction(s) saved.`
+          : 'Prediction run completed, but no records were saved. Check live readings and ML health.',
+        error: '',
+      })
+    } catch (err) {
+      setRunState({
+        loading: false,
+        message: '',
+        error: err.message || 'Unable to run predictions.',
+      })
+    }
+  }
 
   return (
     <SectionCard title={title} className="prediction-panel">
@@ -37,13 +59,13 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           <p>No persisted prediction is available for this equipment.</p>
           <button
             type="button"
-            onClick={async () => {
-              await runPredictions()
-              await refresh()
-            }}
+            disabled={runState.loading}
+            onClick={handleRunPrediction}
           >
-            Run prediction
+            {runState.loading ? 'Running...' : 'Run prediction'}
           </button>
+          {runState.message ? <span className="prediction-run-note">{runState.message}</span> : null}
+          {runState.error ? <span className="prediction-run-note error">{runState.error}</span> : null}
         </div>
       ) : null}
       {prediction ? (

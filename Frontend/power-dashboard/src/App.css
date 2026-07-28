@@ -2029,6 +2029,16 @@ dd {
   font-weight: 900;
 }
 
+.prediction-run-note {
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.prediction-run-note.error {
+  color: #fecaca;
+}
+
 .ml-health {
   border: 1px solid #344364;
   border-radius: 999px;

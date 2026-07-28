@@ -33,10 +33,16 @@ export default function PredictionsPage() {
   const visibleHistory = selectedEquipmentId ? history : []
 
   async function handleRunPredictions() {
-    setRunMessage('')
-    const result = await runPredictions()
-    setRunMessage(`${result.savedCount} prediction(s) persisted.`)
-    await refresh()
+    try {
+      setRunMessage('')
+      const result = await runPredictions()
+      setRunMessage(result.savedCount > 0
+        ? `${result.savedCount} prediction(s) persisted.`
+        : 'Prediction run completed, but no records were saved. Check live readings and ML health.')
+      await refresh()
+    } catch (err) {
+      setRunMessage(err.message || 'Unable to run predictions.')
+    }
   }
 
   useEffect(() => {
