@@ -108,4 +108,35 @@ class AlarmLifecycleServiceTests {
                 ups.getId(), "UPS_ON_BATTERY", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
                 .isEmpty();
     }
+
+    @Test
+    void generatorStandbyDoesNotCreateVoltageAlarmButRunningAbnormalVoltageDoes() {
+        alarmService.checkGenerator(generator, Map.of(
+                "voltage_L1", 0.0,
+                "voltage_L2", 0.0,
+                "voltage_L3", 0.0,
+                "fuel_level_pct", 80.0,
+                "running_status", "STANDBY",
+                "room_temperature_c", 28.0,
+                "intruder_alarm", false,
+                "fire_alarm", false));
+
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                generator.getId(), "GEN_VOLTAGE_ABNORMAL", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .isEmpty();
+
+        alarmService.checkGenerator(generator, Map.of(
+                "voltage_L1", 195.0,
+                "voltage_L2", 230.0,
+                "voltage_L3", 231.0,
+                "fuel_level_pct", 80.0,
+                "running_status", "RUNNING",
+                "room_temperature_c", 31.0,
+                "intruder_alarm", false,
+                "fire_alarm", false));
+
+        assertThat(alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
+                generator.getId(), "GEN_VOLTAGE_ABNORMAL", List.of(AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED)))
+                .hasSize(1);
+    }
 }
