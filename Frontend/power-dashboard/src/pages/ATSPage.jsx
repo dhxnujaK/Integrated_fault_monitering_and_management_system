@@ -3,6 +3,8 @@ import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import EquipmentSelector from '../components/EquipmentSelector'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
+import DiagnosisPanel from '../components/DiagnosisPanel'
+import PredictionPanel from '../components/PredictionPanel'
 import ReadingCard from '../components/ReadingCard'
 import SectionCard from '../components/SectionCard'
 import toast from 'react-hot-toast'
@@ -247,6 +249,11 @@ export default function ATSPage({ onAcknowledge }) {
             </div>
           </div>
         </SectionCard>
+      </div>
+
+      <div className="content-grid two-even">
+        <DiagnosisPanel alarms={alarms} title="ATS Fault Diagnosis" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} title="ATS Prediction" />
       </div>
     </div>
   )

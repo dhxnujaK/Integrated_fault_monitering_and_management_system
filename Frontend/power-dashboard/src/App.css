@@ -1725,6 +1725,222 @@ dd {
   font-weight: 900;
 }
 
+.prediction-panel,
+.diagnosis-panel {
+  min-width: 0;
+}
+
+.panel-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #344364;
+  border-radius: 6px;
+  padding: 10px;
+  color: #c7d2ee;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.panel-state.error {
+  border-color: rgb(248 113 113 / 42%);
+  background: rgb(127 29 29 / 18%);
+  color: #fecaca;
+}
+
+.panel-state button,
+.prediction-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #344364;
+  border-radius: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  background: #101a33;
+  color: #f8fbff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.prediction-summary {
+  display: grid;
+  gap: 14px;
+}
+
+.prediction-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #344364;
+  border-radius: 7px;
+  padding: 14px;
+  background: #101a33;
+}
+
+.prediction-score span,
+.prediction-details dt,
+.prediction-row span,
+.prediction-toolbar {
+  color: #aeb9d5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.prediction-score strong {
+  font-size: 34px;
+  line-height: 1;
+  color: #f8fbff;
+}
+
+.prediction-summary.high .prediction-score {
+  border-color: rgb(248 113 113 / 50%);
+  background: rgb(127 29 29 / 20%);
+}
+
+.prediction-summary.medium .prediction-score {
+  border-color: rgb(251 191 36 / 45%);
+  background: rgb(120 53 15 / 18%);
+}
+
+.prediction-summary.low .prediction-score {
+  border-color: rgb(74 222 128 / 35%);
+  background: rgb(20 83 45 / 16%);
+}
+
+.prediction-details,
+.ups-selected-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.prediction-details div,
+.prediction-actions,
+.diagnosis-item {
+  border: 1px solid #344364;
+  border-radius: 7px;
+  padding: 12px;
+  background: #101a33;
+}
+
+.prediction-details dd,
+.prediction-row strong {
+  margin: 4px 0 0;
+  color: #f8fbff;
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.mini-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #f8fbff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.prediction-actions ol,
+.diagnosis-item ol,
+.diagnosis-item ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c7d2ee;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.prediction-actions p {
+  margin: 0;
+  color: #aeb9d5;
+  font-size: 12px;
+}
+
+.diagnosis-list {
+  display: grid;
+  gap: 12px;
+}
+
+.diagnosis-item header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diagnosis-item header strong {
+  color: #f8fbff;
+  font-size: 13px;
+}
+
+.diagnosis-item header span {
+  border: 1px solid #344364;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #c7d2ee;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.diagnosis-item p {
+  margin: 10px 0;
+  color: #aeb9d5;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.diagnosis-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.predictions-page {
+  display: grid;
+  gap: 14px;
+}
+
+.prediction-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.prediction-table {
+  display: grid;
+  gap: 10px;
+}
+
+.prediction-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) repeat(4, minmax(110px, 1fr));
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #344364;
+  border-left-width: 4px;
+  border-radius: 7px;
+  padding: 12px;
+  background: #101a33;
+}
+
+.prediction-row.high {
+  border-left-color: #ef4444;
+}
+
+.prediction-row.medium {
+  border-left-color: #f59e0b;
+}
+
+.prediction-row.low {
+  border-left-color: #22c55e;
+}
+
 .large-status + .large-status {
   margin-top: 10px;
 }
@@ -1985,7 +2201,10 @@ dd {
   .load-grid,
   .ups-fleet,
   .snapshot-grid,
-  .fault-timeline {
+  .fault-timeline,
+  .diagnosis-columns,
+  .prediction-details,
+  .prediction-row {
     grid-template-columns: 1fr;
   }
 

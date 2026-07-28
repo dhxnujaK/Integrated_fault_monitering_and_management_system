@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
+import DiagnosisPanel from '../components/DiagnosisPanel'
+import PredictionPanel from '../components/PredictionPanel'
 import SectionCard from '../components/SectionCard'
 import ReadingCard from '../components/ReadingCard'
 import toast from 'react-hot-toast'
@@ -273,6 +275,11 @@ export default function SDPPage({ onAcknowledge }) {
             </div>
           </div>
         </SectionCard>
+      </div>
+
+      <div className="content-grid two-even">
+        <DiagnosisPanel alarms={alarms} title="SDP Fault Diagnosis" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} title="SDP Prediction" />
       </div>
     </div>
   )
