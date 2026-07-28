@@ -1838,20 +1838,33 @@ dd {
 .prediction-risk-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-self: start;
+  gap: 0;
   border: 1px solid #344364;
-  border-radius: 999px;
-  min-height: 34px;
-  padding: 0 10px;
+  border-radius: 7px;
+  min-height: 32px;
+  overflow: hidden;
   color: #c7d2ee;
-  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
+.prediction-risk-badge span {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 0 10px;
+  background: rgb(102 215 230 / 10%);
+  color: #86efac;
+  font-size: 11px;
+}
+
 .prediction-risk-badge strong {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
   color: #f8fbff;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 

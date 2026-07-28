@@ -35,7 +35,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
       setRunState({
         loading: false,
         message: result.savedCount > 0
-          ? `${result.savedCount} prediction(s) saved.`
+          ? ''
           : 'Prediction run completed, but no records were saved. Check live readings and ML health.',
         error: '',
       })

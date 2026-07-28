@@ -39,10 +39,10 @@ export default function PredictionsPage() {
     try {
       setRunMessage('')
       const result = await runPredictions()
-      setRunMessage(result.savedCount > 0
-        ? `${result.savedCount} prediction(s) persisted.`
-        : 'Prediction run completed, but no records were saved. Check live readings and ML health.')
       await refresh()
+      if (result.savedCount === 0) {
+        setRunMessage('Prediction run completed, but no records were saved. Check live readings and ML health.')
+      }
     } catch (err) {
       setRunMessage(err.message || 'Unable to run predictions.')
     }
