@@ -4,6 +4,7 @@ import com.faultmonitor.backend.dto.PageResponse;
 import com.faultmonitor.backend.dto.MlHealthResponse;
 import com.faultmonitor.backend.dto.PredictionResponse;
 import com.faultmonitor.backend.dto.PredictionRunResponse;
+import com.faultmonitor.backend.dto.PredictionSummaryResponse;
 import com.faultmonitor.backend.ml.MlClient;
 import com.faultmonitor.backend.service.PredictionService;
 import jakarta.validation.constraints.Max;
@@ -32,6 +33,12 @@ public class PredictionController {
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
     public List<PredictionResponse> latest() {
         return predictionService.latest();
+    }
+
+    @GetMapping("/api/predictions/summary")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    public PredictionSummaryResponse summary() {
+        return predictionService.summary();
     }
 
     @GetMapping("/api/predictions/ml-health")

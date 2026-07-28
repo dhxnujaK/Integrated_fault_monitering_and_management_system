@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.faultmonitor.backend.dto.PageResponse;
 import com.faultmonitor.backend.dto.PredictionResponse;
+import com.faultmonitor.backend.dto.PredictionSummaryResponse;
 import com.faultmonitor.backend.entity.Equipment;
 import com.faultmonitor.backend.entity.Prediction;
 import com.faultmonitor.backend.entity.SensorReading;
@@ -65,6 +66,18 @@ public class PredictionService {
                 .flatMap(java.util.Optional::stream)
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PredictionSummaryResponse summary() {
+        List<PredictionResponse> latest = latest();
+        long high = latest.stream().filter(prediction -> riskAtLeast(prediction.failureProbability(), 0.7)).count();
+        long medium = latest.stream().filter(prediction -> {
+            double probability = probability(prediction.failureProbability());
+            return probability >= 0.4 && probability < 0.7;
+        }).count();
+        long low = latest.stream().filter(prediction -> probability(prediction.failureProbability()) < 0.4).count();
+        return new PredictionSummaryResponse(latest.size(), high, medium, low);
     }
 
     @Transactional(readOnly = true)
@@ -147,5 +160,13 @@ public class PredictionService {
         } catch (JsonProcessingException exception) {
             return List.of(actions);
         }
+    }
+
+    private boolean riskAtLeast(Double probability, double threshold) {
+        return probability(probability) >= threshold;
+    }
+
+    private double probability(Double value) {
+        return value == null ? 0.0 : value;
     }
 }
