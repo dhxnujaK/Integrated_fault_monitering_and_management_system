@@ -1904,12 +1904,74 @@ dd {
   gap: 14px;
 }
 
+.prediction-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.prediction-summary-strip article {
+  border: 1px solid #344364;
+  border-radius: 7px;
+  padding: 14px;
+  background: #101a33;
+}
+
+.prediction-summary-strip span {
+  color: #aeb9d5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.prediction-summary-strip strong {
+  display: block;
+  margin-top: 6px;
+  color: #f8fbff;
+  font-size: 28px;
+  line-height: 1;
+}
+
 .prediction-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.prediction-toolbar-actions,
+.ml-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ml-health {
+  border: 1px solid #344364;
+  border-radius: 999px;
+  min-height: 30px;
+  padding: 0 10px;
+  background: #101a33;
+  color: #c7d2ee;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ml-health.online {
+  border-color: rgb(74 222 128 / 35%);
+  color: #86efac;
+}
+
+.ml-health.offline {
+  border-color: rgb(248 113 113 / 45%);
+  color: #fecaca;
+}
+
+.prediction-run-message {
+  margin: 0 0 12px;
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .prediction-table {
@@ -2195,6 +2257,7 @@ dd {
 
   .status-strip,
   .metric-strip,
+  .prediction-summary-strip,
   .two-column,
   .two-even,
   .phase-grid,
