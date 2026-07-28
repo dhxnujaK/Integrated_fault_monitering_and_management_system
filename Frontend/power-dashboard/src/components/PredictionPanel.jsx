@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react'
-import { Activity, AlertTriangle, BrainCircuit, RefreshCw } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import SectionCard from './SectionCard'
-import { getEquipmentPredictions } from '../api/predictionApi'
+import { getEquipmentPredictions, runPredictions } from '../api/predictionApi'
 import { formatProbability, predictionRiskLevel } from './predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
 import PredictionRiskBadge from './PredictionRiskBadge'
@@ -23,17 +23,28 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
   const risk = predictionRiskLevel(prediction?.failureProbability)
 
   return (
-    <SectionCard title={title} icon={BrainCircuit} className="prediction-panel">
+    <SectionCard title={title} className="prediction-panel">
       {loading && !prediction ? <p className="empty-state">Loading prediction...</p> : null}
       {error ? (
         <div className="panel-state error">
           <AlertTriangle size={16} />
           <span>{error}</span>
-          <button type="button" onClick={refresh}><RefreshCw size={14} />Retry</button>
+          <button type="button" onClick={refresh}>Retry</button>
         </div>
       ) : null}
       {!loading && !error && !prediction ? (
-        <p className="empty-state">No persisted prediction is available for this equipment.</p>
+        <div className="prediction-empty">
+          <p>No persisted prediction is available for this equipment.</p>
+          <button
+            type="button"
+            onClick={async () => {
+              await runPredictions()
+              await refresh()
+            }}
+          >
+            Run prediction
+          </button>
+        </div>
       ) : null}
       {prediction ? (
         <div className={`prediction-summary ${risk}`}>
@@ -48,18 +59,28 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
             <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">
-            <div className="mini-heading"><Activity size={14} />Recommended actions</div>
+            <div className="mini-heading">Recommended actions</div>
             {prediction.recommendedActions?.length ? (
-              <ol>
-                {prediction.recommendedActions.map((action, index) => <li key={`${action}-${index}`}>{action}</li>)}
+              <ol className="diagnosis-points action-points">
+                {prediction.recommendedActions.map((action, index) => (
+                  <li key={`${action}-${index}`}><span>{index + 1}</span>{action}</li>
+                ))}
+              </ol>
+            ) : prediction.diagnosis?.correctiveActions?.length ? (
+              <ol className="diagnosis-points action-points">
+                {prediction.diagnosis.correctiveActions.map((step) => (
+                  <li key={step.step}><span>{step.step}</span>{step.action}</li>
+                ))}
               </ol>
             ) : <p>No model action was returned.</p>}
           </div>
           {prediction.diagnosis ? (
             <div className="prediction-actions">
-              <div className="mini-heading"><Activity size={14} />Probable causes</div>
-              <ul>
-                {prediction.diagnosis.probableCauses.map((cause) => <li key={cause}>{cause}</li>)}
+              <div className="mini-heading">Probable causes</div>
+              <ul className="diagnosis-points">
+                {prediction.diagnosis.probableCauses.map((cause, index) => (
+                  <li key={cause}><span>{index + 1}</span>{cause}</li>
+                ))}
               </ul>
             </div>
           ) : null}

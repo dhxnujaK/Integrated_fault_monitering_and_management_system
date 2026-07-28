@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { BrainCircuit, Play, RefreshCw, Activity } from 'lucide-react'
+import { BrainCircuit, Play, RefreshCw } from 'lucide-react'
 import SectionCard from '../components/SectionCard'
 import {
   getEquipmentPredictions,
@@ -72,7 +72,7 @@ export default function PredictionsPage() {
           <span>{predictions.length} equipment predictions</span>
           <div className="prediction-toolbar-actions">
             <span className={`ml-health ${health?.reachable ? 'online' : 'offline'}`}>
-              <Activity size={14} />ML {health?.reachable ? 'online' : 'offline'}
+              ML {health?.reachable ? 'online' : 'offline'}
             </span>
             <button type="button" onClick={handleRunPredictions}><Play size={14} />Run</button>
             <button type="button" onClick={refresh}><RefreshCw size={14} />Refresh</button>

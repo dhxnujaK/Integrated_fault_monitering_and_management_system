@@ -1,5 +1,4 @@
 import React from 'react'
-import { ClipboardCheck, SearchCheck } from 'lucide-react'
 import SectionCard from './SectionCard'
 
 function diagnosisFor(alarm) {
@@ -10,7 +9,7 @@ export default function DiagnosisPanel({ alarms = [], title = 'Fault Diagnosis' 
   const diagnosedAlarms = alarms.filter((alarm) => diagnosisFor(alarm))
 
   return (
-    <SectionCard title={title} icon={SearchCheck} className="diagnosis-panel">
+    <SectionCard title={title} className="diagnosis-panel">
       {!diagnosedAlarms.length ? (
         <p className="empty-state">No active alarm diagnosis is available for this equipment.</p>
       ) : (
@@ -26,16 +25,18 @@ export default function DiagnosisPanel({ alarms = [], title = 'Fault Diagnosis' 
                 <p>{diagnosis.observablePattern}</p>
                 <div className="diagnosis-columns">
                   <div>
-                    <div className="mini-heading"><ClipboardCheck size={14} />Probable causes</div>
-                    <ul>
-                      {diagnosis.probableCauses.map((cause) => <li key={cause}>{cause}</li>)}
+                    <div className="mini-heading">Probable causes</div>
+                    <ul className="diagnosis-points">
+                      {diagnosis.probableCauses.map((cause, index) => (
+                        <li key={cause}><span>{index + 1}</span>{cause}</li>
+                      ))}
                     </ul>
                   </div>
                   <div>
-                    <div className="mini-heading"><ClipboardCheck size={14} />Corrective actions</div>
-                    <ol>
+                    <div className="mini-heading">Corrective actions</div>
+                    <ol className="diagnosis-points action-points">
                       {diagnosis.correctiveActions.map((step) => (
-                        <li key={`${alarm.id}-${step.step}`}>{step.action}</li>
+                        <li key={`${alarm.id}-${step.step}`}><span>{step.step}</span>{step.action}</li>
                       ))}
                     </ol>
                   </div>

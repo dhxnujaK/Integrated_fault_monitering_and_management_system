@@ -61,7 +61,7 @@ export default function ATSPage({ onAcknowledge }) {
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
+          <span>Backend unavailable - no live telemetry is being displayed.</span>
           <button 
             onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
