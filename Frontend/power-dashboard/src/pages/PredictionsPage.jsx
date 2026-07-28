@@ -1,12 +1,21 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { BrainCircuit, Play, RefreshCw, ServerPulse } from 'lucide-react'
 import SectionCard from '../components/SectionCard'
-import { getLatestPredictions, getMlHealth, getPredictionSummary, runPredictions } from '../api/predictionApi'
+import {
+  getEquipmentPredictions,
+  getLatestPredictions,
+  getMlHealth,
+  getPredictionSummary,
+  runPredictions,
+} from '../api/predictionApi'
 import { formatProbability, predictionRiskLevel } from '../components/predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
 
 export default function PredictionsPage() {
   const [runMessage, setRunMessage] = useState('')
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const [history, setHistory] = useState([])
+  const [historyError, setHistoryError] = useState('')
 
   const loadPageData = useCallback(async () => {
     const [predictions, summary, health] = await Promise.all([
@@ -27,6 +36,27 @@ export default function PredictionsPage() {
     setRunMessage(`${result.savedCount} prediction(s) persisted.`)
     await refresh()
   }
+
+  useEffect(() => {
+    if (!selectedEquipmentId) {
+      setHistory([])
+      return
+    }
+    let disposed = false
+    getEquipmentPredictions(selectedEquipmentId, { page: 0, size: 10 })
+      .then((page) => {
+        if (!disposed) {
+          setHistory(page.items ?? [])
+          setHistoryError('')
+        }
+      })
+      .catch((err) => {
+        if (!disposed) setHistoryError(err.message || 'Unable to load prediction history.')
+      })
+    return () => {
+      disposed = true
+    }
+  }, [selectedEquipmentId])
 
   return (
     <div className="predictions-page">
@@ -58,7 +88,19 @@ export default function PredictionsPage() {
             {predictions.map((prediction) => {
               const risk = predictionRiskLevel(prediction.failureProbability)
               return (
-                <article className={`prediction-row ${risk}`} key={prediction.id ?? prediction.equipmentId}>
+                <article
+                  className={`prediction-row ${risk} ${String(selectedEquipmentId) === String(prediction.equipmentId) ? 'selected' : ''}`}
+                  key={prediction.id ?? prediction.equipmentId}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedEquipmentId(prediction.equipmentId)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setSelectedEquipmentId(prediction.equipmentId)
+                    }
+                  }}
+                >
                   <div>
                     <strong>{prediction.equipmentCode}</strong>
                     <span>{prediction.equipmentType}</span>
@@ -84,6 +126,25 @@ export default function PredictionsPage() {
             })}
           </div>
         ) : null}
+      </SectionCard>
+      <SectionCard title="Prediction History" icon={BrainCircuit}>
+        {selectedEquipmentId ? (
+          <>
+            {historyError ? <p className="empty-state">{historyError}</p> : null}
+            {!historyError && !history.length ? <p className="empty-state">No history for the selected equipment.</p> : null}
+            {history.length ? (
+              <div className="prediction-history">
+                {history.map((item) => (
+                  <article key={item.id}>
+                    <strong>{formatProbability(item.failureProbability)}</strong>
+                    <span>{item.predictedFailureType || 'UNKNOWN'}</span>
+                    <time>{item.predictedAt ? new Date(item.predictedAt).toLocaleString() : '--'}</time>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : <p className="empty-state">Select a prediction row to view history.</p>}
       </SectionCard>
     </div>
   )

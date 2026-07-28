@@ -1989,6 +1989,12 @@ dd {
   border-radius: 7px;
   padding: 12px;
   background: #101a33;
+  cursor: pointer;
+}
+
+.prediction-row.selected {
+  outline: 2px solid rgb(102 215 230 / 55%);
+  outline-offset: 1px;
 }
 
 .prediction-row.high {
@@ -2001,6 +2007,30 @@ dd {
 
 .prediction-row.low {
   border-left-color: #22c55e;
+}
+
+.prediction-history {
+  display: grid;
+  gap: 8px;
+}
+
+.prediction-history article {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) 190px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #344364;
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #101a33;
+  color: #c7d2ee;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.prediction-history strong {
+  color: #f8fbff;
+  font-size: 16px;
 }
 
 .large-status + .large-status {
@@ -2268,6 +2298,10 @@ dd {
   .diagnosis-columns,
   .prediction-details,
   .prediction-row {
+    grid-template-columns: 1fr;
+  }
+
+  .prediction-history article {
     grid-template-columns: 1fr;
   }
 
