@@ -81,6 +81,10 @@ public class DiagnosisService {
         return diagnoses.keySet();
     }
 
+    public Set<String> supportedFailureTypes() {
+        return failureTypeToAlarmCode.keySet();
+    }
+
     private Map<String, DiagnosisResponse> buildDiagnoses() {
         Map<String, DiagnosisResponse> entries = new LinkedHashMap<>();
         add(entries, "GEN_LOW_FUEL", "GEN_LOW_FUEL", true,

@@ -40,6 +40,21 @@ class DiagnosisServiceTests {
             "UPS_ON_BATTERY",
             "UPS_FAULT");
 
+    private static final Set<String> PREDICTED_FAILURE_TYPES = Set.of(
+            "GEN_LOW_FUEL",
+            "GEN_OVERHEAT",
+            "GEN_VOLTAGE_INSTABILITY",
+            "ATS_TRANSFER_FAILURE",
+            "MDP_SUPPLY_LOSS",
+            "MDP_PHASE_IMBALANCE",
+            "SDP_BREAKER_TRIP",
+            "SDP_SUPPLY_LOSS",
+            "UPS_INPUT_POWER_LOSS",
+            "UPS_BATTERY_DEGRADATION",
+            "UPS_OVERLOAD",
+            "FIRE_ALARM",
+            "INTRUDER_ALARM");
+
     @Autowired
     private DiagnosisService diagnosisService;
 
@@ -47,6 +62,12 @@ class DiagnosisServiceTests {
     void coversEveryAlarmCodeRaisedByAlarmService() {
         assertThat(diagnosisService.supportedAlarmCodes())
                 .containsExactlyInAnyOrderElementsOf(ALARM_CODES_RAISED_BY_ALARM_SERVICE);
+    }
+
+    @Test
+    void coversEveryPredictedFailureTypeFromFaultCodeMap() {
+        assertThat(diagnosisService.supportedFailureTypes())
+                .containsExactlyInAnyOrderElementsOf(PREDICTED_FAILURE_TYPES);
     }
 
     @Test
