@@ -81,7 +81,6 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           <dl className="prediction-details">
             <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(prediction.predictedFailureType)}</dd></div>
             <div><dt>Confidence</dt><dd>{formatProbability(prediction.confidence)}</dd></div>
-            <div><dt>Model version</dt><dd>{prediction.modelVersion || 'unversioned'}</dd></div>
             <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">

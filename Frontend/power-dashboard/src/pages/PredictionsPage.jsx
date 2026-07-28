@@ -127,10 +127,6 @@ export default function PredictionsPage() {
                     <span>Confidence</span>
                     <strong>{formatProbability(prediction.confidence)}</strong>
                   </div>
-                  <div>
-                    <span>Model version</span>
-                    <strong>{prediction.modelVersion || 'unversioned'}</strong>
-                  </div>
                 </article>
               )
             })}
