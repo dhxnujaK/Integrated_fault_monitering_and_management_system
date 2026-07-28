@@ -10,8 +10,10 @@ import com.faultmonitor.backend.dto.PredictionSummaryResponse;
 import com.faultmonitor.backend.entity.Equipment;
 import com.faultmonitor.backend.entity.Prediction;
 import com.faultmonitor.backend.entity.SensorReading;
+import com.faultmonitor.backend.entity.SubsystemType;
 import com.faultmonitor.backend.exception.ApiException;
 import com.faultmonitor.backend.ml.MlClient;
+import com.faultmonitor.backend.ml.MlFeatureService;
 import com.faultmonitor.backend.ml.MlPredictionRequest;
 import com.faultmonitor.backend.ml.MlPredictionResult;
 import com.faultmonitor.backend.repository.EquipmentRepository;
@@ -19,6 +21,7 @@ import com.faultmonitor.backend.repository.PredictionRepository;
 import com.faultmonitor.backend.repository.SensorReadingRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -34,12 +37,15 @@ public class PredictionService {
 
     private static final TypeReference<Map<String, Object>> READING_TYPE = new TypeReference<>() { };
     private static final TypeReference<List<String>> ACTIONS_TYPE = new TypeReference<>() { };
+    private static final Set<SubsystemType> SUPPORTED_FORECAST_TYPES = Set.of(
+            SubsystemType.GENERATOR, SubsystemType.MDP, SubsystemType.SDP, SubsystemType.UPS);
 
     private final EquipmentRepository equipmentRepository;
     private final SensorReadingRepository sensorReadingRepository;
     private final PredictionRepository predictionRepository;
     private final EquipmentService equipmentService;
     private final DiagnosisService diagnosisService;
+    private final MlFeatureService mlFeatureService;
     private final MlClient mlClient;
     private final ObjectMapper objectMapper;
 
@@ -47,6 +53,11 @@ public class PredictionService {
     public int runPredictionsForEnabledEquipment() {
         int saved = 0;
         for (Equipment equipment : equipmentRepository.findByEnabledTrueOrderByEquipmentCodeAsc()) {
+            if (!SUPPORTED_FORECAST_TYPES.contains(equipment.getEquipmentType())) {
+                log.debug("Skipping prediction for {} because {} has no six-hour forecast model.",
+                        equipment.getEquipmentCode(), equipment.getEquipmentType());
+                continue;
+            }
             try {
                 if (predictAndSave(equipment).isPresent()) {
                     saved++;
@@ -101,7 +112,7 @@ public class PredictionService {
                 equipment.getId(),
                 equipment.getEquipmentCode(),
                 equipment.getEquipmentType(),
-                parseReading(reading)));
+                mlFeatureService.enrich(reading, parseReading(reading))));
         Prediction prediction = Prediction.builder()
                 .equipment(equipment)
                 .subsystemType(equipment.getEquipmentType())
