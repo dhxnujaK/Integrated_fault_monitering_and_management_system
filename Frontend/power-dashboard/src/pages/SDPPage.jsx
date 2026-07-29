@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
+import DiagnosisPanel from '../components/DiagnosisPanel'
+import PredictionPanel from '../components/PredictionPanel'
 import SectionCard from '../components/SectionCard'
 import ReadingCard from '../components/ReadingCard'
 import toast from 'react-hot-toast'
@@ -134,7 +136,7 @@ export default function SDPPage({ onAcknowledge }) {
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
-          <span>⚠️ Backend unavailable — no live telemetry is being displayed.</span>
+          <span>Backend unavailable - no live telemetry is being displayed.</span>
           <button 
             onClick={() => refresh()}
             className="flex items-center gap-1 hover:text-white"
@@ -273,6 +275,11 @@ export default function SDPPage({ onAcknowledge }) {
             </div>
           </div>
         </SectionCard>
+      </div>
+
+      <div className="content-grid two-even">
+        <DiagnosisPanel alarms={alarms} title="SDP Fault Diagnosis" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} title="SDP Prediction" />
       </div>
     </div>
   )

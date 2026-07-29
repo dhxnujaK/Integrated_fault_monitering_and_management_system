@@ -12,4 +12,6 @@ public interface MaintenanceTicketRepository extends JpaRepository<MaintenanceTi
 
     List<MaintenanceTicket> findBySubsystemTypeAndStatus(
             SubsystemType subsystemType, TicketStatus status);
+
+    List<MaintenanceTicket> findByEquipmentIsNull();
 }

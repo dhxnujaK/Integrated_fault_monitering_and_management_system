@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import {
   AlertTriangle,
   Bell,
+  BrainCircuit,
   CheckCircle2,
   CircleUserRound,
   ClipboardList,
@@ -28,6 +29,9 @@ import LiveGeneratorPage from './pages/GeneratorPage'
 import LiveATSPage from './pages/ATSPage'
 import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
+import PredictionsPage from './pages/PredictionsPage'
+import DiagnosisPanel from './components/DiagnosisPanel'
+import PredictionPanel from './components/PredictionPanel'
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -36,6 +40,7 @@ const navItems = [
   { label: 'UPS Status', path: '/ups', icon: Power },
   { label: 'MDP Status', path: '/mdp', icon: PanelTop },
   { label: 'SDP Status', path: '/sdp', icon: ServerCog },
+  { label: 'Predictions', path: '/predictions', icon: BrainCircuit },
   { label: 'Settings', path: '/settings', icon: Settings },
   { label: 'Log out', icon: LogOut },
 ]
@@ -47,6 +52,7 @@ const pathToPage = {
   '/ups': 'UPS Status',
   '/mdp': 'MDP Status',
   '/sdp': 'SDP Status',
+  '/predictions': 'Predictions',
   '/settings': 'Settings',
 }
 
@@ -190,6 +196,7 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
         {activePage === 'MDP Status' ? <LiveMDPPage onAcknowledge={onAcknowledge} /> : null}
         {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} /> : null}
+        {activePage === 'Predictions' ? <PredictionsPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
@@ -640,6 +647,10 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
         </div>
         <Actions onAction={onAction} />
         </SectionCard>
+        <div className="content-grid two-even">
+          <DiagnosisPanel alarms={selectedUnitAlarms} title="UPS Fault Diagnosis" />
+          <PredictionPanel equipmentId={selectedUnit.id} title="UPS Prediction" />
+        </div>
       </> : null}
     </div>
   )
@@ -868,6 +879,7 @@ function App() {
               <Route path="/ups" element={<DashboardWorkspace />} />
               <Route path="/mdp" element={<DashboardWorkspace />} />
               <Route path="/sdp" element={<DashboardWorkspace />} />
+              <Route path="/predictions" element={<DashboardWorkspace />} />
               <Route path="/settings" element={<DashboardWorkspace />} />
             </Route>
           </Route>

@@ -1,0 +1,269 @@
+{
+  "_meta": {
+    "status": "FROZEN",
+    "version": "1.0.0",
+    "purpose": "Single diagnosis and recommendation catalogue shared by prediction and application integration.",
+    "coverage": {
+      "datasetFailureTypes": 13,
+      "alarmCodes": 23
+    }
+  },
+  "entries": [
+    {
+      "key": "GEN_LOW_FUEL",
+      "datasetFailureType": "GEN_LOW_FUEL",
+      "alarmCodes": ["GEN_LOW_FUEL", "GEN_CRITICAL_FUEL"],
+      "equipmentTypes": ["GENERATOR"],
+      "severity": "WARNING",
+      "predictable": true,
+      "observablePattern": "Fuel level declines below 20 percent and continues toward the critical reserve.",
+      "probableCauses": ["Fuel consumed during extended operation", "Day tank not replenished after testing", "Fuel supply restriction or leakage"],
+      "correctiveActions": [
+        {"step": 1, "action": "Confirm the fuel reading against the local tank gauge."},
+        {"step": 2, "action": "Refill the day tank before the critical reserve is reached."},
+        {"step": 3, "action": "Inspect the supply line, valves and tank for restriction or leakage."},
+        {"step": 4, "action": "Record the refill and update the refuelling schedule."}
+      ]
+    },
+    {
+      "key": "GEN_OVERHEAT",
+      "datasetFailureType": "GEN_OVERHEAT",
+      "alarmCodes": ["GEN_HIGH_TEMP"],
+      "equipmentTypes": ["GENERATOR"],
+      "severity": "CRITICAL",
+      "predictable": true,
+      "observablePattern": "Room temperature rises during sustained operation with increasing current imbalance.",
+      "probableCauses": ["Restricted ventilation", "Low coolant level", "Radiator or cooling-fan fault", "Sustained excessive loading"],
+      "correctiveActions": [
+        {"step": 1, "action": "Reduce nonessential generator load."},
+        {"step": 2, "action": "Inspect ventilation openings and cooling fans."},
+        {"step": 3, "action": "Check coolant level and radiator condition after safe shutdown."},
+        {"step": 4, "action": "Do not return to full load until temperature stabilises."}
+      ]
+    },
+    {
+      "key": "GEN_VOLTAGE_INSTABILITY",
+      "datasetFailureType": "GEN_VOLTAGE_INSTABILITY",
+      "alarmCodes": ["GEN_VOLTAGE_ABNORMAL"],
+      "equipmentTypes": ["GENERATOR"],
+      "severity": "CRITICAL",
+      "predictable": true,
+      "observablePattern": "Phase-voltage spread and frequency deviation increase before generator output becomes unstable.",
+      "probableCauses": ["Automatic voltage regulator instability", "Governor response fault", "Loose phase connection", "Rapid load variation"],
+      "correctiveActions": [
+        {"step": 1, "action": "Isolate nonessential load."},
+        {"step": 2, "action": "Verify phase voltages and frequency with an approved meter."},
+        {"step": 3, "action": "Inspect AVR, governor response and phase connections."},
+        {"step": 4, "action": "Keep the generator isolated if output remains outside limits."}
+      ]
+    },
+    {
+      "key": "GEN_FAULT",
+      "datasetFailureType": null,
+      "alarmCodes": ["GEN_FAULT"],
+      "equipmentTypes": ["GENERATOR"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "The generator controller reports a general fault or fail-to-start condition.",
+      "probableCauses": ["Emergency stop active", "Starting-system fault", "Controller lockout", "Mechanical protection trip"],
+      "correctiveActions": [
+        {"step": 1, "action": "Read and record the generator-controller fault code."},
+        {"step": 2, "action": "Check emergency-stop and protection interlocks."},
+        {"step": 3, "action": "Inspect the starting battery and starter circuit."},
+        {"step": 4, "action": "Reset only after the recorded cause is corrected."}
+      ]
+    },
+    {
+      "key": "ATS_TRANSFER_FAILURE",
+      "datasetFailureType": "ATS_TRANSFER_FAILURE",
+      "alarmCodes": ["ATS_TRANSFER_FAIL"],
+      "equipmentTypes": ["ATS"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "Mains is unavailable and generator voltage is present, but source transfer is not completed.",
+      "probableCauses": ["Transfer mechanism jammed", "Control relay fault", "Emergency-stop interlock active", "Source-availability signal missing"],
+      "correctiveActions": [
+        {"step": 1, "action": "Confirm mains loss and stable generator voltage."},
+        {"step": 2, "action": "Check emergency-stop and ATS control interlocks."},
+        {"step": 3, "action": "Inspect transfer actuator and control relays."},
+        {"step": 4, "action": "Perform authorised manual transfer if automatic transfer remains unavailable."}
+      ]
+    },
+    {
+      "key": "ATS_MAINS_VOLTAGE",
+      "datasetFailureType": null,
+      "alarmCodes": ["ATS_MAINS_VOLTAGE"],
+      "equipmentTypes": ["ATS"],
+      "severity": "WARNING",
+      "predictable": false,
+      "observablePattern": "ATS mains input voltage is outside the configured operating range.",
+      "probableCauses": ["Utility undervoltage or overvoltage", "Loose incoming connection", "Voltage-sensing fault"],
+      "correctiveActions": [
+        {"step": 1, "action": "Verify all incoming phases with an approved meter."},
+        {"step": 2, "action": "Inspect incoming terminals and voltage-sensing connections."},
+        {"step": 3, "action": "Confirm the ATS transfers to the alternate source when required."}
+      ]
+    },
+    {
+      "key": "MDP_PHASE_IMBALANCE",
+      "datasetFailureType": "MDP_PHASE_IMBALANCE",
+      "alarmCodes": ["MDP_PHASE_IMBALANCE"],
+      "equipmentTypes": ["MDP"],
+      "severity": "WARNING",
+      "predictable": true,
+      "observablePattern": "One phase drifts while phase-current imbalance and cabinet temperature increase.",
+      "probableCauses": ["Uneven phase loading", "Loose phase termination", "High-resistance connection", "Single-phase load growth"],
+      "correctiveActions": [
+        {"step": 1, "action": "Measure and record all phase currents."},
+        {"step": 2, "action": "Redistribute single-phase loads where practical."},
+        {"step": 3, "action": "Inspect terminals for heating or discoloration."},
+        {"step": 4, "action": "Torque connections to the approved specification during isolation."}
+      ]
+    },
+    {
+      "key": "MDP_SUPPLY_LOSS",
+      "datasetFailureType": "MDP_SUPPLY_LOSS",
+      "alarmCodes": ["MDP_PHASE_VOLTAGE"],
+      "equipmentTypes": ["MDP"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "All MDP incoming phases collapse following loss of the upstream ATS output.",
+      "probableCauses": ["ATS transfer failure", "Upstream breaker open", "Incoming cable or termination fault"],
+      "correctiveActions": [
+        {"step": 1, "action": "Confirm the ATS output and upstream breaker state."},
+        {"step": 2, "action": "Restore the upstream source before investigating downstream panels."},
+        {"step": 3, "action": "Verify all MDP phases before re-energising loads."}
+      ]
+    },
+    {
+      "key": "SDP_BREAKER_TRIP",
+      "datasetFailureType": "SDP_BREAKER_TRIP",
+      "alarmCodes": ["SDP_PHASE_VOLTAGE"],
+      "equipmentTypes": ["SDP"],
+      "severity": "CRITICAL",
+      "predictable": true,
+      "observablePattern": "Current and temperature rise before the local breaker opens and phase voltage falls.",
+      "probableCauses": ["Sustained overload", "Downstream short circuit", "Protection-coordination issue", "Breaker mechanism fault"],
+      "correctiveActions": [
+        {"step": 1, "action": "Keep the tripped breaker open."},
+        {"step": 2, "action": "Isolate downstream circuits and identify the affected feeder."},
+        {"step": 3, "action": "Inspect load, cabling and protection coordination."},
+        {"step": 4, "action": "Reset only after the cause is removed and insulation checks pass."}
+      ],
+      "correlationRule": "When an upstream ATS or MDP supply alarm is active, resolve SDP_PHASE_VOLTAGE as SDP_SUPPLY_LOSS instead."
+    },
+    {
+      "key": "SDP_SUPPLY_LOSS",
+      "datasetFailureType": "SDP_SUPPLY_LOSS",
+      "alarmCodes": [],
+      "sharedAlarmCodes": ["SDP_PHASE_VOLTAGE"],
+      "equipmentTypes": ["SDP"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "All SDP phases collapse while an upstream ATS or MDP supply alarm is active.",
+      "probableCauses": ["Loss of common upstream supply", "ATS transfer failure", "MDP incoming supply loss"],
+      "correctiveActions": [
+        {"step": 1, "action": "Confirm the related upstream alarm."},
+        {"step": 2, "action": "Restore ATS and MDP supply first."},
+        {"step": 3, "action": "Verify all SDP phases before restoring downstream loads."}
+      ]
+    },
+    {
+      "key": "UPS_INPUT_POWER_LOSS",
+      "datasetFailureType": "UPS_INPUT_POWER_LOSS",
+      "alarmCodes": ["UPS_ON_BATTERY"],
+      "equipmentTypes": ["UPS"],
+      "severity": "WARNING",
+      "predictable": false,
+      "observablePattern": "UPS input voltage disappears and the unit changes to battery operation.",
+      "probableCauses": ["Upstream breaker trip", "Distribution supply loss", "Input cable fault", "Normal short ATS transfer"],
+      "correctiveActions": [
+        {"step": 1, "action": "Confirm whether an ATS transfer is in progress."},
+        {"step": 2, "action": "Check the upstream source and breaker state."},
+        {"step": 3, "action": "Restore input power before battery runtime is exhausted."},
+        {"step": 4, "action": "Shed nonessential load if restoration will be delayed."}
+      ],
+      "correlationRule": "Suppress during a successful ATS source transfer; activate if input power remains absent after the transfer window."
+    },
+    {
+      "key": "UPS_BATTERY_DEGRADATION",
+      "datasetFailureType": "UPS_BATTERY_DEGRADATION",
+      "alarmCodes": ["UPS_BATTERY_LOW", "UPS_BATTERY_CRITICAL"],
+      "equipmentTypes": ["UPS"],
+      "severity": "CRITICAL",
+      "predictable": true,
+      "observablePattern": "Runtime and battery voltage decline faster than expected during discharge.",
+      "probableCauses": ["Battery ageing", "High temperature exposure", "Weak battery module", "Incomplete charging"],
+      "correctiveActions": [
+        {"step": 1, "action": "Record charge, voltage, runtime and discharge rate."},
+        {"step": 2, "action": "Run a controlled battery test."},
+        {"step": 3, "action": "Inspect individual battery modules and connections."},
+        {"step": 4, "action": "Replace the weak battery string and verify recharge performance."}
+      ]
+    },
+    {
+      "key": "UPS_OVERLOAD",
+      "datasetFailureType": "UPS_OVERLOAD",
+      "alarmCodes": ["UPS_HIGH_LOAD"],
+      "equipmentTypes": ["UPS"],
+      "severity": "CRITICAL",
+      "predictable": true,
+      "observablePattern": "Load rises above the operating limit while temperature increases and runtime falls.",
+      "probableCauses": ["Excess connected load", "Load redistribution failure", "Unexpected equipment startup"],
+      "correctiveActions": [
+        {"step": 1, "action": "Identify and remove noncritical load."},
+        {"step": 2, "action": "Verify the connected equipment against the UPS rating."},
+        {"step": 3, "action": "Redistribute load between available UPS units."},
+        {"step": 4, "action": "Confirm load and temperature return to the normal range."}
+      ]
+    },
+    {
+      "key": "UPS_FAULT",
+      "datasetFailureType": null,
+      "alarmCodes": ["UPS_FAULT"],
+      "equipmentTypes": ["UPS"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "The UPS reports a general internal operational fault.",
+      "probableCauses": ["Inverter fault", "Bypass fault", "Internal protection trip", "Controller or sensor fault"],
+      "correctiveActions": [
+        {"step": 1, "action": "Record the UPS display fault code and operating mode."},
+        {"step": 2, "action": "Confirm whether the protected load remains supplied."},
+        {"step": 3, "action": "Transfer to an approved alternate supply if required."},
+        {"step": 4, "action": "Follow the manufacturer fault-code procedure before reset."}
+      ]
+    },
+    {
+      "key": "FIRE_ALARM",
+      "datasetFailureType": "FIRE_ALARM",
+      "alarmCodes": ["GEN_FIRE", "ATS_FIRE", "MDP_FIRE", "SDP_FIRE"],
+      "equipmentTypes": ["GENERATOR", "ATS", "MDP", "SDP"],
+      "severity": "CRITICAL",
+      "predictable": false,
+      "observablePattern": "The digital fire-alarm input changes to the active state without a dependable telemetry precursor.",
+      "probableCauses": ["Fire detector activation", "Fire-alarm circuit activation", "Heat or smoke in the monitored room"],
+      "correctiveActions": [
+        {"step": 1, "action": "Follow the site emergency response procedure immediately."},
+        {"step": 2, "action": "Notify the control centre and emergency response team."},
+        {"step": 3, "action": "Isolate electrical power only when authorised."},
+        {"step": 4, "action": "Verify and document the affected room after it is declared safe."}
+      ]
+    },
+    {
+      "key": "INTRUDER_ALARM",
+      "datasetFailureType": "INTRUDER_ALARM",
+      "alarmCodes": ["GEN_INTRUDER", "ATS_INTRUDER", "MDP_INTRUDER", "SDP_INTRUDER"],
+      "equipmentTypes": ["GENERATOR", "ATS", "MDP", "SDP"],
+      "severity": "WARNING",
+      "predictable": false,
+      "observablePattern": "The digital intrusion input changes to the active state without a telemetry precursor.",
+      "probableCauses": ["Unauthorised access", "Door or motion sensor activation", "Sensor or access-control fault"],
+      "correctiveActions": [
+        {"step": 1, "action": "Verify access records and camera coverage."},
+        {"step": 2, "action": "Dispatch authorised security staff."},
+        {"step": 3, "action": "Inspect the access sensor after the area is secured."},
+        {"step": 4, "action": "Record the event and resolution."}
+      ]
+    }
+  ]
+}
