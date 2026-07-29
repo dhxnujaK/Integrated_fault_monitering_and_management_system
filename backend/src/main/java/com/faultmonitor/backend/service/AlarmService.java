@@ -46,6 +46,7 @@ public class AlarmService {
     private final AlarmRepository alarmRepository;
     private final UserRepository userRepository;
     private final EquipmentService equipmentService;
+    private final DiagnosisService diagnosisService;
 
     @Transactional
     public void checkGenerator(Equipment equipment, Map<String, Object> data) {
@@ -130,7 +131,7 @@ public class AlarmService {
         alarm.setAcknowledgedAt(LocalDateTime.now());
         alarm.setAcknowledgedBy(user);
         alarm.setAcknowledgementNote(note == null || note.isBlank() ? null : note.trim());
-        return AlarmResponse.from(alarm);
+        return AlarmResponse.from(alarm, diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(null));
     }
 
     @Transactional(readOnly = true)
@@ -156,7 +157,8 @@ public class AlarmService {
                 status, unresolved, equipmentType, equipmentId, severity, from, to);
         Page<AlarmResponse> alarms = alarmRepository.findAll(specification, PageRequest.of(
                         page, size, Sort.by(Sort.Order.asc("severity"), Sort.Order.desc("triggeredAt"))))
-                .map(AlarmResponse::from);
+                .map(alarm -> AlarmResponse.from(
+                        alarm, diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(null)));
         return PageResponse.from(alarms);
     }
 
@@ -167,7 +169,10 @@ public class AlarmService {
                 ? alarmRepository.findByEquipmentIdAndStatusInOrderBySeverityAscTriggeredAtDesc(
                         equipmentId, UNRESOLVED)
                 : alarmRepository.findByEquipmentIdOrderBySeverityAscTriggeredAtDesc(equipmentId);
-        return alarms.stream().map(AlarmResponse::from).toList();
+        return alarms.stream()
+                .map(alarm -> AlarmResponse.from(
+                        alarm, diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(null)))
+                .toList();
     }
 
     /** Shared lifecycle primitive used by equipment-specific threshold evaluators. */

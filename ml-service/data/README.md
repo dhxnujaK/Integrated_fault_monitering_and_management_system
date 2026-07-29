@@ -8,6 +8,7 @@ out-of-band via Google Drive and reproducible from `../scripts/generate_training
 | `fault_solution_catalog.csv` | ✅ tracked | small; diagnosis content |
 | `feature_config.json` | ✅ tracked | small; per-type feature lists |
 | `fault_code_map.json` | ✅ tracked | dataset↔alarm-code reconciliation (frozen Day 1) |
+| `diagnosis-catalog.json` | ✅ tracked | causes and ordered corrective actions |
 | `expressway_power_training_dataset.csv` (96 MB) | ❌ Drive / regenerate | combined training set |
 | `by_equipment_type/*.csv` (73 MB) | ❌ Drive / regenerate | per-type splits |
 | `../../outputs/` | ❌ regenerate | dataset overview + validation |
