@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import SectionCard from './SectionCard'
 import { getEquipmentPredictions, runPredictions } from '../api/predictionApi'
-import { formatProbability, predictionRiskLevel } from './predictionRisk'
+import { predictionRiskLevel } from './predictionRisk'
 import usePredictionPolling from '../hooks/usePredictionPolling'
 import PredictionRiskBadge from './PredictionRiskBadge'
 
@@ -80,7 +80,6 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           </div>
           <dl className="prediction-details">
             <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(prediction.predictedFailureType)}</dd></div>
-            <div><dt>Confidence</dt><dd>{formatProbability(prediction.confidence)}</dd></div>
             <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">
