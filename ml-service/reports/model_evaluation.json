@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-07-28T18:03:25.890983+00:00",
+  "target": "target_failure_within_6_hours",
+  "equipment": {
+    "GENERATOR": {
+      "modelVersion": "generator-failure-6h-20260728-v1",
+      "selectedCandidate": "random_forest",
+      "validationCandidates": {
+        "logistic_regression": {
+          "prAuc": 0.9766962164473206,
+          "failureRecall": 0.9726027397260274,
+          "precision": 0.8528528528528528,
+          "f1": 0.9088,
+          "threshold": 0.7688452190497594,
+          "confusionMatrix": [
+            [
+              7289,
+              49
+            ],
+            [
+              8,
+              284
+            ]
+          ],
+          "positiveRows": 292,
+          "rows": 7630
+        },
+        "random_forest": {
+          "prAuc": 0.990031303277205,
+          "failureRecall": 0.9863013698630136,
+          "precision": 0.9320388349514563,
+          "f1": 0.9584026622296173,
+          "threshold": 0.4223242396486936,
+          "confusionMatrix": [
+            [
+              7317,
+              21
+            ],
+            [
+              4,
+              288
+            ]
+          ],
+          "positiveRows": 292,
+          "rows": 7630
+        }
+      },
+      "test": {
+        "prAuc": 0.9391559963470646,
+        "failureRecall": 0.9217081850533808,
+        "precision": 0.8274760383386581,
+        "f1": 0.8720538720538721,
+        "threshold": 0.4223242396486936,
+        "confusionMatrix": [
+          [
+            7308,
+            54
+          ],
+          [
+            22,
+            259
+          ]
+        ],
+        "positiveRows": 281,
+        "rows": 7643
+      },
+      "faultTypeModel": {
+        "classes": [
+          "GEN_LOW_FUEL",
+          "GEN_OVERHEAT",
+          "GEN_VOLTAGE_INSTABILITY"
+        ],
+        "testMacroF1": 0.9656733780760627,
+        "testRows": 281
+      },
+      "trainingRows": 35706,
+      "validationRows": 7630,
+      "testRows": 7643,
+      "droppedAllMissingFeatures": []
+    },
+    "MDP": {
+      "modelVersion": "mdp-failure-6h-20260728-v1",
+      "selectedCandidate": "logistic_regression",
+      "validationCandidates": {
+        "logistic_regression": {
+          "prAuc": 0.8552090893110361,
+          "failureRecall": 0.7945205479452054,
+          "precision": 1.0,
+          "f1": 0.8854961832061069,
+          "threshold": 0.9913139748848986,
+          "confusionMatrix": [
+            [
+              7522,
+              0
+            ],
+            [
+              15,
+              58
+            ]
+          ],
+          "positiveRows": 73,
+          "rows": 7595
+        },
+        "random_forest": {
+          "prAuc": 0.848931264622715,
+          "failureRecall": 0.821917808219178,
+          "precision": 0.9836065573770492,
+          "f1": 0.8955223880597015,
+          "threshold": 0.2573677110978382,
+          "confusionMatrix": [
+            [
+              7521,
+              1
+            ],
+            [
+              13,
+              60
+            ]
+          ],
+          "positiveRows": 73,
+          "rows": 7595
+        }
+      },
+      "test": {
+        "prAuc": 0.898808615748189,
+        "failureRecall": 0.8194444444444444,
+        "precision": 1.0,
+        "f1": 0.9007633587786259,
+        "threshold": 0.9913139748848986,
+        "confusionMatrix": [
+          [
+            7540,
+            0
+          ],
+          [
+            13,
+            59
+          ]
+        ],
+        "positiveRows": 72,
+        "rows": 7612
+      },
+      "faultTypeModel": {
+        "classes": [
+          "MDP_PHASE_IMBALANCE"
+        ],
+        "testMacroF1": 1.0
+      },
+      "trainingRows": 35620,
+      "validationRows": 7595,
+      "testRows": 7612,
+      "droppedAllMissingFeatures": []
+    },
+    "SDP": {
+      "modelVersion": "sdp-failure-6h-20260728-v1",
+      "selectedCandidate": "logistic_regression",
+      "validationCandidates": {
+        "logistic_regression": {
+          "prAuc": 0.9538893790056652,
+          "failureRecall": 0.9411764705882353,
+          "precision": 0.8571428571428571,
+          "f1": 0.897196261682243,
+          "threshold": 0.8833255792571997,
+          "confusionMatrix": [
+            [
+              15128,
+              16
+            ],
+            [
+              6,
+              96
+            ]
+          ],
+          "positiveRows": 102,
+          "rows": 15246
+        },
+        "random_forest": {
+          "prAuc": 0.9323743473887706,
+          "failureRecall": 0.9019607843137255,
+          "precision": 0.9292929292929293,
+          "f1": 0.9154228855721394,
+          "threshold": 0.23294384394476034,
+          "confusionMatrix": [
+            [
+              15137,
+              7
+            ],
+            [
+              10,
+              92
+            ]
+          ],
+          "positiveRows": 102,
+          "rows": 15246
+        }
+      },
+      "test": {
+        "prAuc": 0.9239306934260786,
+        "failureRecall": 0.91,
+        "precision": 0.8198198198198198,
+        "f1": 0.8625592417061612,
+        "threshold": 0.8833255792571997,
+        "confusionMatrix": [
+          [
+            15163,
+            20
+          ],
+          [
+            9,
+            91
+          ]
+        ],
+        "positiveRows": 100,
+        "rows": 15283
+      },
+      "faultTypeModel": {
+        "classes": [
+          "SDP_BREAKER_TRIP"
+        ],
+        "testMacroF1": 1.0
+      },
+      "trainingRows": 71349,
+      "validationRows": 15246,
+      "testRows": 15283,
+      "droppedAllMissingFeatures": []
+    },
+    "UPS": {
+      "modelVersion": "ups-failure-6h-20260728-v1",
+      "selectedCandidate": "logistic_regression",
+      "validationCandidates": {
+        "logistic_regression": {
+          "prAuc": 0.9937934671573415,
+          "failureRecall": 0.9781659388646288,
+          "precision": 0.9256198347107438,
+          "f1": 0.9511677282377919,
+          "threshold": 0.6691436771906637,
+          "confusionMatrix": [
+            [
+              14918,
+              18
+            ],
+            [
+              5,
+              224
+            ]
+          ],
+          "positiveRows": 229,
+          "rows": 15165
+        },
+        "random_forest": {
+          "prAuc": 0.9866939477982423,
+          "failureRecall": 0.9563318777292577,
+          "precision": 0.9012345679012346,
+          "f1": 0.9279661016949152,
+          "threshold": 0.07416438567558627,
+          "confusionMatrix": [
+            [
+              14912,
+              24
+            ],
+            [
+              10,
+              219
+            ]
+          ],
+          "positiveRows": 229,
+          "rows": 15165
+        }
+      },
+      "test": {
+        "prAuc": 0.9364104271686395,
+        "failureRecall": 1.0,
+        "precision": 0.7225609756097561,
+        "f1": 0.8389380530973451,
+        "threshold": 0.6691436771906637,
+        "confusionMatrix": [
+          [
+            14896,
+            91
+          ],
+          [
+            0,
+            237
+          ]
+        ],
+        "positiveRows": 237,
+        "rows": 15224
+      },
+      "faultTypeModel": {
+        "classes": [
+          "UPS_BATTERY_DEGRADATION",
+          "UPS_OVERLOAD"
+        ],
+        "testMacroF1": 1.0,
+        "testRows": 237
+      },
+      "trainingRows": 71010,
+      "validationRows": 15165,
+      "testRows": 15224,
+      "droppedAllMissingFeatures": [
+        "fault_code"
+      ]
+    }
+  }
+}

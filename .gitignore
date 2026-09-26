@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+ml-service/.venv/
+.env
+
+# macOS
+.DS_Store
+
+# Large ML datasets — shared via Google Drive, NOT git (see ml-service/data/README.md).
+# The small catalogue + feature config stay tracked; the big training CSVs do not.
+ml-service/data/*.csv
+!ml-service/data/fault_solution_catalog.csv
+ml-service/data/by_equipment_type/
+outputs/
+
+# Trained ML artifacts are delivered with the ML service release, not ordinary git history.
+ml-service/saved_models/*.joblib
