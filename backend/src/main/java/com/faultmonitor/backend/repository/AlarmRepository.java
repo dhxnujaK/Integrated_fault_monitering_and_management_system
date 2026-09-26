@@ -3,9 +3,10 @@ package com.faultmonitor.backend.repository;
 import com.faultmonitor.backend.entity.Alarm;
 import com.faultmonitor.backend.entity.AlarmStatus;
 import com.faultmonitor.backend.entity.SubsystemType;
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -43,4 +44,16 @@ public interface AlarmRepository extends JpaRepository<Alarm, Long>, JpaSpecific
     long countUnresolvedBySeverity(
             @Param("severity") com.faultmonitor.backend.entity.AlarmSeverity severity,
             @Param("resolved") AlarmStatus resolved);
+
+    /** Used by the report engine: all axes are optional except the date range. */
+    @Query("SELECT a FROM Alarm a WHERE "
+            + "(:equipmentId IS NULL OR (a.equipment IS NOT NULL AND a.equipment.id = :equipmentId)) AND "
+            + "(:subsystemType IS NULL OR a.subsystemType = :subsystemType) AND "
+            + "a.triggeredAt >= :from AND a.triggeredAt <= :to "
+            + "ORDER BY a.triggeredAt DESC")
+    List<Alarm> findForReport(
+            @Param("equipmentId") Long equipmentId,
+            @Param("subsystemType") SubsystemType subsystemType,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }

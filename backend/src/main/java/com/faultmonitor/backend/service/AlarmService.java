@@ -47,18 +47,26 @@ public class AlarmService {
     private final UserRepository userRepository;
     private final EquipmentService equipmentService;
     private final DiagnosisService diagnosisService;
+    private final ThresholdService thresholdService;
 
     @Transactional
     public void checkGenerator(Equipment equipment, Map<String, Object> data) {
-        synchronizeCondition(equipment, "GEN_LOW_FUEL", "Generator fuel level is below 20%.", AlarmSeverity.WARNING,
-                lessThan(data, "fuel_level_pct", GENERATOR_LOW_FUEL));
-        synchronizeCondition(equipment, "GEN_CRITICAL_FUEL", "Generator fuel level is below 10%.", AlarmSeverity.CRITICAL,
-                lessThan(data, "fuel_level_pct", GENERATOR_CRITICAL_FUEL));
+        Long id = equipment.getId();
+        double lowFuel      = thresholdService.getEffective(id, "GENERATOR_LOW_FUEL",      GENERATOR_LOW_FUEL);
+        double critFuel     = thresholdService.getEffective(id, "GENERATOR_CRITICAL_FUEL", GENERATOR_CRITICAL_FUEL);
+        double highTemp     = thresholdService.getEffective(id, "GENERATOR_HIGH_TEMP",     GENERATOR_HIGH_TEMP);
+        double minVoltage   = thresholdService.getEffective(id, "MIN_PHASE_VOLTAGE",       MIN_PHASE_VOLTAGE);
+        double maxVoltage   = thresholdService.getEffective(id, "MAX_PHASE_VOLTAGE",       MAX_PHASE_VOLTAGE);
+
+        synchronizeCondition(equipment, "GEN_LOW_FUEL", "Generator fuel level is below " + (int) lowFuel + "%.", AlarmSeverity.WARNING,
+                lessThan(data, "fuel_level_pct", lowFuel));
+        synchronizeCondition(equipment, "GEN_CRITICAL_FUEL", "Generator fuel level is below " + (int) critFuel + "%.", AlarmSeverity.CRITICAL,
+                lessThan(data, "fuel_level_pct", critFuel));
         synchronizeCondition(equipment, "GEN_VOLTAGE_ABNORMAL", "Generator phase voltage is outside the safe range.",
                 AlarmSeverity.WARNING, generatorOutputActive(data)
-                        && voltageAbnormal(data, "voltage_L1", "voltage_L2", "voltage_L3"));
-        synchronizeCondition(equipment, "GEN_HIGH_TEMP", "Generator room temperature is above 45C.", AlarmSeverity.WARNING,
-                greaterThan(data, "room_temperature_c", GENERATOR_HIGH_TEMP));
+                        && voltageAbnormal(data, minVoltage, maxVoltage, "voltage_L1", "voltage_L2", "voltage_L3"));
+        synchronizeCondition(equipment, "GEN_HIGH_TEMP", "Generator room temperature is above " + (int) highTemp + "C.", AlarmSeverity.WARNING,
+                greaterThan(data, "room_temperature_c", highTemp));
         synchronizeCondition(equipment, "GEN_FIRE", "Generator fire alarm is active.", AlarmSeverity.CRITICAL,
                 bool(data, "fire_alarm"));
         synchronizeCondition(equipment, "GEN_INTRUDER", "Generator intruder alarm is active.", AlarmSeverity.WARNING,
@@ -69,10 +77,14 @@ public class AlarmService {
 
     @Transactional
     public void checkATS(Equipment equipment, Map<String, Object> data) {
+        Long id = equipment.getId();
+        double minVoltage = thresholdService.getEffective(id, "MIN_PHASE_VOLTAGE", MIN_PHASE_VOLTAGE);
+        double maxVoltage = thresholdService.getEffective(id, "MAX_PHASE_VOLTAGE", MAX_PHASE_VOLTAGE);
+
         synchronizeCondition(equipment, "ATS_TRANSFER_FAIL", "ATS transfer status is FAILED.", AlarmSeverity.CRITICAL,
                 "FAILED".equals(string(data, "transfer_status")));
         synchronizeCondition(equipment, "ATS_MAINS_VOLTAGE", "ATS mains voltage is outside the safe range.",
-                AlarmSeverity.WARNING, outsideSafeVoltage(number(data, "mains_voltage")));
+                AlarmSeverity.WARNING, outsideSafeVoltage(number(data, "mains_voltage"), minVoltage, maxVoltage));
         synchronizeCondition(equipment, "ATS_FIRE", "ATS fire alarm is active.", AlarmSeverity.CRITICAL,
                 bool(data, "fire_alarm"));
         synchronizeCondition(equipment, "ATS_INTRUDER", "ATS intruder alarm is active.", AlarmSeverity.WARNING,
@@ -81,10 +93,15 @@ public class AlarmService {
 
     @Transactional
     public void checkMDP(Equipment equipment, Map<String, Object> data) {
+        Long id = equipment.getId();
+        double minVoltage    = thresholdService.getEffective(id, "MIN_PHASE_VOLTAGE",    MIN_PHASE_VOLTAGE);
+        double maxVoltage    = thresholdService.getEffective(id, "MAX_PHASE_VOLTAGE",    MAX_PHASE_VOLTAGE);
+        double imbalanceLimit = thresholdService.getEffective(id, "PHASE_IMBALANCE_LIMIT", PHASE_IMBALANCE_LIMIT);
+
         synchronizeCondition(equipment, "MDP_PHASE_VOLTAGE", "MDP phase voltage is outside the safe range.",
-                AlarmSeverity.WARNING, voltageAbnormal(data, "voltage_R", "voltage_Y", "voltage_B"));
-        synchronizeCondition(equipment, "MDP_PHASE_IMBALANCE", "MDP phase voltage imbalance is above 5V.",
-                AlarmSeverity.WARNING, phaseImbalance(data));
+                AlarmSeverity.WARNING, voltageAbnormal(data, minVoltage, maxVoltage, "voltage_R", "voltage_Y", "voltage_B"));
+        synchronizeCondition(equipment, "MDP_PHASE_IMBALANCE", "MDP phase voltage imbalance is above " + (int) imbalanceLimit + "V.",
+                AlarmSeverity.WARNING, phaseImbalance(data, imbalanceLimit));
         synchronizeCondition(equipment, "MDP_FIRE", "MDP fire alarm is active.", AlarmSeverity.CRITICAL,
                 bool(data, "fire_alarm"));
         synchronizeCondition(equipment, "MDP_INTRUDER", "MDP intruder alarm is active.", AlarmSeverity.WARNING,
@@ -93,8 +110,12 @@ public class AlarmService {
 
     @Transactional
     public void checkSDP(Equipment equipment, Map<String, Object> data) {
+        Long id = equipment.getId();
+        double minVoltage = thresholdService.getEffective(id, "MIN_PHASE_VOLTAGE", MIN_PHASE_VOLTAGE);
+        double maxVoltage = thresholdService.getEffective(id, "MAX_PHASE_VOLTAGE", MAX_PHASE_VOLTAGE);
+
         synchronizeCondition(equipment, "SDP_PHASE_VOLTAGE", "SDP phase voltage is outside the safe range.",
-                AlarmSeverity.WARNING, voltageAbnormal(data, "voltage_R", "voltage_Y", "voltage_B"));
+                AlarmSeverity.WARNING, voltageAbnormal(data, minVoltage, maxVoltage, "voltage_R", "voltage_Y", "voltage_B"));
         synchronizeCondition(equipment, "SDP_FIRE", "SDP fire alarm is active.", AlarmSeverity.CRITICAL,
                 bool(data, "fire_alarm"));
         synchronizeCondition(equipment, "SDP_INTRUDER", "SDP intruder alarm is active.", AlarmSeverity.WARNING,
@@ -103,12 +124,17 @@ public class AlarmService {
 
     @Transactional
     public void checkUPS(Equipment equipment, Map<String, Object> data) {
-        synchronizeCondition(equipment, "UPS_BATTERY_LOW", "UPS battery charge is below 40%.",
-                AlarmSeverity.WARNING, lessThan(data, "battery_charge_pct", UPS_LOW_BATTERY));
-        synchronizeCondition(equipment, "UPS_BATTERY_CRITICAL", "UPS battery charge is below 20%.",
-                AlarmSeverity.CRITICAL, lessThan(data, "battery_charge_pct", UPS_CRITICAL_BATTERY));
-        synchronizeCondition(equipment, "UPS_HIGH_LOAD", "UPS load is above 80%.",
-                AlarmSeverity.WARNING, greaterThan(data, "load_pct", UPS_HIGH_LOAD));
+        Long id = equipment.getId();
+        double lowBattery  = thresholdService.getEffective(id, "UPS_LOW_BATTERY",      UPS_LOW_BATTERY);
+        double critBattery = thresholdService.getEffective(id, "UPS_CRITICAL_BATTERY", UPS_CRITICAL_BATTERY);
+        double highLoad    = thresholdService.getEffective(id, "UPS_HIGH_LOAD",        UPS_HIGH_LOAD);
+
+        synchronizeCondition(equipment, "UPS_BATTERY_LOW", "UPS battery charge is below " + (int) lowBattery + "%.",
+                AlarmSeverity.WARNING, lessThan(data, "battery_charge_pct", lowBattery));
+        synchronizeCondition(equipment, "UPS_BATTERY_CRITICAL", "UPS battery charge is below " + (int) critBattery + "%.",
+                AlarmSeverity.CRITICAL, lessThan(data, "battery_charge_pct", critBattery));
+        synchronizeCondition(equipment, "UPS_HIGH_LOAD", "UPS load is above " + (int) highLoad + "%.",
+                AlarmSeverity.WARNING, greaterThan(data, "load_pct", highLoad));
         synchronizeCondition(equipment, "UPS_ON_BATTERY", "UPS is operating on battery power.",
                 AlarmSeverity.WARNING, "ON_BATTERY".equals(string(data, "operational_status")));
         synchronizeCondition(equipment, "UPS_FAULT", "UPS operational status is FAULT.",
@@ -242,9 +268,9 @@ public class AlarmService {
         };
     }
 
-    private boolean voltageAbnormal(Map<String, Object> data, String... keys) {
+    private boolean voltageAbnormal(Map<String, Object> data, double minVoltage, double maxVoltage, String... keys) {
         for (String key : keys) {
-            if (outsideSafeVoltage(number(data, key))) {
+            if (outsideSafeVoltage(number(data, key), minVoltage, maxVoltage)) {
                 return true;
             }
         }
@@ -264,11 +290,11 @@ public class AlarmService {
         return false;
     }
 
-    private boolean outsideSafeVoltage(Double voltage) {
-        return voltage != null && (voltage < MIN_PHASE_VOLTAGE || voltage > MAX_PHASE_VOLTAGE);
+    private boolean outsideSafeVoltage(Double voltage, double minVoltage, double maxVoltage) {
+        return voltage != null && (voltage < minVoltage || voltage > maxVoltage);
     }
 
-    private boolean phaseImbalance(Map<String, Object> data) {
+    private boolean phaseImbalance(Map<String, Object> data, double imbalanceLimit) {
         Double r = number(data, "voltage_R");
         Double y = number(data, "voltage_Y");
         Double b = number(data, "voltage_B");
@@ -277,7 +303,7 @@ public class AlarmService {
         }
         double max = Math.max(r, Math.max(y, b));
         double min = Math.min(r, Math.min(y, b));
-        return max - min > PHASE_IMBALANCE_LIMIT;
+        return max - min > imbalanceLimit;
     }
 
     private boolean lessThan(Map<String, Object> data, String key, double limit) {
