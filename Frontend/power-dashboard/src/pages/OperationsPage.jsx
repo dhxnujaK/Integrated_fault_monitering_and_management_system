@@ -51,8 +51,11 @@ export default function OperationsPage() {
 
 function TicketsTab({ locationState }) {
   const [tickets, setTickets] = useState([])
+  const [equipmentOptions, setEquipmentOptions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState('')
+  const [feedback, setFeedback] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(Boolean(locationState?.createModal || locationState?.alarmId))
   const [creating, setCreating] = useState(false)
@@ -82,6 +85,17 @@ function TicketsTab({ locationState }) {
     fetchTickets()
   }, [statusFilter])
 
+  useEffect(() => {
+    getEquipmentList({ enabled: true })
+      .then((data) => {
+        const options = Array.isArray(data) ? data : (data.items ?? [])
+        setEquipmentOptions(options)
+        if (!locationState?.equipmentId && options.length) setEquipmentId(String(options[0].id))
+      })
+      .catch(() => setEquipmentOptions([]))
+      .finally(() => setLoadingEquipment(false))
+  }, [locationState?.equipmentId])
+
   async function handleCreateTicket(e) {
     e.preventDefault()
     if (!title.trim() || !description.trim()) return
@@ -98,9 +112,10 @@ function TicketsTab({ locationState }) {
       setShowCreateModal(false)
       setTitle('')
       setDescription('')
+      setFeedback({ type: 'success', message: 'Maintenance ticket created successfully.' })
       await fetchTickets()
     } catch (err) {
-      alert(err.message || 'Failed to create ticket')
+      setFeedback({ type: 'error', message: err.message || 'Failed to create ticket.' })
     } finally {
       setCreating(false)
     }
@@ -109,9 +124,10 @@ function TicketsTab({ locationState }) {
   async function handleStatusChange(ticketId, nextStatus) {
     try {
       await updateTicket(ticketId, { status: nextStatus })
+      setFeedback({ type: 'success', message: 'Ticket status updated.' })
       await fetchTickets()
     } catch (err) {
-      alert(err.message || 'Failed to update ticket status')
+      setFeedback({ type: 'error', message: err.message || 'Failed to update ticket status.' })
     }
   }
 
@@ -130,16 +146,30 @@ function TicketsTab({ locationState }) {
             <button type="button" className="icon-btn" onClick={fetchTickets} title="Refresh">
               <RefreshCw size={15} />
             </button>
+            <span className="result-count">{loading ? 'Loading' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}</span>
           </div>
           <button type="button" className="primary-btn" onClick={() => setShowCreateModal(true)}>
             <Plus size={15} /> Create Ticket
           </button>
         </div>
 
-        {loading ? <p className="empty-state">Loading tickets...</p> : null}
+        {feedback ? <p className={`operation-feedback ${feedback.type}`}>{feedback.message}</p> : null}
+
+        {loading ? (
+          <div className="ticket-skeleton-list" aria-label="Loading tickets">
+            {[1, 2, 3].map((item) => <div className="ticket-skeleton" key={item} />)}
+          </div>
+        ) : null}
         {error ? <p className="empty-state error-text">{error}</p> : null}
         {!loading && !error && tickets.length === 0 ? (
-          <p className="empty-state">No maintenance tickets found.</p>
+          <div className="operations-empty">
+            <AlertTriangle size={24} />
+            <strong>No maintenance tickets found</strong>
+            <span>Create a work order when an alarm or maintenance task needs attention.</span>
+            <button type="button" className="primary-btn" onClick={() => setShowCreateModal(true)}>
+              <Plus size={15} /> Create Ticket
+            </button>
+          </div>
         ) : null}
 
         {tickets.length > 0 ? (
@@ -185,9 +215,9 @@ function TicketsTab({ locationState }) {
                         value={t.status}
                         onChange={(e) => handleStatusChange(t.id, e.target.value)}
                       >
-                        <option value="OPEN">OPEN</option>
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="CLOSED">CLOSED</option>
+                        {(t.status === 'OPEN' ? ['OPEN', 'IN_PROGRESS'] : t.status === 'IN_PROGRESS' ? ['IN_PROGRESS', 'CLOSED'] : ['CLOSED']).map((status) => (
+                          <option value={status} key={status}>{status}</option>
+                        ))}
                       </select>
                     </td>
                   </tr>
@@ -204,8 +234,14 @@ function TicketsTab({ locationState }) {
             <h3>Create Maintenance Ticket</h3>
             <form onSubmit={handleCreateTicket}>
               <label>
-                <span>Equipment ID</span>
-                <input type="number" value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} required />
+                <span>Equipment</span>
+                <select value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} required disabled={loadingEquipment || !equipmentOptions.length}>
+                  {loadingEquipment ? <option>Loading equipment...</option> : null}
+                  {!loadingEquipment && !equipmentOptions.length ? <option value="">No equipment available</option> : null}
+                  {equipmentOptions.map((equipment) => (
+                    <option value={equipment.id} key={equipment.id}>{equipment.equipmentCode} - {equipment.displayName}</option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span>Linked Alarm ID (Optional)</span>

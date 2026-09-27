@@ -59,6 +59,18 @@ const pathToPage = {
   '/settings': 'Settings',
 }
 
+const pageHeaderCopy = {
+  Dashboard: { eyebrow: 'POWER OPERATIONS', title: 'System Command Center', subtitle: 'Live overview of your monitored power network' },
+  Generator: { eyebrow: 'EQUIPMENT MONITORING', title: 'Generator Operations', subtitle: 'Fuel, load, and alternator health' },
+  'ATS Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Automatic Transfer Switch', subtitle: 'Mains, generator, and transfer readiness' },
+  'UPS Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Uninterruptible Power', subtitle: 'Fleet health, battery resilience, and runtime' },
+  'MDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Main Distribution Panel', subtitle: 'Phase balance, load, and protection status' },
+  'SDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Sub Distribution Panels', subtitle: 'Branch power health and local conditions' },
+  Predictions: { eyebrow: 'FAILURE INTELLIGENCE', title: 'Prediction Center', subtitle: 'Risk signals and six-hour failure forecasts' },
+  Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Tickets, reports, and equipment administration' },
+  Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'Configure monitored equipment and operating limits' },
+}
+
 function SignIn() {
   const { login, isAuthenticated } = useAuth()
   const [username, setUsername] = useState('admin')
@@ -186,12 +198,22 @@ function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
 }
 
 function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummary, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onAction, alarmFocus, children }) {
+  const headerCopy = pageHeaderCopy[activePage] ?? { eyebrow: 'POWER OPERATIONS', title: activePage, subtitle: '' }
+  const headerIcon = navItems.find((item) => item.label === activePage)?.icon ?? Gauge
+  const isMonitoringPage = ['Generator', 'ATS Status', 'UPS Status', 'MDP Status', 'SDP Status'].includes(activePage)
+
   return (
     <div className="app-shell">
       <Sidebar activePage={activePage} onNavigate={setActivePage} onLogout={onLogout} dashboardSummary={dashboardSummary} />
       <main className="workspace">
         <header className="page-header">
-          <h1>{activePage}</h1>
+          <div className="page-header-icon"><HeaderIcon icon={headerIcon} /></div>
+          <div className="page-header-copy">
+            <span className="page-eyebrow">{headerCopy.eyebrow}</span>
+            <h1>{headerCopy.title}</h1>
+            <p>{headerCopy.subtitle}</p>
+          </div>
+          {isMonitoringPage ? <span className="page-live-badge"><i /> Live telemetry</span> : null}
         </header>
         {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
         {activePage === 'Generator' ? <LiveGeneratorPage onAcknowledge={onAcknowledge} /> : null}
@@ -206,6 +228,10 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
       </main>
     </div>
   )
+}
+
+function HeaderIcon({ icon: Icon }) {
+  return <Icon size={25} strokeWidth={2.3} />
 }
 
 function Tabs({ filters = false, tab, onTabChange, filter, onFilterChange }) {
@@ -409,7 +435,7 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
         return (
           <article
             className={`alarm-row ${compact ? 'compact' : 'full'} ${isAcknowledged ? 'acknowledged' : ''}`}
-            key={alarm.id ?? `${alarm.title}-${alarm.time}`}
+            key={`${alarm.id ?? `${alarm.title}-${alarm.time}`}-${alarm.status}`}
             role={compact ? 'button' : undefined}
             tabIndex={compact ? 0 : undefined}
             onClick={compact ? () => onNavigateAlarm?.(alarm, getAlarmRoute(alarm)) : undefined}
@@ -482,14 +508,50 @@ function SectionCard({ title, icon: Icon, children, className = '' }) {
 }
 
 function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlarm, onAction }) {
+  const navigate = useNavigate()
   const [showAllAlarms, setShowAllAlarms] = useState(false)
   const equipmentStatuses = dashboardSummary?.equipment ?? []
+  const activeAlarms = alarms.filter((alarm) => String(alarm.status ?? '').toUpperCase() === 'ACTIVE').length
+  const criticalAlarms = alarms.filter((alarm) => String(alarm.severity ?? '').toUpperCase() === 'CRITICAL' && String(alarm.status ?? '').toUpperCase() !== 'RESOLVED').length
+  const onlineEquipment = equipmentStatuses.filter((equipment) => String(equipment.overallStatus ?? '').toUpperCase() !== 'OFFLINE').length
 
   return (
     <div className="dashboard-layout">
+      <section className="dashboard-kpi-strip" aria-label="System summary">
+        <article>
+          <span>System state</span>
+          <strong className={criticalAlarms ? 'critical' : activeAlarms ? 'warning' : 'normal'}>
+            {criticalAlarms ? 'Critical attention' : activeAlarms ? 'Monitoring alerts' : 'All clear'}
+          </strong>
+        </article>
+        <article>
+          <span>Active alarms</span>
+          <strong>{activeAlarms}</strong>
+        </article>
+        <article>
+          <span>Critical alarms</span>
+          <strong className={criticalAlarms ? 'critical' : ''}>{criticalAlarms}</strong>
+        </article>
+        <article>
+          <span>Equipment online</span>
+          <strong>{onlineEquipment}/{equipmentStatuses.length || '—'}</strong>
+        </article>
+      </section>
       <section className="status-strip" aria-label="Equipment status">
         {equipmentStatuses.length ? equipmentStatuses.map((equipment) => (
-          <article className="status-card" key={equipment.equipmentId}>
+          <article
+            className="status-card"
+            key={equipment.equipmentId}
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate(getAlarmRoute({ subsystemType: equipment.equipmentType }))}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                navigate(getAlarmRoute({ subsystemType: equipment.equipmentType }))
+              }
+            }}
+          >
             <h2>{equipment.displayName ?? equipment.equipmentCode}</h2>
             <div className="divider" />
             <p className={`status-pill ${statusClass(equipment.overallStatus)}`}>{equipment.overallStatus}</p>
@@ -577,18 +639,23 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
   const [loadingUnits, setLoadingUnits] = useState(true)
   const [unitsError, setUnitsError] = useState('')
   const [selectedUpsId, setSelectedUpsId] = useState(() => alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId ?? null)
+  const [activeUpsTab, setActiveUpsTab] = useState('Overview')
+  const [readingsByUnit, setReadingsByUnit] = useState({})
   const [tab, setTab] = useState(() => alarmFocus?.tab ?? 'Active')
   const [filter, setFilter] = useState('All')
   const selectedUnit = units.find((unit) => String(unit.id) === String(selectedUpsId)) ?? units[0]
   const selectedUnitAlarms = alarms.filter((alarm) => String(alarm.equipmentId) === String(selectedUnit?.id))
+  const selectedUnitAlarmCount = selectedUnitAlarms.filter((alarm) => ['ACTIVE', 'ACKNOWLEDGED'].includes(String(alarm.status ?? '').toUpperCase())).length
+  const selectedReadings = readingsByUnit[String(selectedUnit?.id)] ?? []
   const visibleAlarms = getVisibleAlarms(selectedUnitAlarms, tab, filter)
 
   const refreshUps = useCallback(async () => {
     const equipment = await getEquipment({ type: 'UPS', enabled: true })
     const equipmentData = await Promise.all(equipment.map(async (item) => {
-      const [status, readings] = await Promise.all([getEquipmentStatus(item.id), getEquipmentReadings(item.id, 1)])
+      const [status, readings] = await Promise.all([getEquipmentStatus(item.id), getEquipmentReadings(item.id, 12)])
       return { item, status, readings }
     }))
+    setReadingsByUnit((current) => Object.fromEntries(equipmentData.map(({ item, readings }) => [String(item.id), readings ?? current[String(item.id)] ?? []])))
     const nextUnits = equipmentData.map(({ item, status, readings }) => toUpsUnit(item, {
       ...status,
       latestReading: status.latestReading ?? readings[0]?.data ?? {},
@@ -636,25 +703,44 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
         <UpsFleetSummary
           units={units}
           selectedUpsId={selectedUpsId}
-          selectedUnitAlarmCount={selectedUnitAlarms.length}
+          selectedUnitAlarmCount={selectedUnitAlarmCount}
           onSelectUnit={setSelectedUpsId}
         />
-        <SectionCard title={`Alarms - ${selectedUnit.displayName}`} icon={Bell}>
-        <Tabs filters tab={tab} onTabChange={setTab} filter={filter} onFilterChange={setFilter} />
-        <div className="grouped-alarms">
-          {visibleAlarms.length ? visibleAlarms.map((alarm) => (
-            <article key={`${alarm.area}-${alarm.title}`} className="grouped-alarm">
-              <p>{alarm.area}</p>
-              <AlarmTable alarms={[alarm]} onAcknowledge={handleAcknowledge} />
-            </article>
-          )) : <p className="empty-state">No UPS alarms in this view.</p>}
+        <div className="ups-workspace-tabs" role="tablist" aria-label="UPS details">
+          {['Overview', 'Alarms', 'Diagnosis', 'Prediction'].map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={activeUpsTab === item}
+              className={activeUpsTab === item ? 'active' : ''}
+              onClick={() => setActiveUpsTab(item)}
+            >
+              {item}
+            </button>
+          ))}
         </div>
-        <Actions onAction={onAction} />
-        </SectionCard>
-        <div className="content-grid two-even">
-          <DiagnosisPanel alarms={selectedUnitAlarms} title="UPS Fault Diagnosis" />
-          <PredictionPanel equipmentId={selectedUnit.id} title="UPS Prediction" />
-        </div>
+        {activeUpsTab === 'Overview' ? (
+          <SectionCard title="UPS Overview" icon={Power}>
+            <UpsMiniTrends readings={selectedReadings} />
+          </SectionCard>
+        ) : null}
+        {activeUpsTab === 'Alarms' ? (
+          <SectionCard title={`Alarms - ${selectedUnit.displayName}`} icon={Bell}>
+            <Tabs filters tab={tab} onTabChange={setTab} filter={filter} onFilterChange={setFilter} />
+            <div className="grouped-alarms">
+              {visibleAlarms.length ? visibleAlarms.map((alarm) => (
+                <article key={`${alarm.area}-${alarm.title}`} className="grouped-alarm">
+                  <p>{alarm.area}</p>
+                  <AlarmTable alarms={[alarm]} onAcknowledge={handleAcknowledge} />
+                </article>
+              )) : <p className="empty-state">No UPS alarms in this view.</p>}
+            </div>
+            <Actions onAction={onAction} />
+          </SectionCard>
+        ) : null}
+        {activeUpsTab === 'Diagnosis' ? <DiagnosisPanel alarms={selectedUnitAlarms} title="UPS Fault Diagnosis" /> : null}
+        {activeUpsTab === 'Prediction' ? <PredictionPanel equipmentId={selectedUnit.id} title="UPS Prediction" /> : null}
       </> : null}
     </div>
   )
@@ -682,11 +768,11 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
         <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
       </dl>
       <p className="ups-selected-note">{selectedUnit.note}</p>
-      <section className="ups-fleet" aria-label="UPS fleet status">
+      <section className="ups-fleet ups-fleet-compact" aria-label="UPS fleet status">
         {units.map((unit) => (
           <article
             className={`ups-unit ${String(selectedUpsId) === String(unit.id) ? 'selected' : ''}`}
-            key={unit.id}
+            key={`ups-unit-${unit.id}`}
             role="button"
             tabIndex={0}
             onClick={() => onSelectUnit(unit.id)}
@@ -714,6 +800,37 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
         ))}
       </section>
     </SectionCard>
+  )
+}
+
+function UpsMiniTrends({ readings }) {
+  const metrics = [
+    { key: 'battery_charge_pct', label: 'Battery', unit: '%', color: 'var(--green)' },
+    { key: 'load_pct', label: 'Load', unit: '%', color: 'var(--cyan)' },
+    { key: 'output_voltage_v', label: 'Output', unit: 'V', color: 'var(--amber)' },
+  ]
+
+  return (
+    <div className="ups-mini-trends">
+      {metrics.map((metric) => {
+        const values = readings.map((reading) => Number(reading.data?.[metric.key])).filter(Number.isFinite).slice(-12)
+        const latest = values.at(-1)
+        const maximum = Math.max(...values, 1)
+        return (
+          <article className="ups-mini-trend" key={metric.key}>
+            <div className="ups-mini-trend-heading">
+              <span>{metric.label}</span>
+              <strong>{latest === undefined ? '--' : `${latest.toFixed(1)} ${metric.unit}`}</strong>
+            </div>
+            <div className="ups-mini-bars" aria-label={`${metric.label} recent trend`}>
+              {values.length ? values.map((value, index) => (
+                <i key={`${metric.key}-${index}`} style={{ height: `${Math.max(12, (value / maximum) * 100)}%`, background: metric.color }} />
+              )) : <span className="ups-mini-empty">Waiting for readings</span>}
+            </div>
+          </article>
+        )
+      })}
+    </div>
   )
 }
 
