@@ -30,6 +30,7 @@ import LiveATSPage from './pages/ATSPage'
 import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
 import PredictionsPage from './pages/PredictionsPage'
+import OperationsPage from './pages/OperationsPage'
 import DiagnosisPanel from './components/DiagnosisPanel'
 import PredictionPanel from './components/PredictionPanel'
 
@@ -41,6 +42,7 @@ const navItems = [
   { label: 'MDP Status', path: '/mdp', icon: PanelTop },
   { label: 'SDP Status', path: '/sdp', icon: ServerCog },
   { label: 'Predictions', path: '/predictions', icon: BrainCircuit },
+  { label: 'Operations', path: '/operations', icon: ClipboardList },
   { label: 'Settings', path: '/settings', icon: Settings },
   { label: 'Log out', icon: LogOut },
 ]
@@ -53,6 +55,7 @@ const pathToPage = {
   '/mdp': 'MDP Status',
   '/sdp': 'SDP Status',
   '/predictions': 'Predictions',
+  '/operations': 'Operations',
   '/settings': 'Settings',
 }
 
@@ -197,6 +200,7 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {activePage === 'MDP Status' ? <LiveMDPPage onAcknowledge={onAcknowledge} /> : null}
         {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} /> : null}
         {activePage === 'Predictions' ? <PredictionsPage /> : null}
+        {activePage === 'Operations' ? <OperationsPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
@@ -880,6 +884,7 @@ function App() {
               <Route path="/mdp" element={<DashboardWorkspace />} />
               <Route path="/sdp" element={<DashboardWorkspace />} />
               <Route path="/predictions" element={<DashboardWorkspace />} />
+              <Route path="/operations" element={<DashboardWorkspace />} />
               <Route path="/settings" element={<DashboardWorkspace />} />
             </Route>
           </Route>

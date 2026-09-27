@@ -35,6 +35,12 @@ export default function PredictionsPage() {
   const health = data?.health
   const visibleHistory = selectedEquipmentId ? history : []
 
+  useEffect(() => {
+    if (predictions.length > 0 && !selectedEquipmentId) {
+      setSelectedEquipmentId(predictions[0].equipmentId)
+    }
+  }, [predictions, selectedEquipmentId])
+
   async function handleRunPredictions() {
     try {
       setRunMessage('')
