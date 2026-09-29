@@ -241,13 +241,13 @@ button {
 }
 
 .page-header {
-  min-height: 100px;
+  min-height: 74px;
   margin: 0 0 18px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 24px;
-  padding: 0 30px;
+  gap: 18px;
+  padding: 0 24px;
   border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 22px;
   background: linear-gradient(180deg, rgb(243 247 255 / 96%), rgb(226 233 246 / 92%));
@@ -286,8 +286,8 @@ button {
 .page-header h1 {
   margin: 0;
   color: #071020;
-  font-size: 30px;
-  letter-spacing: -.02em;
+  font-size: 26px;
+  letter-spacing: 0;
   line-height: 1;
 }
 
@@ -960,6 +960,23 @@ button {
   white-space: nowrap;
   background: linear-gradient(135deg, #14336a, #1f6f9a);
   box-shadow: 0 6px 14px rgb(13 41 91 / 24%);
+}
+
+.alarm-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.alarm-row button.secondary,
+.alarm-row .alarm-action.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: #9fb1ce;
+  background: linear-gradient(135deg, #394861, #596b86);
 }
 
 .alarm-row .alarm-action:hover {
@@ -2196,7 +2213,7 @@ dd {
 
 .prediction-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.15fr) minmax(240px, 1.35fr) minmax(150px, .9fr) minmax(120px, .7fr);
+  grid-template-columns: minmax(160px, 1.05fr) minmax(210px, 1.25fr) minmax(140px, .8fr) minmax(110px, .7fr) minmax(130px, .75fr);
   gap: 16px;
   align-items: stretch;
   border: 1px solid #344364;
@@ -2252,7 +2269,7 @@ dd {
 
 .prediction-history article {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr) 190px;
+  grid-template-columns: 80px minmax(0, 1fr) minmax(150px, .8fr) 190px;
   gap: 12px;
   align-items: center;
   border: 1px solid #344364;
@@ -2817,6 +2834,11 @@ dd {
   color: var(--muted);
   padding: 8px 16px;
   border-radius: 6px;
+}
+
+.ghost-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
 }
 
 .reports-form {

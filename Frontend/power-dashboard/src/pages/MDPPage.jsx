@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
-import EquipmentSelector from '../components/EquipmentSelector'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import DiagnosisPanel from '../components/DiagnosisPanel'
 import PredictionPanel from '../components/PredictionPanel'
@@ -105,9 +104,8 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function MDPPage({ onAcknowledge }) {
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', selectedEquipmentId)
+export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
+  const { selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', null)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -133,11 +131,6 @@ export default function MDPPage({ onAcknowledge }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <EquipmentSelector
-        equipment={equipment}
-        selectedEquipmentId={selectedEquipment?.id}
-        onChange={setSelectedEquipmentId}
-      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
@@ -217,6 +210,7 @@ export default function MDPPage({ onAcknowledge }) {
           emptyMessage="No active alarms for this MDP."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}

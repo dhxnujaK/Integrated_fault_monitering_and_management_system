@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
@@ -104,9 +104,8 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function SDPPage({ onAcknowledge }) {
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', selectedEquipmentId)
+export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
+  const { selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', null)
   const selectedSdp = selectedEquipment?.equipmentCode ?? 'SDP'
 
   // Acknowledge alarm handler
@@ -145,23 +144,6 @@ export default function SDPPage({ onAcknowledge }) {
           </button>
         </div>
       )}
-
-      {/* Tabs at the top to toggle between SDP panels */}
-      <div className="flex border-b border-[#344364] gap-2 mb-2">
-        {equipment.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setSelectedEquipmentId(item.id)}
-            className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded-t transition-all border-t border-l border-r ${
-              String(selectedEquipment?.id) === String(item.id)
-                ? 'bg-[#172341] border-[#344364] text-[#66d7e6]'
-                : 'bg-transparent border-transparent text-[#aeb9d5] hover:text-[#f8fbff]'
-            }`}
-          >
-            {item.equipmentCode}
-          </button>
-        ))}
-      </div>
 
       {/* 1. State bar representing selected SDP overallStatus */}
       <div className="state-bar">
@@ -229,6 +211,7 @@ export default function SDPPage({ onAcknowledge }) {
           emptyMessage="No active alarms for this SDP."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}
