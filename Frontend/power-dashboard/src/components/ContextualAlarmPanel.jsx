@@ -1,7 +1,7 @@
-import { AlertTriangle, Bell } from 'lucide-react'
+import { AlertTriangle, Bell, TicketPlus } from 'lucide-react'
 import SectionCard from './SectionCard'
 
-export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [], onAcknowledge }) {
+export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [], onAcknowledge, onCreateTicket }) {
   return (
     <SectionCard title={title} icon={Bell}>
       {alarms.length === 0 ? (
@@ -28,11 +28,19 @@ export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [],
                   <time>{new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
                   <p className={`alarm-status ${status.toLowerCase()}`}>{status || 'UNKNOWN'}</p>
                 </div>
-                {active ? (
-                  <button className="alarm-action" type="button" onClick={() => onAcknowledge(alarm.id)}>
-                    Acknowledge
-                  </button>
-                ) : null}
+                <div className="alarm-row-actions">
+                  {active ? (
+                    <button className="alarm-action" type="button" onClick={() => onAcknowledge(alarm.id)}>
+                      Acknowledge
+                    </button>
+                  ) : null}
+                  {onCreateTicket ? (
+                    <button className="alarm-action secondary" type="button" onClick={() => onCreateTicket(alarm)}>
+                      <TicketPlus size={14} />
+                      Ticket
+                    </button>
+                  ) : null}
+                </div>
               </div>
             )
           })}

@@ -197,10 +197,9 @@ function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
   )
 }
 
-function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummary, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onAction, alarmFocus, children }) {
+function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummary, dashboardSummaryAlarms, onAcknowledge, onAlarmNavigate, onCreateTicketFromAlarm, onAction, alarmFocus, children }) {
   const headerCopy = pageHeaderCopy[activePage] ?? { eyebrow: 'POWER OPERATIONS', title: activePage, subtitle: '' }
   const headerIcon = navItems.find((item) => item.label === activePage)?.icon ?? Gauge
-  const isMonitoringPage = ['Generator', 'ATS Status', 'UPS Status', 'MDP Status', 'SDP Status'].includes(activePage)
 
   return (
     <div className="app-shell">
@@ -209,18 +208,15 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         <header className="page-header">
           <div className="page-header-icon"><HeaderIcon icon={headerIcon} /></div>
           <div className="page-header-copy">
-            <span className="page-eyebrow">{headerCopy.eyebrow}</span>
             <h1>{headerCopy.title}</h1>
-            <p>{headerCopy.subtitle}</p>
           </div>
-          {isMonitoringPage ? <span className="page-live-badge"><i /> Live telemetry</span> : null}
         </header>
-        {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onAction={onAction} /> : null}
-        {activePage === 'Generator' ? <LiveGeneratorPage onAcknowledge={onAcknowledge} /> : null}
-        {activePage === 'ATS Status' ? <LiveATSPage onAcknowledge={onAcknowledge} /> : null}
-        {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onAction={onAction} alarmFocus={alarmFocus} /> : null}
-        {activePage === 'MDP Status' ? <LiveMDPPage onAcknowledge={onAcknowledge} /> : null}
-        {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} /> : null}
+        {activePage === 'Dashboard' ? <DashboardPage alarms={dashboardSummaryAlarms} dashboardSummary={dashboardSummary} onAcknowledge={onAcknowledge} onNavigateAlarm={onAlarmNavigate} onCreateTicketFromAlarm={onCreateTicketFromAlarm} onAction={onAction} /> : null}
+        {activePage === 'Generator' ? <LiveGeneratorPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
+        {activePage === 'ATS Status' ? <LiveATSPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
+        {activePage === 'UPS Status' ? <UpsPage alarms={alarms.ups} onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} onAction={onAction} alarmFocus={alarmFocus} /> : null}
+        {activePage === 'MDP Status' ? <LiveMDPPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
+        {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
         {activePage === 'Predictions' ? <PredictionsPage /> : null}
         {activePage === 'Operations' ? <OperationsPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
@@ -308,6 +304,20 @@ function getAlarmRoute(alarm) {
   }[alarm.subsystemType || alarm.source] ?? '/dashboard')
 }
 
+function getTicketPriorityFromAlarm(alarm) {
+  return String(alarm?.severity ?? '').toUpperCase() === 'CRITICAL' ? 'HIGH' : 'MEDIUM'
+}
+
+function getAssignedGroupFromEquipmentType(equipmentType) {
+  return ({
+    GENERATOR: 'Mechanical Team',
+    ATS: 'Electrical Team',
+    UPS: 'Electrical Team',
+    MDP: 'Electrical Team',
+    SDP: 'Electrical Team',
+  }[String(equipmentType ?? '').toUpperCase()] ?? 'Operations Team')
+}
+
 const emptyAlarmState = {
   generator: [],
   ats: [],
@@ -389,7 +399,7 @@ function toUpsUnit(equipment, status) {
   }
 }
 
-function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigateAlarm, onAction, filters = false, compact = false, requestedTab }) {
+function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigateAlarm, onCreateTicketFromAlarm, onAction, filters = false, compact = false, requestedTab }) {
   const [tab, setTab] = useState(() => requestedTab ?? 'Active')
   const [filter, setFilter] = useState('All')
   const visibleAlarms = getVisibleAlarms(alarms, tab, filter)
@@ -413,14 +423,14 @@ function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigate
         onFilterChange={setFilter}
       />
       <div className={`alarm-list-shell ${compact ? 'scrollable' : ''}`}>
-        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={handleAcknowledge} onNavigateAlarm={onNavigateAlarm} />
+        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={handleAcknowledge} onNavigateAlarm={onNavigateAlarm} onCreateTicketFromAlarm={onCreateTicketFromAlarm} />
       </div>
       {!compact ? <Actions onAction={onAction} /> : null}
     </SectionCard>
   )
 }
 
-function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAlarm }) {
+function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAlarm, onCreateTicketFromAlarm }) {
   if (!alarms.length) {
     return <p className="empty-state">No alarms in this view.</p>
   }
@@ -476,16 +486,31 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
               <p className={`alarm-status ${getAlarmStatusClass(alarm.status)}`}>{alarmStatusLabel}</p>
             </div>
             {compact ? null : (
-              <button
-                type="button"
-                disabled={isAcknowledged || alarmStatus === 'RESOLVED'}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onAcknowledge?.(alarm.id)
-                }}
-              >
-                {isAcknowledged ? `Acknowledged ${alarm.acknowledgedAt ?? ''}` : 'Acknowledge'}
-              </button>
+              <div className="alarm-row-actions">
+                <button
+                  type="button"
+                  className="alarm-action"
+                  disabled={alarmStatus !== 'ACTIVE'}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onAcknowledge?.(alarm.id)
+                  }}
+                >
+                  {isAcknowledged ? `Acknowledged ${alarm.acknowledgedAt ?? ''}` : 'Acknowledge'}
+                </button>
+                {onCreateTicketFromAlarm ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onCreateTicketFromAlarm(alarm)
+                    }}
+                  >
+                    Create ticket
+                  </button>
+                ) : null}
+              </div>
             )}
           </article>
         )
@@ -507,7 +532,7 @@ function SectionCard({ title, icon: Icon, children, className = '' }) {
   )
 }
 
-function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlarm, onAction }) {
+function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlarm, onCreateTicketFromAlarm, onAction }) {
   const navigate = useNavigate()
   const [showAllAlarms, setShowAllAlarms] = useState(false)
   const equipmentStatuses = dashboardSummary?.equipment ?? []
@@ -562,7 +587,7 @@ function DashboardPage({ alarms, dashboardSummary, onAcknowledge, onNavigateAlar
       <div className="dashboard-grid">
         <SystemOverview equipment={equipmentStatuses} />
         <div className="dashboard-stack">
-          <AlarmPanel title="Alarm Summary" alarms={alarms} compact={!showAllAlarms} filters={showAllAlarms} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onAction={onAction} />
+          <AlarmPanel title="Alarm Summary" alarms={alarms} compact={!showAllAlarms} filters={showAllAlarms} onAcknowledge={onAcknowledge} onNavigateAlarm={onNavigateAlarm} onCreateTicketFromAlarm={onCreateTicketFromAlarm} onAction={onAction} />
           <div className="actions">
             <button type="button" onClick={() => setShowAllAlarms((current) => !current)}>
               {showAllAlarms ? 'Show summary' : 'View all alarms'}
@@ -634,7 +659,7 @@ function statusClass(status) {
   return String(status ?? 'OFFLINE').toLowerCase()
 }
 
-function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
+function UpsPage({ alarms, onAcknowledge, onCreateTicketFromAlarm, onAction, alarmFocus }) {
   const [units, setUnits] = useState([])
   const [loadingUnits, setLoadingUnits] = useState(true)
   const [unitsError, setUnitsError] = useState('')
@@ -732,7 +757,7 @@ function UpsPage({ alarms, onAcknowledge, onAction, alarmFocus }) {
               {visibleAlarms.length ? visibleAlarms.map((alarm) => (
                 <article key={`${alarm.area}-${alarm.title}`} className="grouped-alarm">
                   <p>{alarm.area}</p>
-                  <AlarmTable alarms={[alarm]} onAcknowledge={handleAcknowledge} />
+                  <AlarmTable alarms={[alarm]} onAcknowledge={handleAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} />
                 </article>
               )) : <p className="empty-state">No UPS alarms in this view.</p>}
             </div>
@@ -934,10 +959,21 @@ function DashboardWorkspace() {
 
   async function acknowledgeAlarm(alarmId) {
     try {
+      const latestAlarms = await refreshMonitoring()
+      const currentAlarm = latestAlarms.find((item) => String(item.id) === String(alarmId))
+      if (!currentAlarm || String(currentAlarm.status).toUpperCase() !== 'ACTIVE') {
+        showToast('Alarm state already updated.')
+        return
+      }
       await acknowledgeAlarmRequest(alarmId)
       await refreshMonitoring()
       showToast('Alarm acknowledged')
     } catch (error) {
+      if (String(error.message ?? '').includes('Only an active alarm can be acknowledged')) {
+        await refreshMonitoring().catch(() => {})
+        showToast('Alarm state already updated.')
+        return
+      }
       showToast(`Unable to acknowledge alarm: ${error.message}`)
       throw error
     }
@@ -960,6 +996,26 @@ function DashboardWorkspace() {
     }
   }
 
+  function createTicketFromAlarm(alarm) {
+    if (!alarm?.equipmentId) {
+      showToast('Unable to create a ticket because the alarm has no equipment link.')
+      return
+    }
+    navigate('/operations', {
+      state: {
+        tab: 'tickets',
+        createModal: true,
+        equipmentId: alarm.equipmentId,
+        alarmId: alarm.id,
+        title: `${alarm.alarmCode ?? 'Alarm'} - ${alarm.equipmentCode ?? alarm.subsystemId ?? 'Equipment'}`,
+        description: alarm.alarmMessage ?? alarm.detail ?? 'Investigate the selected alarm.',
+        priority: getTicketPriorityFromAlarm(alarm),
+        assignedGroup: getAssignedGroupFromEquipmentType(alarm.equipmentType ?? alarm.subsystemType),
+      },
+    })
+    showToast('Ticket form opened with the alarm relationship pre-filled')
+  }
+
   const dashboardSummaryAlarms = getDashboardSummaryAlarms(alarms)
 
   return (
@@ -973,6 +1029,7 @@ function DashboardWorkspace() {
       dashboardSummaryAlarms={dashboardSummaryAlarms}
       onAcknowledge={acknowledgeAlarm}
       onAlarmNavigate={openAlarm}
+      onCreateTicketFromAlarm={createTicketFromAlarm}
       alarmFocus={location.state?.alarmId ? { id: location.state.alarmId, tab: location.state.tab } : null}
       onAction={showToast}
       onLogout={() => {
