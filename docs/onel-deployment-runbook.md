@@ -1,6 +1,6 @@
 # Onel Deployment Runbook
 
-This runbook covers the Spring Boot backend delivered by Onel. The frontend and ML service have separate owners and deployment steps.
+This runbook covers the Spring Boot backend delivered by Onel. The coordinated Day 10 rehearsal is in `docs/final-deployment-rehearsal.md`; the frontend and ML service owner runbooks are linked there.
 
 ## Build
 
