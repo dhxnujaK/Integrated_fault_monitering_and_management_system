@@ -126,9 +126,6 @@ export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus ?? 'OFFLINE'
-  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
-
   return (
     <div className="flex flex-col gap-4">
       {/* Offline warning banner if backend is offline */}
@@ -143,14 +140,6 @@ export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
           </button>
         </div>
       )}
-
-      {/* 1. State bar at the top (exactly as in original mockup) */}
-      <div className="state-bar">
-        <span>Current Status</span>
-        <strong className={overallStatusClass}>
-          {overallStatus}
-        </strong>
-      </div>
 
       {/* 2. Phase Status section with .phase-grid and .phase-card (exactly as in original mockup) */}
       <SectionCard title="Phase Status" icon={Gauge}>
@@ -206,8 +195,8 @@ export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title="Active MDP Alarms"
-          emptyMessage="No active alarms for this MDP."
+          title="MDP Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
           onCreateTicket={onCreateTicketFromAlarm}

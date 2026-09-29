@@ -190,8 +190,8 @@ export default function ATSPage({ onAcknowledge, onCreateTicketFromAlarm }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title="Active ATS Alarms"
-          emptyMessage="No active alarms for this ATS."
+          title="ATS Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
           onCreateTicket={onCreateTicketFromAlarm}

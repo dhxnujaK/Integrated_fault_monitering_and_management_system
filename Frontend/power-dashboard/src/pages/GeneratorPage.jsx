@@ -285,8 +285,8 @@ export default function GeneratorPage({ onAcknowledge, onCreateTicketFromAlarm }
       <div className="content-grid main-side">
         {/* Left column: Active alarms using the original .alarm-table styling */}
         <ContextualAlarmPanel
-          title="Active Generator Alarms"
-          emptyMessage="No active alarms for this generator."
+          title="Generator Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
           onCreateTicket={onCreateTicketFromAlarm}

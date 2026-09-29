@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
@@ -105,7 +105,8 @@ function VoltageBarChart({ vr, vy, vb }) {
 }
 
 export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
-  const { selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', null)
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
+  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', selectedEquipmentId)
   const selectedSdp = selectedEquipment?.equipmentCode ?? 'SDP'
 
   // Acknowledge alarm handler
@@ -127,9 +128,6 @@ export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus ?? 'OFFLINE'
-  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
-
   return (
     <div className="flex flex-col gap-4">
       {/* Offline warning banner if backend is offline */}
@@ -145,15 +143,22 @@ export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
         </div>
       )}
 
-      {/* 1. State bar representing selected SDP overallStatus */}
-      <div className="state-bar">
-        <span>Current Status - {selectedSdp}</span>
-        <strong className={overallStatusClass}>
-          {overallStatus}
-        </strong>
+      <div className="flex border-b border-[#344364] gap-2 mb-2">
+        {equipment.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setSelectedEquipmentId(item.id)}
+            className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded-t transition-all border-t border-l border-r ${
+              String(selectedEquipment?.id) === String(item.id)
+                ? 'bg-[#172341] border-[#344364] text-[#66d7e6]'
+                : 'bg-transparent border-transparent text-[#aeb9d5] hover:text-[#f8fbff]'
+            }`}
+          >
+            {item.equipmentCode}
+          </button>
+        ))}
       </div>
 
-      {/* 2. Phase Status section matching MDP styling */}
       <SectionCard title="Phase Status" icon={Gauge}>
         <div className="phase-grid">
           <article className="phase-card">
@@ -207,8 +212,8 @@ export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title={`Active Alarms - ${selectedSdp}`}
-          emptyMessage="No active alarms for this SDP."
+          title={`Alarms - ${selectedSdp}`}
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
           onCreateTicket={onCreateTicketFromAlarm}

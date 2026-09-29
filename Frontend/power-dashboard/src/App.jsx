@@ -60,7 +60,7 @@ const pathToPage = {
 }
 
 const pageHeaderCopy = {
-  Dashboard: { eyebrow: 'POWER OPERATIONS', title: 'System Command Center', subtitle: 'Live overview of your monitored power network' },
+  Dashboard: { eyebrow: 'POWER OPERATIONS', title: 'Dashboard', subtitle: 'Live overview of your monitored power network' },
   Generator: { eyebrow: 'EQUIPMENT MONITORING', title: 'Generator Operations', subtitle: 'Fuel, load, and alternator health' },
   'ATS Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Automatic Transfer Switch', subtitle: 'Mains, generator, and transfer readiness' },
   'UPS Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Uninterruptible Power', subtitle: 'Fleet health, battery resilience, and runtime' },
@@ -265,7 +265,7 @@ function getVisibleAlarms(alarms, tab, filter) {
   return alarms.filter((alarm) => {
     const status = String(alarm.status ?? '').toUpperCase()
     const matchesTab =
-      (tab === 'History' && status === 'RESOLVED') ||
+      (tab === 'History' && ['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)) ||
       (tab === 'Active' && status === 'ACTIVE') ||
       (tab === 'Acknowledged' && status === 'ACKNOWLEDGED')
     const matchesFilter =
@@ -423,14 +423,14 @@ function AlarmPanel({ title = 'Active Alarms', alarms, onAcknowledge, onNavigate
         onFilterChange={setFilter}
       />
       <div className={`alarm-list-shell ${compact ? 'scrollable' : ''}`}>
-        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={handleAcknowledge} onNavigateAlarm={onNavigateAlarm} onCreateTicketFromAlarm={onCreateTicketFromAlarm} />
+        <AlarmTable alarms={visibleAlarms} compact={compact} onAcknowledge={handleAcknowledge} onNavigateAlarm={onNavigateAlarm} onCreateTicketFromAlarm={onCreateTicketFromAlarm} showActions={tab !== 'History'} />
       </div>
       {!compact ? <Actions onAction={onAction} /> : null}
     </SectionCard>
   )
 }
 
-function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAlarm, onCreateTicketFromAlarm }) {
+function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAlarm, onCreateTicketFromAlarm, showActions = true }) {
   if (!alarms.length) {
     return <p className="empty-state">No alarms in this view.</p>
   }
@@ -485,7 +485,7 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
               {alarm.severity ? <p className={`alarm-severity ${alarm.severity.toLowerCase()}`}>{alarm.severity}</p> : null}
               <p className={`alarm-status ${getAlarmStatusClass(alarm.status)}`}>{alarmStatusLabel}</p>
             </div>
-            {compact ? null : (
+            {compact || !showActions ? null : (
               <div className="alarm-row-actions">
                 <button
                   type="button"
@@ -501,7 +501,7 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
                 {onCreateTicketFromAlarm ? (
                   <button
                     type="button"
-                    className="secondary"
+                    className="alarm-action secondary"
                     onClick={(event) => {
                       event.stopPropagation()
                       onCreateTicketFromAlarm(alarm)
