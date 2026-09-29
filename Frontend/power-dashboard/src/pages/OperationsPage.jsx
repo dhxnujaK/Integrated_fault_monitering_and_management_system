@@ -11,6 +11,10 @@ export default function OperationsPage() {
   const initialTab = location.state?.tab || 'tickets'
   const [activeTab, setActiveTab] = useState(initialTab)
 
+  useEffect(() => {
+    setActiveTab(location.state?.tab || 'tickets')
+  }, [location.state])
+
   return (
     <div className="operations-page">
       <nav className="operations-nav-tabs" aria-label="Operations workspace sections">
@@ -65,14 +69,15 @@ function TicketsTab({ locationState }) {
   const [alarmId, setAlarmId] = useState(locationState?.alarmId || '')
   const [title, setTitle] = useState(locationState?.title || '')
   const [description, setDescription] = useState(locationState?.description || '')
-  const [priority, setPriority] = useState('HIGH')
-  const [assignedTo, setAssignedTo] = useState('Dispatch Tech')
+  const [priority, setPriority] = useState(locationState?.priority || 'HIGH')
+  const [assignedGroup, setAssignedGroup] = useState(locationState?.assignedGroup || 'Electrical Team')
 
   const fetchTickets = async () => {
     try {
       setLoading(true)
       const data = await getTickets({ status: statusFilter || undefined })
-      setTickets(data.items ?? [])
+      const items = data.items ?? []
+      setTickets(statusFilter ? items : items.filter((ticket) => ticket.status !== 'CLOSED'))
       setError('')
     } catch (err) {
       setError(err.message || 'Unable to load tickets')
@@ -84,6 +89,16 @@ function TicketsTab({ locationState }) {
   useEffect(() => {
     fetchTickets()
   }, [statusFilter])
+
+  useEffect(() => {
+    setShowCreateModal(Boolean(locationState?.createModal || locationState?.alarmId))
+    if (locationState?.equipmentId) setEquipmentId(String(locationState.equipmentId))
+    if (locationState?.alarmId) setAlarmId(String(locationState.alarmId))
+    if (locationState?.title) setTitle(locationState.title)
+    if (locationState?.description) setDescription(locationState.description)
+    if (locationState?.priority) setPriority(locationState.priority)
+    if (locationState?.assignedGroup) setAssignedGroup(locationState.assignedGroup)
+  }, [locationState])
 
   useEffect(() => {
     getEquipmentList({ enabled: true })
@@ -107,11 +122,13 @@ function TicketsTab({ locationState }) {
         title,
         description,
         priority,
-        assignedTo,
+        assignedGroup,
       })
       setShowCreateModal(false)
       setTitle('')
       setDescription('')
+      setAlarmId('')
+      setAssignedGroup('Electrical Team')
       setFeedback({ type: 'success', message: 'Maintenance ticket created successfully.' })
       await fetchTickets()
     } catch (err) {
@@ -127,7 +144,7 @@ function TicketsTab({ locationState }) {
       setFeedback({ type: 'success', message: 'Ticket status updated.' })
       await fetchTickets()
     } catch (err) {
-      setFeedback({ type: 'error', message: err.message || 'Failed to update ticket status.' })
+      setFeedback({ type: 'error', message: err.message || 'Invalid status change.' })
     }
   }
 
@@ -141,7 +158,7 @@ function TicketsTab({ locationState }) {
               <option value="">All Statuses</option>
               <option value="OPEN">Open</option>
               <option value="IN_PROGRESS">In Progress</option>
-              <option value="CLOSED">Closed</option>
+              <option value="CLOSED">Closed / History</option>
             </select>
             <button type="button" className="icon-btn" onClick={fetchTickets} title="Refresh">
               <RefreshCw size={15} />
@@ -180,10 +197,9 @@ function TicketsTab({ locationState }) {
                   <th>ID</th>
                   <th>Title & Equipment</th>
                   <th>Priority</th>
-                  <th>Assigned To</th>
+                  <th>Assigned Group</th>
                   <th>Status</th>
                   <th>Created At</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,24 +218,15 @@ function TicketsTab({ locationState }) {
                         {t.priority}
                       </span>
                     </td>
-                    <td>{t.assignedTo || '--'}</td>
+                    <td>{t.assignedGroup || '--'}</td>
                     <td>
-                      <span className={`status-badge ${String(t.status).toLowerCase()}`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td>{t.createdAt ? new Date(t.createdAt).toLocaleString() : '--'}</td>
-                    <td>
-                      <select
-                        className="status-select"
-                        value={t.status}
-                        onChange={(e) => handleStatusChange(t.id, e.target.value)}
-                      >
-                        {(t.status === 'OPEN' ? ['OPEN', 'IN_PROGRESS'] : t.status === 'IN_PROGRESS' ? ['IN_PROGRESS', 'CLOSED'] : ['CLOSED']).map((status) => (
-                          <option value={status} key={status}>{status}</option>
-                        ))}
+                      <select className="status-select" value={t.status} onChange={(e) => handleStatusChange(t.id, e.target.value)}>
+                        <option value="OPEN">OPEN</option>
+                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                        <option value="CLOSED">CLOSED</option>
                       </select>
                     </td>
+                    <td>{t.createdAt ? new Date(t.createdAt).toLocaleString() : '--'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -262,12 +269,16 @@ function TicketsTab({ locationState }) {
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
-                    <option value="CRITICAL">Critical</option>
                   </select>
                 </label>
                 <label>
-                  <span>Assigned To</span>
-                  <input type="text" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+                  <span>Assigned Group</span>
+                  <select value={assignedGroup} onChange={(e) => setAssignedGroup(e.target.value)}>
+                    <option value="Electrical Team">Electrical Team</option>
+                    <option value="Mechanical Team">Mechanical Team</option>
+                    <option value="Operations Team">Operations Team</option>
+                    <option value="Safety Team">Safety Team</option>
+                  </select>
                 </label>
               </div>
               <div className="modal-actions">
@@ -309,8 +320,8 @@ function ReportsTab() {
       setMessage('')
       const params = {
         format: 'CSV',
-        from: new Date(from).toISOString().slice(0, 19),
-        to: new Date(to).toISOString().slice(0, 19),
+        from: from.length === 16 ? `${from}:00` : from,
+        to: to.length === 16 ? `${to}:59` : to,
       }
 
       const response = reportType === 'alarms' ? await downloadAlarmsReport(params) : await downloadTicketsReport(params)

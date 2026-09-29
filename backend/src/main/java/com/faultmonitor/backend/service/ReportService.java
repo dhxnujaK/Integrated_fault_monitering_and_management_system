@@ -113,11 +113,11 @@ public class ReportService {
         // Header
         pw.println("id,title,description,status,priority,"
                 + "subsystemType,subsystemId,equipmentId,equipmentCode,"
-                + "alarmId,predictionId,createdBy,createdAt,updatedAt");
+                + "assignedGroup,alarmId,predictionId,createdBy,createdAt,updatedAt");
 
         for (MaintenanceTicket t : tickets) {
             pw.printf(
-                    "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
                     csv(t.getId()),
                     csv(t.getTitle()),
                     csv(t.getDescription()),
@@ -127,6 +127,7 @@ public class ReportService {
                     csv(t.getSubsystemId()),
                     t.getEquipment() != null ? csv(t.getEquipment().getId()) : "",
                     t.getEquipment() != null ? csv(t.getEquipment().getEquipmentCode()) : "",
+                    csv(t.getAssignedGroup()),
                     csv(t.getAlarmId()),
                     csv(t.getPredictionId()),
                     csv(t.getCreatedBy()),
