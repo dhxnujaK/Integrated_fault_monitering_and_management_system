@@ -80,6 +80,8 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           </div>
           <dl className="prediction-details">
             <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(prediction.predictedFailureType)}</dd></div>
+            <div><dt>Time to failure</dt><dd>{prediction.estimatedTimeToFailureMinutes ? `${prediction.estimatedTimeToFailureMinutes} min` : 'Not estimated'}</dd></div>
+            <div><dt>Model version</dt><dd>{prediction.modelVersion ?? 'Unknown'}</dd></div>
             <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">
