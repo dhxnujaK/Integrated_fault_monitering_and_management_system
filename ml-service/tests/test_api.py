@@ -32,6 +32,7 @@ class SuccessfulService:
             "recommendedActions": ["Confirm the local tank gauge."],
             "confidence": 0.82,
             "modelVersion": "generator-failure-6h-test-v1",
+            "estimatedTimeToFailureMinutes": 65,
         }
 
 
@@ -74,6 +75,7 @@ def test_predict_contract_is_camel_case(monkeypatch):
         "recommendedActions": ["Confirm the local tank gauge."],
         "confidence": 0.82,
         "modelVersion": "generator-failure-6h-test-v1",
+        "estimatedTimeToFailureMinutes": 65,
     }
 
 
@@ -117,8 +119,9 @@ def test_health_is_degraded_when_model_manifest_is_missing(tmp_path):
 
 
 @pytest.mark.skipif(
-    not (ROOT_DIR / "saved_models" / "model_manifest.json").exists(),
-    reason="Trained model artifacts are delivered outside ordinary git history.",
+    not (ROOT_DIR / "saved_models" / "model_manifest.json").exists()
+    or not (ROOT_DIR / "data" / "by_equipment_type").exists(),
+    reason="Trained model artifacts and source datasets are delivered outside ordinary git history.",
 )
 def test_saved_models_load_and_serve_real_predictions():
     service = PredictionService()

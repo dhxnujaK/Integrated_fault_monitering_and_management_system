@@ -159,6 +159,9 @@ class PredictionService:
                 recommendations = [
                     action["action"] for action in diagnosis["correctiveActions"]
                 ]
+        estimated_time_to_failure = None
+        if failure_predicted:
+            estimated_time_to_failure = max(15, min(360, round((1.0 - probability) * 360)))
 
         return PredictResponse(
             equipmentId=request.equipmentId,
@@ -172,6 +175,7 @@ class PredictionService:
                 6,
             ),
             modelVersion=artifact["modelVersion"],
+            estimatedTimeToFailureMinutes=estimated_time_to_failure,
         )
 
 
