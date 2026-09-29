@@ -81,6 +81,7 @@ public class TicketService {
                 .description(request.description())
                 .status(TicketStatus.OPEN)
                 .priority(request.priority() != null ? request.priority() : TicketPriority.MEDIUM)
+                .assignedGroup(normalizeAssignedGroup(request.assignedGroup()))
                 .alarmId(request.alarmId())
                 .predictionId(request.predictionId())
                 .createdBy(creator.getId())
@@ -142,6 +143,10 @@ public class TicketService {
             ticket.setPriority(request.priority());
         }
 
+        if (request.assignedGroup() != null) {
+            ticket.setAssignedGroup(normalizeAssignedGroup(request.assignedGroup()));
+        }
+
         if (request.description() != null) {
             ticket.setDescription(request.description());
         }
@@ -164,5 +169,12 @@ public class TicketService {
         throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TRANSITION",
                 "Invalid ticket status transition from " + current + " to " + target
                         + ". Permitted transitions are OPEN -> IN_PROGRESS -> CLOSED.");
+    }
+
+    private String normalizeAssignedGroup(String assignedGroup) {
+        if (assignedGroup == null || assignedGroup.isBlank()) {
+            return null;
+        }
+        return assignedGroup.trim();
     }
 }

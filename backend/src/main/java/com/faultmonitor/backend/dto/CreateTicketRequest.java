@@ -18,6 +18,9 @@ public record CreateTicketRequest(
 
         TicketPriority priority,
 
+        @Size(max = 100, message = "assignedGroup must not exceed 100 characters")
+        String assignedGroup,
+
         Long alarmId,
 
         Long predictionId

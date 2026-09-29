@@ -17,6 +17,7 @@ public record TicketResponse(
         String description,
         TicketStatus status,
         TicketPriority priority,
+        String assignedGroup,
         Long alarmId,
         Long predictionId,
         Long createdBy,
@@ -38,6 +39,7 @@ public record TicketResponse(
                 ticket.getDescription(),
                 ticket.getStatus(),
                 ticket.getPriority(),
+                resolveAssignedGroup(ticket),
                 ticket.getAlarmId(),
                 ticket.getPredictionId(),
                 ticket.getCreatedBy(),
@@ -49,5 +51,20 @@ public record TicketResponse(
 
     private static Instant toInstant(LocalDateTime value) {
         return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
+    }
+
+    private static String resolveAssignedGroup(MaintenanceTicket ticket) {
+        if (ticket.getAssignedGroup() != null && !ticket.getAssignedGroup().isBlank()) {
+            return ticket.getAssignedGroup();
+        }
+
+        if (ticket.getSubsystemType() == null) {
+            return "Operations Team";
+        }
+
+        return switch (ticket.getSubsystemType()) {
+            case GENERATOR -> "Mechanical Team";
+            case ATS, MDP, SDP, UPS -> "Electrical Team";
+        };
     }
 }
