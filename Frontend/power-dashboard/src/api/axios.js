@@ -8,6 +8,8 @@ const api = axios.create({
 function getErrorMessage(error) {
   const data = error.response?.data
   if (typeof data === 'string' && data.trim()) return data
+  const fieldMessage = data?.fieldErrors ? Object.values(data.fieldErrors)[0] : null
+  if (fieldMessage) return fieldMessage
   if (data?.message) return data.message
   if (data?.error) return data.error
   if (error.code === 'ECONNABORTED') return 'Request timed out. Please try again.'

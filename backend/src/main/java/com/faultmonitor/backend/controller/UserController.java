@@ -38,7 +38,7 @@ public class UserController {
         Page<User> users = userRepository.findAll(pageable);
         return new PageResponse<>(
                 users.getContent().stream()
-                        .map(u -> new UserResponse(u.getId(), u.getUsername(), u.getRole().name(), u.getEnabled()))
+                        .map(UserResponse::from)
                         .toList(),
                 users.getNumber(),
                 users.getSize(),
@@ -53,7 +53,7 @@ public class UserController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND"));
         user.setEnabled(request.enabled());
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getRole().name(), saved.getEnabled());
+        return UserResponse.from(saved);
     }
 
     public record UserEnabledRequest(@NotNull Boolean enabled) {

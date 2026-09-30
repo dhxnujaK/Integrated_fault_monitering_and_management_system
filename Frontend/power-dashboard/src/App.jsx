@@ -6,7 +6,6 @@ import {
   Bell,
   BrainCircuit,
   CheckCircle2,
-  CircleUserRound,
   ClipboardList,
   Gauge,
   LayoutDashboard,
@@ -17,6 +16,7 @@ import {
   ServerCog,
   Settings,
   SlidersHorizontal,
+  UserRound,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -31,6 +31,7 @@ import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
 import PredictionsPage from './pages/PredictionsPage'
 import OperationsPage from './pages/OperationsPage'
+import ProfilePage from './pages/ProfilePage'
 import DiagnosisPanel from './components/DiagnosisPanel'
 import PredictionPanel from './components/PredictionPanel'
 
@@ -44,6 +45,7 @@ const navItems = [
   { label: 'Predictions', path: '/predictions', icon: BrainCircuit },
   { label: 'Operations', path: '/operations', icon: ClipboardList },
   { label: 'Settings', path: '/settings', icon: Settings },
+  { label: 'Profile', path: '/profile', icon: UserRound },
   { label: 'Log out', icon: LogOut },
 ]
 
@@ -57,6 +59,7 @@ const pathToPage = {
   '/predictions': 'Predictions',
   '/operations': 'Operations',
   '/settings': 'Settings',
+  '/profile': 'Profile',
 }
 
 const pageHeaderCopy = {
@@ -69,6 +72,7 @@ const pageHeaderCopy = {
   Predictions: { eyebrow: 'FAILURE INTELLIGENCE', title: 'Prediction Center', subtitle: 'Risk signals and six-hour failure forecasts' },
   Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Tickets, reports, and equipment administration' },
   Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'Configure monitored equipment and operating limits' },
+  Profile: { eyebrow: 'ACCOUNT', title: 'My Profile', subtitle: 'Your account details and password' },
 }
 
 function SignIn() {
@@ -98,7 +102,7 @@ function SignIn() {
   return (
     <main className="signin-page">
       <section className="signin-brand" aria-label="Expressway operation maintenance and management division">
-        <p className="logo-mark">LOGO</p>
+        <img className="signin-logo" src="/expressway-logo.jpg" alt="Expressway logo" />
         <h1>
           EXPRESSWAY
           <span>OPERATION</span>
@@ -131,7 +135,6 @@ function SignIn() {
             <input type="checkbox" defaultChecked />
             Remember me
           </label>
-          <a href="#forgot">Forgot Password?</a>
         </div>
       </form>
     </main>
@@ -139,7 +142,6 @@ function SignIn() {
 }
 
 function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
-  const { user } = useAuth()
   const severityRank = { NORMAL: 0, OFFLINE: 1, WARNING: 2, CRITICAL: 3 }
   const statusByType = (dashboardSummary?.equipment ?? []).reduce((statuses, equipment) => {
     const type = String(equipment.equipmentType ?? '').toUpperCase()
@@ -166,11 +168,11 @@ function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
 
   return (
     <aside className="sidebar" aria-label="Primary navigation">
-      <div className="account-card">
-        <CircleUserRound size={42} strokeWidth={2.6} />
+      <div className="sidebar-brand">
+        <img src="/expressway-logo.jpg" alt="Expressway logo" />
         <div>
-          <p>{user?.username || 'Admin'}</p>
-          <span>{user?.role || 'Authenticated'}</span>
+          <strong>EXPRESSWAY</strong>
+          <span>Power Monitoring</span>
         </div>
       </div>
 
@@ -220,6 +222,7 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {activePage === 'Predictions' ? <PredictionsPage /> : null}
         {activePage === 'Operations' ? <OperationsPage /> : null}
         {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
+        {activePage === 'Profile' ? <ProfilePage /> : null}
         {children}
       </main>
     </div>
@@ -1060,6 +1063,7 @@ function App() {
               <Route path="/predictions" element={<DashboardWorkspace />} />
               <Route path="/operations" element={<DashboardWorkspace />} />
               <Route path="/settings" element={<DashboardWorkspace />} />
+              <Route path="/profile" element={<DashboardWorkspace />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
