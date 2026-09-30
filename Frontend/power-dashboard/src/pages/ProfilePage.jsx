@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { KeyRound, LogOut, UserRound } from 'lucide-react'
-import SectionCard from '../components/SectionCard'
+import { CalendarDays, KeyRound, LogOut, Mail, Phone, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { changePassword, getProfile, updateProfile } from '../api/profileApi'
 
@@ -30,6 +29,18 @@ function formatDate(value) {
   if (!value) return '--'
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '--' : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function ContactRow({ icon, label, value }) {
+  return (
+    <li>
+      {icon}
+      <div>
+        <span>{label}</span>
+        {value ? <strong>{value}</strong> : <em>Not set</em>}
+      </div>
+    </li>
+  )
 }
 
 export default function ProfilePage() {
@@ -111,35 +122,34 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      <section className="profile-summary section-card">
+      <aside className="profile-card">
         <div className="profile-avatar" aria-hidden="true">{initialsOf(profile)}</div>
-        <div className="profile-identity">
-          <h2>{profile.fullName || profile.username}</h2>
-          <p>@{profile.username}</p>
-          <span className="profile-role">{profile.role}</span>
-        </div>
-        <dl className="profile-meta">
-          <div><dt>Email</dt><dd>{profile.email || '--'}</dd></div>
-          <div><dt>Phone</dt><dd>{profile.phone || '--'}</dd></div>
-          <div><dt>Member since</dt><dd>{formatDate(profile.createdAt)}</dd></div>
-        </dl>
-        <button type="button" className="ghost-btn profile-signout" onClick={() => logout()}>
+        <h2>{profile.fullName || profile.username}</h2>
+        <p className="profile-username">@{profile.username}</p>
+        <span className="profile-role"><ShieldCheck size={13} /> {profile.role}</span>
+
+        <ul className="profile-contact">
+          <ContactRow icon={<Mail size={16} />} label="Email" value={profile.email} />
+          <ContactRow icon={<Phone size={16} />} label="Phone" value={profile.phone} />
+          <ContactRow icon={<CalendarDays size={16} />} label="Member since" value={formatDate(profile.createdAt)} />
+        </ul>
+
+        <button type="button" className="profile-signout" onClick={() => logout()}>
           <LogOut size={16} /> Sign out
         </button>
-      </section>
+      </aside>
 
-      <SectionCard title="Personal Details" icon={UserRound}>
-        <form className="reports-form" onSubmit={handleSaveDetails}>
-          <div className="form-grid">
-            <label>
-              <span>Username</span>
-              <input value={profile.username} disabled />
-            </label>
-            <label>
-              <span>Role</span>
-              <input value={profile.role} disabled />
-            </label>
-            <label>
+      <div className="profile-forms">
+        <section className="profile-panel">
+          <header>
+            <UserRound size={18} />
+            <div>
+              <h3>Personal details</h3>
+              <p>How your name and contact details appear to the team.</p>
+            </div>
+          </header>
+          <form onSubmit={handleSaveDetails}>
+            <label className="profile-field wide">
               <span>Full name</span>
               <input
                 value={details.fullName}
@@ -149,7 +159,7 @@ export default function ProfilePage() {
                 placeholder="e.g. Nimal Perera"
               />
             </label>
-            <label>
+            <label className="profile-field">
               <span>Email</span>
               <input
                 type="email"
@@ -160,7 +170,7 @@ export default function ProfilePage() {
                 placeholder="name@example.com"
               />
             </label>
-            <label>
+            <label className="profile-field">
               <span>Phone</span>
               <input
                 type="tel"
@@ -171,22 +181,27 @@ export default function ProfilePage() {
                 placeholder="+94 71 234 5678"
               />
             </label>
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn" disabled={!detailsChanged || savingDetails} onClick={() => setDetails(toDetails(profile))}>
-              Reset
-            </button>
-            <button type="submit" className="primary-btn" disabled={!detailsChanged || savingDetails}>
-              {savingDetails ? 'Saving...' : 'Save changes'}
-            </button>
-          </div>
-        </form>
-      </SectionCard>
+            <div className="profile-actions wide">
+              <button type="button" className="ghost-btn" disabled={!detailsChanged || savingDetails} onClick={() => setDetails(toDetails(profile))}>
+                Reset
+              </button>
+              <button type="submit" className="primary-btn" disabled={!detailsChanged || savingDetails}>
+                {savingDetails ? 'Saving...' : 'Save changes'}
+              </button>
+            </div>
+          </form>
+        </section>
 
-      <SectionCard title="Change Password" icon={KeyRound}>
-        <form className="reports-form" onSubmit={handleChangePassword}>
-          <div className="form-grid">
-            <label>
+        <section className="profile-panel">
+          <header>
+            <KeyRound size={18} />
+            <div>
+              <h3>Security</h3>
+              <p>Use at least 8 characters. You stay signed in after changing it.</p>
+            </div>
+          </header>
+          <form onSubmit={handleChangePassword}>
+            <label className="profile-field wide">
               <span>Current password</span>
               <input
                 type="password"
@@ -196,7 +211,7 @@ export default function ProfilePage() {
                 required
               />
             </label>
-            <label>
+            <label className="profile-field">
               <span>New password</span>
               <input
                 type="password"
@@ -207,7 +222,7 @@ export default function ProfilePage() {
                 required
               />
             </label>
-            <label>
+            <label className="profile-field">
               <span>Confirm new password</span>
               <input
                 type="password"
@@ -217,15 +232,15 @@ export default function ProfilePage() {
                 required
               />
             </label>
-          </div>
-          {passwordError ? <p className="report-message error">{passwordError}</p> : null}
-          <div className="modal-actions">
-            <button type="submit" className="primary-btn" disabled={savingPassword}>
-              {savingPassword ? 'Updating...' : 'Update password'}
-            </button>
-          </div>
-        </form>
-      </SectionCard>
+            {passwordError ? <p className="report-message error wide">{passwordError}</p> : null}
+            <div className="profile-actions wide">
+              <button type="submit" className="primary-btn" disabled={savingPassword}>
+                {savingPassword ? 'Updating...' : 'Update password'}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </div>
   )
 }
