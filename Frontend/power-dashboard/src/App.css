@@ -33,10 +33,11 @@ button {
 .signin-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) 440px;
+  grid-template-columns: minmax(0, 720px) 440px;
+  justify-content: center;
   align-items: center;
-  gap: 72px;
-  padding: 64px 10vw;
+  gap: clamp(48px, 8vw, 120px);
+  padding: 64px 5vw;
   background:
     radial-gradient(circle at 18% 18%, rgb(102 215 230 / 16%), transparent 24%),
     radial-gradient(circle at 82% 14%, rgb(117 218 93 / 12%), transparent 22%),
@@ -45,21 +46,16 @@ button {
 }
 
 .signin-brand {
-  max-width: 560px;
-  width: fit-content;
-}
-
-.logo-mark {
-  margin: 0 0 80px;
-  font-size: 22px;
-  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: 40px;
 }
 
 .signin-brand h1 {
   margin: 0;
   display: grid;
-  gap: 28px;
-  font-size: 42px;
+  gap: 18px;
+  font-size: 38px;
   line-height: 1;
   letter-spacing: 5px;
   text-wrap: balance;
@@ -1720,8 +1716,23 @@ dd {
 
 @media (max-width: 1180px) {
   .signin-page {
-    grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-columns: minmax(0, 620px);
+    gap: 40px;
+  }
+
+  .signin-page .signin-card {
+    width: 100%;
+    max-width: 440px;
+    justify-self: center;
+  }
+
+  .signin-page .signin-brand {
+    justify-content: center;
+  }
+
+  .signin-page .signin-logo {
+    width: 200px;
+    height: 200px;
   }
 
   .app-shell {
@@ -2508,8 +2519,13 @@ dd {
     font-size: 28px;
   }
 
-  .logo-mark {
-    margin-bottom: 34px;
+  .signin-page .signin-brand {
+    gap: 20px;
+  }
+
+  .signin-page .signin-logo {
+    width: 110px;
+    height: 110px;
   }
 
   .sidebar {
@@ -3318,9 +3334,10 @@ button:disabled {
 /* Brand logo */
 .signin-logo {
   display: block;
-  width: 112px;
-  height: 112px;
-  margin: 0 auto 56px;
+  flex-shrink: 0;
+  width: 250px;
+  height: 250px;
+  margin: 0;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 14px 40px rgb(5 11 24 / 45%);
