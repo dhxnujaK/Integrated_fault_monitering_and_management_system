@@ -48,6 +48,15 @@ public class User {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    @Column(name = "full_name", length = 150)
+    private String fullName;
+
+    @Column(length = 150)
+    private String email;
+
+    @Column(length = 30)
+    private String phone;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

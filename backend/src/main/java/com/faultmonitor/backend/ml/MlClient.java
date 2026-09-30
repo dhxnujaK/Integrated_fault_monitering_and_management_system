@@ -2,6 +2,7 @@ package com.faultmonitor.backend.ml;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.faultmonitor.backend.dto.MlHealthResponse;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -28,9 +30,16 @@ public class MlClient {
             @Value("${ml.service.url:http://localhost:8000}") String baseUrl,
             @Value("${ml.service.timeout-ms:3000}") long timeoutMs,
             @Value("${ml.service.retry-count:1}") int retryCount) {
-        this.restTemplate = builder
+        // Force HTTP/1.1: the JDK client otherwise sends an h2c upgrade request, and uvicorn's
+        // httptools parser (installed with uvicorn[standard]) drops the POST body, returning 422.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(timeoutMs))
-                .readTimeout(Duration.ofMillis(timeoutMs))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofMillis(timeoutMs));
+        this.restTemplate = builder
+                .requestFactory(() -> requestFactory)
                 .build();
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.predictUrl = this.baseUrl + "/predict";
