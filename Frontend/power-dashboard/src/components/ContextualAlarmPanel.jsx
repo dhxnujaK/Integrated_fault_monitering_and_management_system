@@ -1,14 +1,35 @@
+import { useState } from 'react'
 import { AlertTriangle, Bell } from 'lucide-react'
 import SectionCard from './SectionCard'
 
-export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [], onAcknowledge }) {
+export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [], onAcknowledge, onCreateTicket }) {
+  const [tab, setTab] = useState('Active')
+  const visibleAlarms = alarms.filter((alarm) => {
+    const status = String(alarm.status ?? '').toUpperCase()
+    if (tab === 'History') return ['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)
+    if (tab === 'Acknowledged') return status === 'ACKNOWLEDGED'
+    return status === 'ACTIVE'
+  })
+
+  async function handleAcknowledge(alarmId) {
+    await onAcknowledge?.(alarmId)
+    setTab('Acknowledged')
+  }
+
   return (
     <SectionCard title={title} icon={Bell}>
-      {alarms.length === 0 ? (
+      <div className="tabs">
+        {['Active', 'Acknowledged', 'History'].map((item) => (
+          <button key={item} type="button" className={tab === item ? 'selected' : ''} onClick={() => setTab(item)}>
+            {item}
+          </button>
+        ))}
+      </div>
+      {visibleAlarms.length === 0 ? (
         <p className="empty-state py-8">{emptyMessage}</p>
       ) : (
         <div className="alarm-table max-h-60 overflow-y-auto">
-          {alarms.map((alarm) => {
+          {visibleAlarms.map((alarm) => {
             const status = String(alarm.status ?? '').toUpperCase()
             const acknowledged = status === 'ACKNOWLEDGED'
             const active = status === 'ACTIVE'
@@ -28,10 +49,19 @@ export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [],
                   <time>{new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
                   <p className={`alarm-status ${status.toLowerCase()}`}>{status || 'UNKNOWN'}</p>
                 </div>
-                {active ? (
-                  <button className="alarm-action" type="button" onClick={() => onAcknowledge(alarm.id)}>
-                    Acknowledge
-                  </button>
+                {tab !== 'History' ? (
+                  <div className="alarm-row-actions">
+                    {active ? (
+                      <button className="alarm-action" type="button" onClick={() => handleAcknowledge(alarm.id)}>
+                        Acknowledge
+                      </button>
+                    ) : null}
+                    {onCreateTicket ? (
+                      <button className="alarm-action secondary" type="button" onClick={() => onCreateTicket(alarm)}>
+                        Create ticket
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             )

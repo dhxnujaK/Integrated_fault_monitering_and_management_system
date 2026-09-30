@@ -62,7 +62,7 @@ export default function useEquipmentMonitoring(equipmentType, selectedEquipmentI
   )
   const fetchAlarms = useCallback(
     () => (effectiveEquipmentId
-      ? getEquipmentAlarms(effectiveEquipmentId, { unresolved: true })
+      ? getEquipmentAlarms(effectiveEquipmentId, { unresolved: false })
       : Promise.resolve([])),
     [effectiveEquipmentId],
   )

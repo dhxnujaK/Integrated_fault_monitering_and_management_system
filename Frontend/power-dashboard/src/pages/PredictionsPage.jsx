@@ -35,6 +35,12 @@ export default function PredictionsPage() {
   const health = data?.health
   const visibleHistory = selectedEquipmentId ? history : []
 
+  useEffect(() => {
+    if (predictions.length > 0 && !selectedEquipmentId) {
+      setSelectedEquipmentId(predictions[0].equipmentId)
+    }
+  }, [predictions, selectedEquipmentId])
+
   async function handleRunPredictions() {
     try {
       setRunMessage('')
@@ -127,6 +133,10 @@ export default function PredictionsPage() {
                     <span>Confidence</span>
                     <strong>{formatProbability(prediction.confidence)}</strong>
                   </div>
+                  <div>
+                    <span>Time to failure</span>
+                    <strong>{prediction.estimatedTimeToFailureMinutes ? `${prediction.estimatedTimeToFailureMinutes} min` : 'Not estimated'}</strong>
+                  </div>
                 </article>
               )
             })}
@@ -144,6 +154,7 @@ export default function PredictionsPage() {
                   <article key={item.id}>
                     <strong>{formatProbability(item.failureProbability)}</strong>
                     <span>{getPredictedFaultLabel(item.predictedFailureType)}</span>
+                    <span>{item.modelVersion ?? 'Unknown model'} - {item.estimatedTimeToFailureMinutes ? `${item.estimatedTimeToFailureMinutes} min` : 'No time estimate'}</span>
                     <time>{item.predictedAt ? new Date(item.predictedAt).toLocaleString() : '--'}</time>
                   </article>
                 ))}

@@ -7,6 +7,7 @@ public record MlPredictionResult(
         String predictedFailureType,
         List<String> recommendedActions,
         Double confidence,
-        String modelVersion
+        String modelVersion,
+        Integer estimatedTimeToFailureMinutes
 ) {
 }

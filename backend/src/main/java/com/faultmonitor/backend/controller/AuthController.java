@@ -65,6 +65,6 @@ public class AuthController {
         User user = userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         return ResponseEntity.ok(
-                new UserResponse(user.getId(), user.getUsername(), user.getRole().name()));
+                new UserResponse(user.getId(), user.getUsername(), user.getRole().name(), user.getEnabled()));
     }
 }

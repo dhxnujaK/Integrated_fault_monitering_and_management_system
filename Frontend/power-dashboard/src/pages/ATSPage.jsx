@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
-import EquipmentSelector from '../components/EquipmentSelector'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import DiagnosisPanel from '../components/DiagnosisPanel'
 import PredictionPanel from '../components/PredictionPanel'
@@ -21,9 +20,8 @@ import {
   RefreshCw
 } from 'lucide-react'
 
-export default function ATSPage({ onAcknowledge }) {
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS', selectedEquipmentId)
+export default function ATSPage({ onAcknowledge, onCreateTicketFromAlarm }) {
+  const { selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('ATS', null)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -53,11 +51,6 @@ export default function ATSPage({ onAcknowledge }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <EquipmentSelector
-        equipment={equipment}
-        selectedEquipmentId={selectedEquipment?.id}
-        onChange={setSelectedEquipmentId}
-      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
@@ -197,10 +190,11 @@ export default function ATSPage({ onAcknowledge }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title="Active ATS Alarms"
-          emptyMessage="No active alarms for this ATS."
+          title="ATS Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Cabinet protection relays and last transfer timestamp */}

@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
-import EquipmentSelector from '../components/EquipmentSelector'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import DiagnosisPanel from '../components/DiagnosisPanel'
 import PredictionPanel from '../components/PredictionPanel'
@@ -115,9 +114,8 @@ function GeneratorConditionsTrend({ readings }) {
   )
 }
 
-export default function GeneratorPage({ onAcknowledge }) {
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, readings, statusError, refresh } = useEquipmentMonitoring('GENERATOR', selectedEquipmentId)
+export default function GeneratorPage({ onAcknowledge, onCreateTicketFromAlarm }) {
+  const { selectedEquipment, status, alarms, readings, statusError, refresh } = useEquipmentMonitoring('GENERATOR', null)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -157,11 +155,6 @@ export default function GeneratorPage({ onAcknowledge }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <EquipmentSelector
-        equipment={equipment}
-        selectedEquipmentId={selectedEquipment?.id}
-        onChange={setSelectedEquipmentId}
-      />
       {/* Offline warning banner if backend is unavailable */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
@@ -292,10 +285,11 @@ export default function GeneratorPage({ onAcknowledge }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms using the original .alarm-table styling */}
         <ContextualAlarmPanel
-          title="Active Generator Alarms"
-          emptyMessage="No active alarms for this generator."
+          title="Generator Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Fault Diagnosis with fuel bar, temperature, and indicators */}

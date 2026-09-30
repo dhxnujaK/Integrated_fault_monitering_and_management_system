@@ -61,7 +61,7 @@ class PredictionServiceTests {
     @Test
     void persistsPredictionWithEquipmentAndModelVersion() {
         when(mlClient.predict(any())).thenReturn(new MlPredictionResult(
-                0.82, "GEN_LOW_FUEL", List.of("Refill the day tank"), 0.74, "demo-v1"));
+                0.82, "GEN_LOW_FUEL", List.of("Refill the day tank"), 0.74, "demo-v1", 65));
 
         int saved = predictionService.runPredictionsForEnabledEquipment();
 
@@ -71,6 +71,7 @@ class PredictionServiceTests {
         assertThat(prediction.getEquipment().getId()).isEqualTo(generator.getId());
         assertThat(prediction.getFailureProbability()).isEqualTo(0.82);
         assertThat(prediction.getModelVersion()).isEqualTo("demo-v1");
+        assertThat(prediction.getEstimatedTimeToFailureMinutes()).isEqualTo(65);
         assertThat(predictionService.latest())
                 .anySatisfy(response -> assertThat(response.equipmentId()).isEqualTo(generator.getId()));
     }

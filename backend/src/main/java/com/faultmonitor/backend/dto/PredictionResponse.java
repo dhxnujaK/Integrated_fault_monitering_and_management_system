@@ -17,6 +17,7 @@ public record PredictionResponse(
         List<String> recommendedActions,
         Double confidence,
         String modelVersion,
+        Integer estimatedTimeToFailureMinutes,
         Instant predictedAt,
         DiagnosisResponse diagnosis
 ) {
@@ -34,6 +35,7 @@ public record PredictionResponse(
                 recommendedActions,
                 prediction.getConfidence(),
                 prediction.getModelVersion(),
+                prediction.getEstimatedTimeToFailureMinutes(),
                 toInstant(prediction.getPredictedAt()),
                 diagnosis);
     }

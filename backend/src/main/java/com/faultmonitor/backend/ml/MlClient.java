@@ -74,7 +74,8 @@ public class MlClient {
             @JsonAlias("predicted_failure_type") String predictedFailureType,
             @JsonAlias("recommended_actions") List<String> recommendedActions,
             Double confidence,
-            @JsonAlias("model_version") String modelVersion
+            @JsonAlias("model_version") String modelVersion,
+            @JsonAlias("estimated_time_to_failure_minutes") Integer estimatedTimeToFailureMinutes
     ) {
         MlPredictionResult toResult() {
             return new MlPredictionResult(
@@ -82,7 +83,8 @@ public class MlClient {
                     predictedFailureType == null || predictedFailureType.isBlank() ? "UNKNOWN" : predictedFailureType,
                     recommendedActions == null ? List.of() : recommendedActions,
                     confidence == null ? 0.0 : confidence,
-                    modelVersion == null || modelVersion.isBlank() ? "unversioned" : modelVersion);
+                    modelVersion == null || modelVersion.isBlank() ? "unversioned" : modelVersion,
+                    estimatedTimeToFailureMinutes);
         }
     }
 }
