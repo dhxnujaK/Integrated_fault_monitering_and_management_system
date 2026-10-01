@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export default function usePredictionPolling(loader, intervalMs = 60000, resetKey = '') {
+// Matches the backend prediction cadence, so prediction cards keep pace with live readings.
+export default function usePredictionPolling(loader, intervalMs = 5000, resetKey = '') {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

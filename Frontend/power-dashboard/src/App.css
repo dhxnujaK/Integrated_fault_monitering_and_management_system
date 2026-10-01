@@ -3139,9 +3139,27 @@ dd {
 }
 
 .ups-fleet-compact .ups-unit dl {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin: 10px 0 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 0;
+}
+
+/* Label above value, so each value sits under its own label instead of beside the next one. */
+.ups-fleet-compact .ups-unit dl div {
+  display: grid;
+  gap: 3px;
+  justify-content: start;
+}
+
+.ups-fleet-compact .ups-unit dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ups-fleet-compact .ups-unit dd {
+  margin: 0;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .ups-fleet-compact .ups-unit .unit-alert {

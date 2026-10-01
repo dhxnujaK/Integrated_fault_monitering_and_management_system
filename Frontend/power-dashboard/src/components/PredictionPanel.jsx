@@ -51,6 +51,7 @@ function reconcileWithLiveAlarm(prediction, alarms) {
     recommendedActions: actionsFromDiagnosis(alarm.diagnosis),
     confidence: Math.max(Number(prediction?.confidence) || 0, critical ? 0.95 : 0.75),
     estimatedTimeToFailureMinutes: critical ? 0 : prediction?.estimatedTimeToFailureMinutes,
+    riskLevel: critical || String(prediction?.riskLevel ?? '').toUpperCase() === 'HIGH' ? 'HIGH' : 'MEDIUM',
     predictedAt: prediction?.predictedAt ?? alarm.triggeredAt,
     diagnosis: alarm.diagnosis,
   }
@@ -72,12 +73,12 @@ export default function PredictionPanel({ equipmentId, alarms = [], title = 'Lat
   }, [equipmentId])
   const { data: prediction, loading, error, refresh } = usePredictionPolling(
     loadPrediction,
-    60000,
+    undefined,
     equipmentId ?? 'none',
   )
 
   const displayPrediction = reconcileWithLiveAlarm(prediction, alarms)
-  const risk = predictionRiskLevel(displayPrediction?.failureProbability)
+  const risk = predictionRiskLevel(displayPrediction?.failureProbability, displayPrediction?.riskLevel)
 
   async function handleRunPrediction() {
     setRunState({ loading: true, message: '', error: '' })
@@ -128,7 +129,7 @@ export default function PredictionPanel({ equipmentId, alarms = [], title = 'Lat
         <div className={`prediction-summary ${risk}`}>
           <div className="prediction-score">
             <span>Failure probability</span>
-            <PredictionRiskBadge probability={displayPrediction.failureProbability} />
+            <PredictionRiskBadge probability={displayPrediction.failureProbability} riskLevel={displayPrediction.riskLevel} />
           </div>
           <dl className="prediction-details">
             <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(displayPrediction.predictedFailureType)}</dd></div>

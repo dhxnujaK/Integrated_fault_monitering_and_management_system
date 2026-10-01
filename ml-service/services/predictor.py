@@ -9,6 +9,8 @@ from models.schemas import HealthResponse, ModelHealth, PredictRequest, PredictR
 
 
 SERVICE_VERSION = "1.0.0"
+# Probabilities at or above this share of a model's own threshold are reported as MEDIUM risk.
+MEDIUM_RISK_SHARE_OF_THRESHOLD = 0.5
 SUPPORTED_MODEL_TYPES = ("GENERATOR", "MDP", "SDP", "UPS")
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_DIR = ROOT_DIR / "saved_models"
@@ -159,6 +161,12 @@ class PredictionService:
                 recommendations = [
                     action["action"] for action in diagnosis["correctiveActions"]
                 ]
+        if failure_predicted:
+            risk_level = "HIGH"
+        elif probability >= threshold * MEDIUM_RISK_SHARE_OF_THRESHOLD:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
         estimated_time_to_failure = None
         if failure_predicted:
             estimated_time_to_failure = max(15, min(360, round((1.0 - probability) * 360)))
@@ -176,6 +184,7 @@ class PredictionService:
             ),
             modelVersion=artifact["modelVersion"],
             estimatedTimeToFailureMinutes=estimated_time_to_failure,
+            riskLevel=risk_level,
         )
 
 

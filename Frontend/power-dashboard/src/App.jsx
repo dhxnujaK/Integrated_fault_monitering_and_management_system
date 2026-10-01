@@ -373,7 +373,14 @@ function getAlarmTab(status) {
 
 function formatReading(value, unit = '', fallback = '—') {
   if (value === null || value === undefined || value === '') return fallback
-  return `${value}${unit ? ` ${unit}` : ''}`
+  const number = Number(value)
+  const text = Number.isFinite(number) ? number.toFixed(1) : value
+  return `${text}${unit ? ` ${unit}` : ''}`
+}
+
+function toTitleCase(value) {
+  const text = String(value ?? '').replaceAll('_', ' ').toLowerCase()
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 function getStatusTone(status) {
@@ -391,14 +398,15 @@ function toUpsUnit(equipment, status) {
     equipmentCode: equipment.equipmentCode,
     displayName: equipment.displayName,
     site: equipment.location,
-    mode: reading.operational_status ?? overallStatus,
+    status: overallStatus,
+    mode: reading.operational_status ? toTitleCase(reading.operational_status) : '—',
     runtime: formatReading(reading.estimated_runtime_min, 'min'),
     load: formatReading(reading.load_pct, '%'),
     output: formatReading(reading.output_voltage_v, 'V'),
     input: formatReading(reading.input_voltage_v, 'V'),
     battery: formatReading(reading.battery_charge_pct, '%'),
     tone: getStatusTone(overallStatus),
-    note: `${overallStatus.charAt(0) + overallStatus.slice(1).toLowerCase()} status recorded ${formatAlarmTime(status.recordedAt)}.`,
+    note: `${toTitleCase(overallStatus)} status recorded ${formatAlarmTime(status.recordedAt)}.`,
   }
 }
 
@@ -785,15 +793,16 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
           <strong>{selectedUnit.displayName}</strong>
           <span>{selectedUnit.site}</span>
         </div>
-        <div className={`mode-chip ${selectedUnit.tone}`}>{selectedUnit.mode}</div>
+        <div className={`mode-chip ${selectedUnit.tone}`}>{selectedUnit.status}</div>
       </div>
       <dl className="ups-selected-metrics">
+        <div><dt>Mode</dt><dd>{selectedUnit.mode}</dd></div>
+        <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
         <div><dt>Runtime</dt><dd>{selectedUnit.runtime}</dd></div>
         <div><dt>Load</dt><dd>{selectedUnit.load}</dd></div>
         <div><dt>Battery</dt><dd>{selectedUnit.battery}</dd></div>
         <div><dt>Output</dt><dd>{selectedUnit.output}</dd></div>
         <div><dt>Input</dt><dd>{selectedUnit.input}</dd></div>
-        <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
       </dl>
       <p className="ups-selected-note">{selectedUnit.note}</p>
       <section className="ups-fleet ups-fleet-compact" aria-label="UPS fleet status">
@@ -816,9 +825,10 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
                 <strong>{unit.displayName}</strong>
                 <span>{unit.site}</span>
               </div>
-              <p className={`mode-chip ${unit.tone}`}>{unit.mode}</p>
+              <p className={`mode-chip ${unit.tone}`}>{unit.status}</p>
             </div>
             <dl>
+              <div><dt>Mode</dt><dd>{unit.mode}</dd></div>
               <div><dt>Runtime</dt><dd>{unit.runtime}</dd></div>
               <div><dt>Load</dt><dd>{unit.load}</dd></div>
               <div><dt>Output</dt><dd>{unit.output}</dd></div>
@@ -832,18 +842,21 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
 }
 
 function UpsMiniTrends({ readings }) {
+  // Fixed scales per metric, so steady values look steady and real changes are visible.
   const metrics = [
-    { key: 'battery_charge_pct', label: 'Battery', unit: '%', color: 'var(--green)' },
-    { key: 'load_pct', label: 'Load', unit: '%', color: 'var(--cyan)' },
-    { key: 'output_voltage_v', label: 'Output', unit: 'V', color: 'var(--amber)' },
+    { key: 'battery_charge_pct', label: 'Battery', unit: '%', color: 'var(--green)', min: 0, max: 100 },
+    { key: 'load_pct', label: 'Load', unit: '%', color: 'var(--cyan)', min: 0, max: 100 },
+    { key: 'output_voltage_v', label: 'Output', unit: 'V', color: 'var(--amber)', min: 200, max: 250 },
   ]
+  // The API returns readings newest first; trends read left (oldest) to right (latest).
+  const chronological = [...readings].reverse()
 
   return (
     <div className="ups-mini-trends">
       {metrics.map((metric) => {
-        const values = readings.map((reading) => Number(reading.data?.[metric.key])).filter(Number.isFinite).slice(-12)
+        const values = chronological.map((reading) => Number(reading.data?.[metric.key])).filter(Number.isFinite).slice(-12)
         const latest = values.at(-1)
-        const maximum = Math.max(...values, 1)
+        const scaled = (value) => Math.min(100, Math.max(8, ((value - metric.min) / (metric.max - metric.min)) * 100))
         return (
           <article className="ups-mini-trend" key={metric.key}>
             <div className="ups-mini-trend-heading">
@@ -852,7 +865,7 @@ function UpsMiniTrends({ readings }) {
             </div>
             <div className="ups-mini-bars" aria-label={`${metric.label} recent trend`}>
               {values.length ? values.map((value, index) => (
-                <i key={`${metric.key}-${index}`} style={{ height: `${Math.max(12, (value / maximum) * 100)}%`, background: metric.color }} />
+                <i key={`${metric.key}-${index}`} title={`${value.toFixed(1)} ${metric.unit}`} style={{ height: `${scaled(value)}%`, background: metric.color }} />
               )) : <span className="ups-mini-empty">Waiting for readings</span>}
             </div>
           </article>

@@ -93,12 +93,9 @@ public class PredictionService {
     @Transactional(readOnly = true)
     public PredictionSummaryResponse summary() {
         List<PredictionResponse> latest = latest();
-        long high = latest.stream().filter(prediction -> riskAtLeast(prediction.failureProbability(), 0.7)).count();
-        long medium = latest.stream().filter(prediction -> {
-            double probability = probability(prediction.failureProbability());
-            return probability >= 0.4 && probability < 0.7;
-        }).count();
-        long low = latest.stream().filter(prediction -> probability(prediction.failureProbability()) < 0.4).count();
+        long high = latest.stream().filter(prediction -> "HIGH".equals(prediction.riskLevel())).count();
+        long medium = latest.stream().filter(prediction -> "MEDIUM".equals(prediction.riskLevel())).count();
+        long low = latest.stream().filter(prediction -> "LOW".equals(prediction.riskLevel())).count();
         return new PredictionSummaryResponse(latest.size(), high, medium, low);
     }
 
@@ -113,18 +110,21 @@ public class PredictionService {
     }
 
     private java.util.Optional<Prediction> predictAndSave(Equipment equipment) {
-        SensorReading reading = sensorReadingRepository.findFirstByEquipmentIdOrderByRecordedAtDesc(equipment.getId())
-                .orElse(null);
-        if (reading == null) {
+        int window = mlFeatureService.trendWindowReadings();
+        List<SensorReading> recent = sensorReadingRepository.findByEquipmentIdOrderByRecordedAtDesc(
+                equipment.getId(), PageRequest.of(0, window + 1));
+        if (recent.isEmpty()) {
             log.debug("Skipping prediction for {} because no sensor reading exists.", equipment.getEquipmentCode());
             return java.util.Optional.empty();
         }
+        SensorReading reading = recent.get(0);
+        Map<String, Object> previous = recent.size() > window ? parseReading(recent.get(window)) : null;
 
         MlPredictionResult result = mlClient.predict(new MlPredictionRequest(
                 equipment.getId(),
                 equipment.getEquipmentCode(),
                 equipment.getEquipmentType(),
-                mlFeatureService.enrich(reading, parseReading(reading))));
+                mlFeatureService.enrich(reading, parseReading(reading), previous)));
         Prediction prediction = Prediction.builder()
                 .equipment(equipment)
                 .subsystemType(equipment.getEquipmentType())
@@ -135,6 +135,7 @@ public class PredictionService {
                 .confidence(result.confidence())
                 .modelVersion(result.modelVersion())
                 .estimatedTimeToFailureMinutes(result.estimatedTimeToFailureMinutes())
+                .riskLevel(result.riskLevel())
                 .build();
         return java.util.Optional.of(predictionRepository.save(prediction));
     }
@@ -160,7 +161,17 @@ public class PredictionService {
         return PredictionResponse.from(
                 prediction,
                 actions,
+                riskLevelOf(prediction),
                 diagnosis);
+    }
+
+    /** Predictions saved before risk levels existed fall back to fixed probability bands. */
+    private String riskLevelOf(Prediction prediction) {
+        if (prediction.getRiskLevel() != null) {
+            return prediction.getRiskLevel();
+        }
+        double probability = probability(prediction.getFailureProbability());
+        return probability >= 0.7 ? "HIGH" : probability >= 0.4 ? "MEDIUM" : "LOW";
     }
 
     private PredictionResponse reconciledAlarmResponse(
@@ -180,7 +191,9 @@ public class PredictionService {
                 actions,
                 Math.max(probability(prediction.getConfidence()), alarmConfidence),
                 prediction.getModelVersion(),
-                alarm.getSeverity() == AlarmSeverity.CRITICAL ? 0 : prediction.getEstimatedTimeToFailureMinutes(),
+                // Integer.valueOf keeps the ternary boxed; a plain 0 would unbox a null estimate and throw.
+                alarm.getSeverity() == AlarmSeverity.CRITICAL ? Integer.valueOf(0) : prediction.getEstimatedTimeToFailureMinutes(),
+                alarm.getSeverity() == AlarmSeverity.CRITICAL || "HIGH".equals(riskLevelOf(prediction)) ? "HIGH" : "MEDIUM",
                 PredictionResponse.toInstant(prediction.getPredictedAt()),
                 diagnosis);
     }
@@ -245,9 +258,6 @@ public class PredictionService {
         }
     }
 
-    private boolean riskAtLeast(Double probability, double threshold) {
-        return probability(probability) >= threshold;
-    }
 
     private double probability(Double value) {
         return value == null ? 0.0 : value;

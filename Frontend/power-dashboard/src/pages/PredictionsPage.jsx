@@ -102,7 +102,7 @@ export default function PredictionsPage() {
         {predictions.length ? (
           <div className="prediction-table">
             {predictions.map((prediction) => {
-              const risk = predictionRiskLevel(prediction.failureProbability)
+              const risk = predictionRiskLevel(prediction.failureProbability, prediction.riskLevel)
               return (
                 <article
                   className={`prediction-row ${risk} ${String(selectedEquipmentId) === String(prediction.equipmentId) ? 'selected' : ''}`}
@@ -127,7 +127,7 @@ export default function PredictionsPage() {
                   </div>
                   <div>
                     <span>Probability</span>
-                    <PredictionRiskBadge probability={prediction.failureProbability} />
+                    <PredictionRiskBadge probability={prediction.failureProbability} riskLevel={prediction.riskLevel} />
                   </div>
                   <div>
                     <span>Confidence</span>

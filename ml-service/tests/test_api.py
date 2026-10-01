@@ -33,6 +33,7 @@ class SuccessfulService:
             "confidence": 0.82,
             "modelVersion": "generator-failure-6h-test-v1",
             "estimatedTimeToFailureMinutes": 65,
+            "riskLevel": "HIGH",
         }
 
 
@@ -76,6 +77,7 @@ def test_predict_contract_is_camel_case(monkeypatch):
         "confidence": 0.82,
         "modelVersion": "generator-failure-6h-test-v1",
         "estimatedTimeToFailureMinutes": 65,
+        "riskLevel": "HIGH",
     }
 
 
@@ -173,3 +175,34 @@ def test_saved_models_load_and_serve_real_predictions():
         response = service.predict(request)
         assert 0.0 <= response.failureProbability <= 1.0
         assert response.modelVersion == artifact["modelVersion"]
+
+
+def test_risk_level_follows_each_models_threshold():
+    service = PredictionService()
+    if "MDP" not in service.models:
+        pytest.skip("Trained model artifacts are delivered outside ordinary git history.")
+    threshold = float(service.models["MDP"]["threshold"])
+
+    class FixedProbability:
+        def __init__(self, probability):
+            self.probability = probability
+
+        def predict_proba(self, frame):
+            return np.array([[1.0 - self.probability, self.probability]])
+
+    readings = {feature: 0 for feature in service.models["MDP"]["featureColumns"]}
+    request = PredictRequest(equipmentId=1, equipmentCode="MDP-01", equipmentType="MDP", readings=readings)
+    original = service.models["MDP"]["failurePipeline"]
+    try:
+        expected = {
+            threshold: "HIGH",
+            threshold * 0.6: "MEDIUM",
+            threshold * 0.2: "LOW",
+        }
+        for probability, level in expected.items():
+            service.models["MDP"]["failurePipeline"] = FixedProbability(probability)
+            response = service.predict(request)
+            assert response.riskLevel == level
+            assert (response.predictedFailureType is not None) == (level == "HIGH")
+    finally:
+        service.models["MDP"]["failurePipeline"] = original

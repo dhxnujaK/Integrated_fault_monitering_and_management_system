@@ -69,7 +69,7 @@ class PredictionServiceTests {
     @Test
     void persistsPredictionWithEquipmentAndModelVersion() {
         when(mlClient.predict(any())).thenReturn(new MlPredictionResult(
-                0.82, "GEN_LOW_FUEL", List.of("Refill the day tank"), 0.74, "demo-v1", 65));
+                0.82, "GEN_LOW_FUEL", List.of("Refill the day tank"), 0.74, "demo-v1", 65, "HIGH"));
 
         int saved = predictionService.runPredictionsForEnabledEquipment();
 
@@ -80,6 +80,7 @@ class PredictionServiceTests {
         assertThat(prediction.getFailureProbability()).isEqualTo(0.82);
         assertThat(prediction.getModelVersion()).isEqualTo("demo-v1");
         assertThat(prediction.getEstimatedTimeToFailureMinutes()).isEqualTo(65);
+        assertThat(prediction.getRiskLevel()).isEqualTo("HIGH");
         assertThat(predictionService.latest())
                 .anySatisfy(response -> assertThat(response.equipmentId()).isEqualTo(generator.getId()));
     }
@@ -123,6 +124,36 @@ class PredictionServiceTests {
                     assertThat(response.failureProbability()).isGreaterThanOrEqualTo(0.95);
                     assertThat(response.estimatedTimeToFailureMinutes()).isZero();
                     assertThat(response.diagnosis()).isNotNull();
+                });
+    }
+
+    @Test
+    void warningAlarmWithoutFailureEstimateDoesNotBreakLatestPredictions() {
+        predictionRepository.saveAndFlush(Prediction.builder()
+                .equipment(generator)
+                .subsystemType(generator.getEquipmentType())
+                .subsystemId(generator.getEquipmentCode())
+                .failureProbability(0.01)
+                .recommendedActions("[]")
+                .confidence(0.99)
+                .modelVersion("test-v1")
+                .riskLevel("LOW")
+                .build());
+        alarmRepository.saveAndFlush(Alarm.builder()
+                .equipment(generator)
+                .subsystemType(generator.getEquipmentType())
+                .subsystemId(generator.getEquipmentCode())
+                .alarmCode("GEN_LOW_FUEL")
+                .alarmMessage("Fuel level is below 20%.")
+                .severity(AlarmSeverity.WARNING)
+                .status(AlarmStatus.ACTIVE)
+                .build());
+
+        assertThat(predictionService.latest())
+                .anySatisfy(response -> {
+                    assertThat(response.equipmentId()).isEqualTo(generator.getId());
+                    assertThat(response.estimatedTimeToFailureMinutes()).isNull();
+                    assertThat(response.riskLevel()).isEqualTo("MEDIUM");
                 });
     }
 }

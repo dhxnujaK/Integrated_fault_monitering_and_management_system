@@ -567,7 +567,7 @@ function SystemTab() {
                       <span>{item.equipmentType}</span>
                     </td>
                     <td>
-                      <span className={`status-pill risk-${predictionRiskLevel(item.failureProbability)}`}>
+                      <span className={`status-pill risk-${predictionRiskLevel(item.failureProbability, item.riskLevel)}`}>
                         {formatProbability(item.failureProbability)}
                       </span>
                     </td>
