@@ -40,7 +40,7 @@ public record PredictionResponse(
                 diagnosis);
     }
 
-    private static Instant toInstant(LocalDateTime value) {
+    public static Instant toInstant(LocalDateTime value) {
         return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 }
