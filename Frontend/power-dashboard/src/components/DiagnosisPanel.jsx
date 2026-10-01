@@ -1,12 +1,54 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import SectionCard from './SectionCard'
 
 function diagnosisFor(alarm) {
   return alarm?.diagnosis ?? alarm?.diagnosisResponse ?? null
 }
 
+function diagnosisKeyFor(alarm, diagnosis) {
+  return diagnosis?.key ?? alarm?.alarmCode ?? alarm?.id
+}
+
+function severityRank(severity) {
+  const normalized = String(severity ?? '').toUpperCase()
+  if (normalized === 'CRITICAL') return 3
+  if (normalized === 'WARNING') return 2
+  if (normalized === 'INFO') return 1
+  return 0
+}
+
+function triggeredTime(alarm) {
+  const time = new Date(alarm?.triggeredAt ?? 0).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function isBetterRepresentative(candidate, current) {
+  const candidateSeverity = severityRank(candidate.severity)
+  const currentSeverity = severityRank(current.severity)
+  if (candidateSeverity !== currentSeverity) {
+    return candidateSeverity > currentSeverity
+  }
+  return triggeredTime(candidate) > triggeredTime(current)
+}
+
 export default function DiagnosisPanel({ alarms = [], title = 'Fault Diagnosis' }) {
-  const diagnosedAlarms = alarms.filter((alarm) => diagnosisFor(alarm))
+  const diagnosedAlarms = useMemo(() => {
+    const byDiagnosis = new Map()
+
+    alarms.forEach((alarm) => {
+      const status = String(alarm?.status ?? '').toUpperCase()
+      const diagnosis = diagnosisFor(alarm)
+      if (!diagnosis || status === 'RESOLVED') return
+
+      const key = diagnosisKeyFor(alarm, diagnosis)
+      const current = byDiagnosis.get(key)
+      if (!current || isBetterRepresentative(alarm, current)) {
+        byDiagnosis.set(key, alarm)
+      }
+    })
+
+    return Array.from(byDiagnosis.values())
+  }, [alarms])
 
   return (
     <SectionCard title={title} className="diagnosis-panel">
