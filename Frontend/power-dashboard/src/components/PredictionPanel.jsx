@@ -10,7 +10,58 @@ function getPredictedFaultLabel(predictedFailureType) {
   return predictedFailureType && predictedFailureType !== 'UNKNOWN' ? predictedFailureType : 'No failure predicted'
 }
 
-export default function PredictionPanel({ equipmentId, title = 'Latest Prediction' }) {
+function alarmSeverityRank(alarm) {
+  const severity = String(alarm?.severity ?? '').toUpperCase()
+  if (severity === 'CRITICAL') return 2
+  if (severity === 'WARNING') return 1
+  return 0
+}
+
+function alarmTriggeredAt(alarm) {
+  const time = new Date(alarm?.triggeredAt ?? 0).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function mostImportantLiveAlarm(alarms) {
+  return alarms
+    .filter((alarm) => {
+      const status = String(alarm?.status ?? '').toUpperCase()
+      return ['ACTIVE', 'ACKNOWLEDGED'].includes(status) && alarm?.diagnosis
+    })
+    .sort((left, right) => {
+      const severityDiff = alarmSeverityRank(right) - alarmSeverityRank(left)
+      return severityDiff || alarmTriggeredAt(right) - alarmTriggeredAt(left)
+    })[0] ?? null
+}
+
+function actionsFromDiagnosis(diagnosis) {
+  return diagnosis?.correctiveActions?.map((step) => step.action) ?? []
+}
+
+function reconcileWithLiveAlarm(prediction, alarms) {
+  const alarm = mostImportantLiveAlarm(alarms)
+  if (!alarm) return prediction
+
+  const critical = String(alarm.severity ?? '').toUpperCase() === 'CRITICAL'
+  const alarmProbability = critical ? 0.95 : 0.55
+  return {
+    ...(prediction ?? {}),
+    failureProbability: Math.max(Number(prediction?.failureProbability) || 0, alarmProbability),
+    predictedFailureType: alarm.alarmCode,
+    recommendedActions: actionsFromDiagnosis(alarm.diagnosis),
+    confidence: Math.max(Number(prediction?.confidence) || 0, critical ? 0.95 : 0.75),
+    estimatedTimeToFailureMinutes: critical ? 0 : prediction?.estimatedTimeToFailureMinutes,
+    predictedAt: prediction?.predictedAt ?? alarm.triggeredAt,
+    diagnosis: alarm.diagnosis,
+  }
+}
+
+function formatTimeToFailure(minutes) {
+  const value = Number(minutes)
+  return Number.isFinite(value) ? `${value} min` : 'Not estimated'
+}
+
+export default function PredictionPanel({ equipmentId, alarms = [], title = 'Latest Prediction' }) {
   const [runState, setRunState] = useState({ loading: false, message: '', error: '' })
   const loadPrediction = useCallback(async () => {
     if (!equipmentId) {
@@ -25,7 +76,8 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
     equipmentId ?? 'none',
   )
 
-  const risk = predictionRiskLevel(prediction?.failureProbability)
+  const displayPrediction = reconcileWithLiveAlarm(prediction, alarms)
+  const risk = predictionRiskLevel(displayPrediction?.failureProbability)
 
   async function handleRunPrediction() {
     setRunState({ loading: true, message: '', error: '' })
@@ -50,7 +102,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
 
   return (
     <SectionCard title={title} className="prediction-panel">
-      {loading && !prediction ? <p className="empty-state">Loading prediction...</p> : null}
+      {loading && !displayPrediction ? <p className="empty-state">Loading prediction...</p> : null}
       {error ? (
         <div className="panel-state error">
           <AlertTriangle size={16} />
@@ -58,7 +110,7 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           <button type="button" onClick={refresh}>Retry</button>
         </div>
       ) : null}
-      {!loading && !error && !prediction ? (
+      {!loading && !error && !displayPrediction ? (
         <div className="prediction-empty">
           <p>No persisted prediction is available for this equipment.</p>
           <button
@@ -72,39 +124,39 @@ export default function PredictionPanel({ equipmentId, title = 'Latest Predictio
           {runState.error ? <span className="prediction-run-note error">{runState.error}</span> : null}
         </div>
       ) : null}
-      {prediction ? (
+      {displayPrediction ? (
         <div className={`prediction-summary ${risk}`}>
           <div className="prediction-score">
             <span>Failure probability</span>
-            <PredictionRiskBadge probability={prediction.failureProbability} />
+            <PredictionRiskBadge probability={displayPrediction.failureProbability} />
           </div>
           <dl className="prediction-details">
-            <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(prediction.predictedFailureType)}</dd></div>
-            <div><dt>Time to failure</dt><dd>{prediction.estimatedTimeToFailureMinutes ? `${prediction.estimatedTimeToFailureMinutes} min` : 'Not estimated'}</dd></div>
-            <div><dt>Model version</dt><dd>{prediction.modelVersion ?? 'Unknown'}</dd></div>
-            <div><dt>Generated</dt><dd>{prediction.predictedAt ? new Date(prediction.predictedAt).toLocaleString() : '--'}</dd></div>
+            <div><dt>Predicted fault</dt><dd>{getPredictedFaultLabel(displayPrediction.predictedFailureType)}</dd></div>
+            <div><dt>Time to failure</dt><dd>{formatTimeToFailure(displayPrediction.estimatedTimeToFailureMinutes)}</dd></div>
+            <div><dt>Model version</dt><dd>{displayPrediction.modelVersion ?? 'Live alarm'}</dd></div>
+            <div><dt>Generated</dt><dd>{displayPrediction.predictedAt ? new Date(displayPrediction.predictedAt).toLocaleString() : '--'}</dd></div>
           </dl>
           <div className="prediction-actions">
             <div className="mini-heading">Recommended actions</div>
-            {prediction.recommendedActions?.length ? (
+            {displayPrediction.recommendedActions?.length ? (
               <ol className="diagnosis-points action-points">
-                {prediction.recommendedActions.map((action, index) => (
+                {displayPrediction.recommendedActions.map((action, index) => (
                   <li key={`${action}-${index}`}><span />{action}</li>
                 ))}
               </ol>
-            ) : prediction.diagnosis?.correctiveActions?.length ? (
+            ) : displayPrediction.diagnosis?.correctiveActions?.length ? (
               <ol className="diagnosis-points action-points">
-                {prediction.diagnosis.correctiveActions.map((step) => (
+                {displayPrediction.diagnosis.correctiveActions.map((step) => (
                   <li key={step.step}><span />{step.action}</li>
                 ))}
               </ol>
             ) : <p>No corrective action required for this low-risk prediction.</p>}
           </div>
-          {prediction.diagnosis ? (
+          {displayPrediction.diagnosis ? (
             <div className="prediction-actions">
               <div className="mini-heading">Probable causes</div>
               <ul className="diagnosis-points">
-                {prediction.diagnosis.probableCauses.map((cause) => (
+                {displayPrediction.diagnosis.probableCauses.map((cause) => (
                   <li key={cause}><span />{cause}</li>
                 ))}
               </ul>

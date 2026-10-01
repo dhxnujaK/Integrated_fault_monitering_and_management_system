@@ -267,7 +267,7 @@ export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
 
       <div className="content-grid two-even">
         <DiagnosisPanel alarms={alarms} title="SDP Fault Diagnosis" />
-        <PredictionPanel equipmentId={selectedEquipment?.id} title="SDP Prediction" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} alarms={alarms} title="SDP Prediction" />
       </div>
     </div>
   )

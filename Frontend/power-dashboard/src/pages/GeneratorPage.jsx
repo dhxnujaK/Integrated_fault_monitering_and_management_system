@@ -359,7 +359,7 @@ export default function GeneratorPage({ onAcknowledge, onCreateTicketFromAlarm }
 
       <div className="content-grid two-even">
         <DiagnosisPanel alarms={alarms} title="Generator Fault Diagnosis" />
-        <PredictionPanel equipmentId={selectedEquipment?.id} title="Generator Prediction" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} alarms={alarms} title="Generator Prediction" />
       </div>
 
       {/* 5. Live monitoring snapshot */}

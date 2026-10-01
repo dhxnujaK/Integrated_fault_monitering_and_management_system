@@ -250,7 +250,7 @@ export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
 
       <div className="content-grid two-even">
         <DiagnosisPanel alarms={alarms} title="MDP Fault Diagnosis" />
-        <PredictionPanel equipmentId={selectedEquipment?.id} title="MDP Prediction" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} alarms={alarms} title="MDP Prediction" />
       </div>
     </div>
   )

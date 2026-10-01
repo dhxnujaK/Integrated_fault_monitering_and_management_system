@@ -768,7 +768,7 @@ function UpsPage({ alarms, onAcknowledge, onCreateTicketFromAlarm, onAction, ala
           </SectionCard>
         ) : null}
         {activeUpsTab === 'Diagnosis' ? <DiagnosisPanel alarms={selectedUnitAlarms} title="UPS Fault Diagnosis" /> : null}
-        {activeUpsTab === 'Prediction' ? <PredictionPanel equipmentId={selectedUnit.id} title="UPS Prediction" /> : null}
+        {activeUpsTab === 'Prediction' ? <PredictionPanel equipmentId={selectedUnit.id} alarms={selectedUnitAlarms} title="UPS Prediction" /> : null}
       </> : null}
     </div>
   )
