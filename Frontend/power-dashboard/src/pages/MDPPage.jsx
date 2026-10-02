@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { acknowledgeAlarm } from '../api/alarmsApi'
 import useEquipmentMonitoring from '../hooks/useEquipmentMonitoring'
-import EquipmentSelector from '../components/EquipmentSelector'
 import ContextualAlarmPanel from '../components/ContextualAlarmPanel'
 import DiagnosisPanel from '../components/DiagnosisPanel'
 import PredictionPanel from '../components/PredictionPanel'
@@ -105,9 +104,8 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function MDPPage({ onAcknowledge }) {
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
-  const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', selectedEquipmentId)
+export default function MDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
+  const { selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('MDP', null)
 
   // Acknowledge alarm handler
   const handleAcknowledge = async (id) => {
@@ -128,16 +126,8 @@ export default function MDPPage({ onAcknowledge }) {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus ?? 'OFFLINE'
-  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
-
   return (
     <div className="flex flex-col gap-4">
-      <EquipmentSelector
-        equipment={equipment}
-        selectedEquipmentId={selectedEquipment?.id}
-        onChange={setSelectedEquipmentId}
-      />
       {/* Offline warning banner if backend is offline */}
       {isOffline && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-400 font-bold flex justify-between items-center">
@@ -150,14 +140,6 @@ export default function MDPPage({ onAcknowledge }) {
           </button>
         </div>
       )}
-
-      {/* 1. State bar at the top (exactly as in original mockup) */}
-      <div className="state-bar">
-        <span>Current Status</span>
-        <strong className={overallStatusClass}>
-          {overallStatus}
-        </strong>
-      </div>
 
       {/* 2. Phase Status section with .phase-grid and .phase-card (exactly as in original mockup) */}
       <SectionCard title="Phase Status" icon={Gauge}>
@@ -213,10 +195,11 @@ export default function MDPPage({ onAcknowledge }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title="Active MDP Alarms"
-          emptyMessage="No active alarms for this MDP."
+          title="MDP Alarms"
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}

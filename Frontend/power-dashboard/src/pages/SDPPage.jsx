@@ -104,7 +104,7 @@ function VoltageBarChart({ vr, vy, vb }) {
   )
 }
 
-export default function SDPPage({ onAcknowledge }) {
+export default function SDPPage({ onAcknowledge, onCreateTicketFromAlarm }) {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(null)
   const { equipment, selectedEquipment, status, alarms, statusError, refresh } = useEquipmentMonitoring('SDP', selectedEquipmentId)
   const selectedSdp = selectedEquipment?.equipmentCode ?? 'SDP'
@@ -128,9 +128,6 @@ export default function SDPPage({ onAcknowledge }) {
 
   const latestReading = status?.latestReading ?? {}
 
-  const overallStatus = status?.overallStatus ?? 'OFFLINE'
-  const overallStatusClass = overallStatus === 'NORMAL' ? 'good' : 'bad'
-
   return (
     <div className="flex flex-col gap-4">
       {/* Offline warning banner if backend is offline */}
@@ -146,7 +143,6 @@ export default function SDPPage({ onAcknowledge }) {
         </div>
       )}
 
-      {/* Tabs at the top to toggle between SDP panels */}
       <div className="flex border-b border-[#344364] gap-2 mb-2">
         {equipment.map((item) => (
           <button
@@ -163,15 +159,6 @@ export default function SDPPage({ onAcknowledge }) {
         ))}
       </div>
 
-      {/* 1. State bar representing selected SDP overallStatus */}
-      <div className="state-bar">
-        <span>Current Status - {selectedSdp}</span>
-        <strong className={overallStatusClass}>
-          {overallStatus}
-        </strong>
-      </div>
-
-      {/* 2. Phase Status section matching MDP styling */}
       <SectionCard title="Phase Status" icon={Gauge}>
         <div className="phase-grid">
           <article className="phase-card">
@@ -225,10 +212,11 @@ export default function SDPPage({ onAcknowledge }) {
       <div className="content-grid main-side">
         {/* Left column: Active alarms */}
         <ContextualAlarmPanel
-          title={`Active Alarms - ${selectedSdp}`}
-          emptyMessage="No active alarms for this SDP."
+          title={`Alarms - ${selectedSdp}`}
+          emptyMessage="No alarms in this view."
           alarms={alarms}
           onAcknowledge={handleAcknowledge}
+          onCreateTicket={onCreateTicketFromAlarm}
         />
 
         {/* Right column: Main breaker status, cabinet temperature, and alerts */}

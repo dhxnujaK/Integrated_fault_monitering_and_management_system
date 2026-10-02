@@ -11,6 +11,10 @@ export default function OperationsPage() {
   const initialTab = location.state?.tab || 'tickets'
   const [activeTab, setActiveTab] = useState(initialTab)
 
+  useEffect(() => {
+    setActiveTab(location.state?.tab || 'tickets')
+  }, [location.state])
+
   return (
     <div className="operations-page">
       <nav className="operations-nav-tabs" aria-label="Operations workspace sections">
@@ -51,8 +55,11 @@ export default function OperationsPage() {
 
 function TicketsTab({ locationState }) {
   const [tickets, setTickets] = useState([])
+  const [equipmentOptions, setEquipmentOptions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingEquipment, setLoadingEquipment] = useState(true)
   const [error, setError] = useState('')
+  const [feedback, setFeedback] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(Boolean(locationState?.createModal || locationState?.alarmId))
   const [creating, setCreating] = useState(false)
@@ -62,14 +69,15 @@ function TicketsTab({ locationState }) {
   const [alarmId, setAlarmId] = useState(locationState?.alarmId || '')
   const [title, setTitle] = useState(locationState?.title || '')
   const [description, setDescription] = useState(locationState?.description || '')
-  const [priority, setPriority] = useState('HIGH')
-  const [assignedTo, setAssignedTo] = useState('Dispatch Tech')
+  const [priority, setPriority] = useState(locationState?.priority || 'HIGH')
+  const [assignedGroup, setAssignedGroup] = useState(locationState?.assignedGroup || 'Electrical Team')
 
   const fetchTickets = async () => {
     try {
       setLoading(true)
       const data = await getTickets({ status: statusFilter || undefined })
-      setTickets(data.items ?? [])
+      const items = data.items ?? []
+      setTickets(statusFilter ? items : items.filter((ticket) => ticket.status !== 'CLOSED'))
       setError('')
     } catch (err) {
       setError(err.message || 'Unable to load tickets')
@@ -82,6 +90,27 @@ function TicketsTab({ locationState }) {
     fetchTickets()
   }, [statusFilter])
 
+  useEffect(() => {
+    setShowCreateModal(Boolean(locationState?.createModal || locationState?.alarmId))
+    if (locationState?.equipmentId) setEquipmentId(String(locationState.equipmentId))
+    if (locationState?.alarmId) setAlarmId(String(locationState.alarmId))
+    if (locationState?.title) setTitle(locationState.title)
+    if (locationState?.description) setDescription(locationState.description)
+    if (locationState?.priority) setPriority(locationState.priority)
+    if (locationState?.assignedGroup) setAssignedGroup(locationState.assignedGroup)
+  }, [locationState])
+
+  useEffect(() => {
+    getEquipmentList({ enabled: true })
+      .then((data) => {
+        const options = Array.isArray(data) ? data : (data.items ?? [])
+        setEquipmentOptions(options)
+        if (!locationState?.equipmentId && options.length) setEquipmentId(String(options[0].id))
+      })
+      .catch(() => setEquipmentOptions([]))
+      .finally(() => setLoadingEquipment(false))
+  }, [locationState?.equipmentId])
+
   async function handleCreateTicket(e) {
     e.preventDefault()
     if (!title.trim() || !description.trim()) return
@@ -93,14 +122,17 @@ function TicketsTab({ locationState }) {
         title,
         description,
         priority,
-        assignedTo,
+        assignedGroup,
       })
       setShowCreateModal(false)
       setTitle('')
       setDescription('')
+      setAlarmId('')
+      setAssignedGroup('Electrical Team')
+      setFeedback({ type: 'success', message: 'Maintenance ticket created successfully.' })
       await fetchTickets()
     } catch (err) {
-      alert(err.message || 'Failed to create ticket')
+      setFeedback({ type: 'error', message: err.message || 'Failed to create ticket.' })
     } finally {
       setCreating(false)
     }
@@ -109,9 +141,10 @@ function TicketsTab({ locationState }) {
   async function handleStatusChange(ticketId, nextStatus) {
     try {
       await updateTicket(ticketId, { status: nextStatus })
+      setFeedback({ type: 'success', message: 'Ticket status updated.' })
       await fetchTickets()
     } catch (err) {
-      alert(err.message || 'Failed to update ticket status')
+      setFeedback({ type: 'error', message: err.message || 'Invalid status change.' })
     }
   }
 
@@ -125,21 +158,35 @@ function TicketsTab({ locationState }) {
               <option value="">All Statuses</option>
               <option value="OPEN">Open</option>
               <option value="IN_PROGRESS">In Progress</option>
-              <option value="CLOSED">Closed</option>
+              <option value="CLOSED">Closed / History</option>
             </select>
             <button type="button" className="icon-btn" onClick={fetchTickets} title="Refresh">
               <RefreshCw size={15} />
             </button>
+            <span className="result-count">{loading ? 'Loading' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}</span>
           </div>
           <button type="button" className="primary-btn" onClick={() => setShowCreateModal(true)}>
             <Plus size={15} /> Create Ticket
           </button>
         </div>
 
-        {loading ? <p className="empty-state">Loading tickets...</p> : null}
+        {feedback ? <p className={`operation-feedback ${feedback.type}`}>{feedback.message}</p> : null}
+
+        {loading ? (
+          <div className="ticket-skeleton-list" aria-label="Loading tickets">
+            {[1, 2, 3].map((item) => <div className="ticket-skeleton" key={item} />)}
+          </div>
+        ) : null}
         {error ? <p className="empty-state error-text">{error}</p> : null}
         {!loading && !error && tickets.length === 0 ? (
-          <p className="empty-state">No maintenance tickets found.</p>
+          <div className="operations-empty">
+            <AlertTriangle size={24} />
+            <strong>No maintenance tickets found</strong>
+            <span>Create a work order when an alarm or maintenance task needs attention.</span>
+            <button type="button" className="primary-btn" onClick={() => setShowCreateModal(true)}>
+              <Plus size={15} /> Create Ticket
+            </button>
+          </div>
         ) : null}
 
         {tickets.length > 0 ? (
@@ -150,10 +197,9 @@ function TicketsTab({ locationState }) {
                   <th>ID</th>
                   <th>Title & Equipment</th>
                   <th>Priority</th>
-                  <th>Assigned To</th>
+                  <th>Assigned Group</th>
                   <th>Status</th>
                   <th>Created At</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,24 +218,15 @@ function TicketsTab({ locationState }) {
                         {t.priority}
                       </span>
                     </td>
-                    <td>{t.assignedTo || '--'}</td>
+                    <td>{t.assignedGroup || '--'}</td>
                     <td>
-                      <span className={`status-badge ${String(t.status).toLowerCase()}`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td>{t.createdAt ? new Date(t.createdAt).toLocaleString() : '--'}</td>
-                    <td>
-                      <select
-                        className="status-select"
-                        value={t.status}
-                        onChange={(e) => handleStatusChange(t.id, e.target.value)}
-                      >
+                      <select className="status-select" value={t.status} onChange={(e) => handleStatusChange(t.id, e.target.value)}>
                         <option value="OPEN">OPEN</option>
                         <option value="IN_PROGRESS">IN_PROGRESS</option>
                         <option value="CLOSED">CLOSED</option>
                       </select>
                     </td>
+                    <td>{t.createdAt ? new Date(t.createdAt).toLocaleString() : '--'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,8 +241,14 @@ function TicketsTab({ locationState }) {
             <h3>Create Maintenance Ticket</h3>
             <form onSubmit={handleCreateTicket}>
               <label>
-                <span>Equipment ID</span>
-                <input type="number" value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} required />
+                <span>Equipment</span>
+                <select value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} required disabled={loadingEquipment || !equipmentOptions.length}>
+                  {loadingEquipment ? <option>Loading equipment...</option> : null}
+                  {!loadingEquipment && !equipmentOptions.length ? <option value="">No equipment available</option> : null}
+                  {equipmentOptions.map((equipment) => (
+                    <option value={equipment.id} key={equipment.id}>{equipment.equipmentCode} - {equipment.displayName}</option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span>Linked Alarm ID (Optional)</span>
@@ -226,12 +269,16 @@ function TicketsTab({ locationState }) {
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
-                    <option value="CRITICAL">Critical</option>
                   </select>
                 </label>
                 <label>
-                  <span>Assigned To</span>
-                  <input type="text" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} />
+                  <span>Assigned Group</span>
+                  <select value={assignedGroup} onChange={(e) => setAssignedGroup(e.target.value)}>
+                    <option value="Electrical Team">Electrical Team</option>
+                    <option value="Mechanical Team">Mechanical Team</option>
+                    <option value="Operations Team">Operations Team</option>
+                    <option value="Safety Team">Safety Team</option>
+                  </select>
                 </label>
               </div>
               <div className="modal-actions">
@@ -273,8 +320,8 @@ function ReportsTab() {
       setMessage('')
       const params = {
         format: 'CSV',
-        from: new Date(from).toISOString().slice(0, 19),
-        to: new Date(to).toISOString().slice(0, 19),
+        from: from.length === 16 ? `${from}:00` : from,
+        to: to.length === 16 ? `${to}:59` : to,
       }
 
       const response = reportType === 'alarms' ? await downloadAlarmsReport(params) : await downloadTicketsReport(params)
