@@ -2018,13 +2018,28 @@ dd {
   color: #fecaca;
 }
 
+.prediction-risk-badge.high span {
+  background: rgb(127 29 29 / 35%);
+  color: #fca5a5;
+}
+
 .prediction-risk-badge.medium {
   border-color: rgb(251 191 36 / 45%);
   color: #fde68a;
 }
 
+.prediction-risk-badge.medium span {
+  background: rgb(120 53 15 / 32%);
+  color: #fbbf24;
+}
+
 .prediction-risk-badge.low {
   border-color: rgb(74 222 128 / 35%);
+  color: #86efac;
+}
+
+.prediction-risk-badge.low span {
+  background: rgb(20 83 45 / 24%);
   color: #86efac;
 }
 
@@ -2264,7 +2279,7 @@ dd {
 }
 
 .prediction-row.selected {
-  outline: 2px solid rgb(102 215 230 / 55%);
+  outline: 1px solid rgb(52 67 100 / 80%);
   outline-offset: 1px;
 }
 
