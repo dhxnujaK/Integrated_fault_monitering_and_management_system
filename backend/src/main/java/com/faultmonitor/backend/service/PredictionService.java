@@ -122,6 +122,7 @@ public class PredictionService {
                 .recommendedActions(writeActions(result.recommendedActions()))
                 .confidence(result.confidence())
                 .modelVersion(result.modelVersion())
+                .estimatedTimeToFailureMinutes(result.estimatedTimeToFailureMinutes())
                 .build();
         return java.util.Optional.of(predictionRepository.save(prediction));
     }

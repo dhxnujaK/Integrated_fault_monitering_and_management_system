@@ -17,8 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -41,16 +39,6 @@ public class DataSimulationService {
 
     @Value("${simulation.fault-injection.enabled:false}")
     private boolean faultInjectionEnabled;
-
-    @EventListener(ApplicationReadyEvent.class)
-    public void seedInitialReadings() {
-        simulateGenerator();
-        simulateATS();
-        simulateMDP();
-        simulateSDP();
-        simulateUPS();
-        log.info("Initial simulated sensor readings generated on application startup.");
-    }
 
     @Scheduled(fixedRate = 5000)
     public void simulateGenerator() {
