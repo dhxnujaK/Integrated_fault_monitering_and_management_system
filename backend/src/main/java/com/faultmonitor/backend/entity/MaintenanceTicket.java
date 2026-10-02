@@ -59,6 +59,9 @@ public class MaintenanceTicket {
     @Column(nullable = false)
     private TicketPriority priority = TicketPriority.MEDIUM;
 
+    @Column(name = "assigned_group", length = 100)
+    private String assignedGroup;
+
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
 

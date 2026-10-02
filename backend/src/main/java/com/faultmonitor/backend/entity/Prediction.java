@@ -62,6 +62,9 @@ public class Prediction {
     @Column(name = "model_version", length = 100)
     private String modelVersion;
 
+    @Column(name = "estimated_time_to_failure_minutes")
+    private Integer estimatedTimeToFailureMinutes;
+
     @CreationTimestamp
     @Column(name = "predicted_at", nullable = false, updatable = false)
     private LocalDateTime predictedAt;
