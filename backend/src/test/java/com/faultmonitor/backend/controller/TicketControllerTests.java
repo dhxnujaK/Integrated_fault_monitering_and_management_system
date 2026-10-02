@@ -65,9 +65,7 @@ class TicketControllerTests {
                 generator.getId(),
                 "Fix generator coolant leak",
                 "Coolant leak observed at pump fitting",
-                TicketPriority.HIGH,
-                null,
-                null
+                TicketPriority.HIGH, "Electrical Team", null, null
         );
 
         mockMvc.perform(post("/api/tickets")
@@ -80,6 +78,7 @@ class TicketControllerTests {
                 .andExpect(jsonPath("$.title").value("Fix generator coolant leak"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.assignedGroup").value("Electrical Team"))
                 .andExpect(jsonPath("$.equipmentCode").value("GENERATOR-01"));
     }
 
@@ -87,7 +86,7 @@ class TicketControllerTests {
     @WithMockUser(username = "admin", roles = "OPERATOR")
     void findAllReturnsPageResponse() throws Exception {
         ticketService.createTicket(
-                new CreateTicketRequest(generator.getId(), "Ticket 1", "Desc 1", TicketPriority.LOW, null, null),
+                new CreateTicketRequest(generator.getId(), "Ticket 1", "Desc 1", TicketPriority.LOW, null, null, null),
                 "admin"
         );
 
@@ -101,7 +100,7 @@ class TicketControllerTests {
     @WithMockUser(username = "admin", roles = "OPERATOR")
     void findByIdReturnsTicketDetails() throws Exception {
         TicketResponse created = ticketService.createTicket(
-                new CreateTicketRequest(generator.getId(), "Ticket Detail", "Detail Desc", TicketPriority.MEDIUM, null, null),
+                new CreateTicketRequest(generator.getId(), "Ticket Detail", "Detail Desc", TicketPriority.MEDIUM, null, null, null),
                 "admin"
         );
 
@@ -116,13 +115,14 @@ class TicketControllerTests {
     @WithMockUser(username = "admin", roles = "OPERATOR")
     void updateTicketTransitionsStatus() throws Exception {
         TicketResponse created = ticketService.createTicket(
-                new CreateTicketRequest(generator.getId(), "Ticket Update", "Initial Desc", TicketPriority.LOW, null, null),
+                new CreateTicketRequest(generator.getId(), "Ticket Update", "Initial Desc", TicketPriority.LOW, null, null, null),
                 "admin"
         );
 
         UpdateTicketRequest updateRequest = new UpdateTicketRequest(
                 TicketStatus.IN_PROGRESS,
                 TicketPriority.HIGH,
+                "Maintenance Team",
                 "Technician dispatched"
         );
 
@@ -133,6 +133,7 @@ class TicketControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.assignedGroup").value("Maintenance Team"))
                 .andExpect(jsonPath("$.description").value("Technician dispatched"));
     }
 
@@ -148,6 +149,7 @@ class TicketControllerTests {
         CreateTicketRequest invalid = new CreateTicketRequest(
                 null, // Missing required equipmentId
                 "",   // Blank title
+                null,
                 null,
                 null,
                 null,

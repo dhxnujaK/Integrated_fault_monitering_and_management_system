@@ -1,3 +1,4 @@
+
 package com.faultmonitor.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,9 +80,7 @@ class TicketServiceTests {
                                 generator.getId(),
                                 "Check engine oil leak",
                                 "Observed minor oil weeping during routine run.",
-                                TicketPriority.HIGH,
-                                null,
-                                null);
+                                TicketPriority.HIGH, null, null, null);
 
                 TicketResponse response = ticketService.createTicket(request, testUser.getUsername());
 
@@ -124,6 +123,7 @@ class TicketServiceTests {
                                 "Overheating alert inspection",
                                 "Investigating coolant temp spike",
                                 TicketPriority.HIGH,
+                                null,
                                 alarm.getId(),
                                 prediction.getId());
 
@@ -150,6 +150,7 @@ class TicketServiceTests {
                                 "Cross equipment test",
                                 "Should fail because alarm is on ATS-01",
                                 TicketPriority.HIGH,
+                                null,
                                 atsAlarm.getId(), // Alarm belongs to ATS-01
                                 null);
 
@@ -180,6 +181,7 @@ class TicketServiceTests {
                                 "Should fail because prediction is on ATS-01",
                                 TicketPriority.MEDIUM,
                                 null,
+                                null,
                                 atsPrediction.getId() // Prediction is on ATS-01
                 );
 
@@ -196,18 +198,18 @@ class TicketServiceTests {
         void permittedStatusTransitionsSucceed() {
                 TicketResponse ticket = ticketService.createTicket(
                                 new CreateTicketRequest(generator.getId(), "Lifecycle test", "Desc", TicketPriority.LOW,
-                                                null, null),
+                                                null, null, null),
                                 testUser.getUsername());
 
                 // OPEN -> IN_PROGRESS
                 TicketResponse inProgress = ticketService.updateTicket(ticket.id(),
-                                new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, "Investigation started"));
+                                new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, null, "Investigation started"));
                 assertThat(inProgress.status()).isEqualTo(TicketStatus.IN_PROGRESS);
                 assertThat(inProgress.description()).isEqualTo("Investigation started");
 
                 // IN_PROGRESS -> CLOSED
                 TicketResponse closed = ticketService.updateTicket(ticket.id(),
-                                new UpdateTicketRequest(TicketStatus.CLOSED, null, "Resolved and tested"));
+                                new UpdateTicketRequest(TicketStatus.CLOSED, null, null, "Resolved and tested"));
                 assertThat(closed.status()).isEqualTo(TicketStatus.CLOSED);
                 assertThat(closed.description()).isEqualTo("Resolved and tested");
         }
@@ -216,12 +218,12 @@ class TicketServiceTests {
         void invalidDirectTransitionFromOpenToClosedThrowsBadRequest() {
                 TicketResponse ticket = ticketService.createTicket(
                                 new CreateTicketRequest(generator.getId(), "Jump transition test", "Desc",
-                                                TicketPriority.LOW, null, null),
+                                                TicketPriority.LOW, null, null, null),
                                 testUser.getUsername());
 
                 // Direct OPEN -> CLOSED is forbidden (must go through IN_PROGRESS)
                 assertThatThrownBy(() -> ticketService.updateTicket(ticket.id(),
-                                new UpdateTicketRequest(TicketStatus.CLOSED, null, "Skip to closed")))
+                                new UpdateTicketRequest(TicketStatus.CLOSED, null, null, "Skip to closed")))
                                 .isInstanceOf(ApiException.class)
                                 .satisfies(ex -> {
                                         ApiException apiEx = (ApiException) ex;
@@ -234,14 +236,15 @@ class TicketServiceTests {
         void reopeningClosedTicketThrowsBadRequest() {
                 TicketResponse ticket = ticketService.createTicket(
                                 new CreateTicketRequest(generator.getId(), "Close and reopen test", "Desc",
-                                                TicketPriority.LOW, null, null),
+                                                TicketPriority.LOW, null, null, null),
                                 testUser.getUsername());
-                ticketService.updateTicket(ticket.id(), new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, null));
-                ticketService.updateTicket(ticket.id(), new UpdateTicketRequest(TicketStatus.CLOSED, null, null));
+                ticketService.updateTicket(ticket.id(),
+                                new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, null, null));
+                ticketService.updateTicket(ticket.id(), new UpdateTicketRequest(TicketStatus.CLOSED, null, null, null));
 
                 // Reopening from CLOSED is forbidden
                 assertThatThrownBy(() -> ticketService.updateTicket(ticket.id(),
-                                new UpdateTicketRequest(TicketStatus.OPEN, null, "Reopen")))
+                                new UpdateTicketRequest(TicketStatus.OPEN, null, null, "Reopen")))
                                 .isInstanceOf(ApiException.class)
                                 .satisfies(ex -> {
                                         ApiException apiEx = (ApiException) ex;
@@ -254,18 +257,18 @@ class TicketServiceTests {
         void findAllSupportsFilteringAndPagination() {
                 ticketService.createTicket(
                                 new CreateTicketRequest(generator.getId(), "Gen Ticket 1", "Desc", TicketPriority.LOW,
-                                                null, null),
+                                                null, null, null),
                                 testUser.getUsername());
                 TicketResponse genTicket2 = ticketService.createTicket(
                                 new CreateTicketRequest(generator.getId(), "Gen Ticket 2", "Desc", TicketPriority.HIGH,
-                                                null, null),
+                                                null, null, null),
                                 testUser.getUsername());
                 ticketService.updateTicket(genTicket2.id(),
-                                new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, null));
+                                new UpdateTicketRequest(TicketStatus.IN_PROGRESS, null, null, null));
 
                 ticketService.createTicket(
                                 new CreateTicketRequest(ats.getId(), "ATS Ticket 1", "Desc", TicketPriority.MEDIUM,
-                                                null, null),
+                                                null, null, null),
                                 testUser.getUsername());
 
                 // Filter by equipmentId

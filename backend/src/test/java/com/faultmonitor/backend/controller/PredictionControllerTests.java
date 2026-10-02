@@ -59,6 +59,7 @@ class PredictionControllerTests {
                 .recommendedActions("[\"Refill the day tank\"]")
                 .confidence(0.81)
                 .modelVersion("test-v1")
+                .estimatedTimeToFailureMinutes(90)
                 .build());
     }
 
@@ -70,6 +71,7 @@ class PredictionControllerTests {
                 .andExpect(jsonPath("$[0].equipmentCode").value("GENERATOR-01"))
                 .andExpect(jsonPath("$[0].failureProbability").value(0.72))
                 .andExpect(jsonPath("$[0].modelVersion").value("test-v1"))
+                .andExpect(jsonPath("$[0].estimatedTimeToFailureMinutes").value(90))
                 .andExpect(jsonPath("$[0].diagnosis.key").value("GEN_LOW_FUEL"));
     }
 
