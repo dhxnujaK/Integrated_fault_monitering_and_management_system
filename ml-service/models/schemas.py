@@ -24,6 +24,7 @@ class PredictResponse(BaseModel):
     recommendedActions: List[str]
     confidence: float = Field(ge=0.0, le=1.0)
     modelVersion: str
+    estimatedTimeToFailureMinutes: Optional[int] = Field(default=None, ge=0)
 
 
 class ModelHealth(BaseModel):
