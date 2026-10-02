@@ -156,4 +156,53 @@ class PredictionServiceTests {
                     assertThat(response.riskLevel()).isEqualTo("MEDIUM");
                 });
     }
+
+    @Test
+    void latestIncludesLiveAlarmWhenNoSavedPredictionExists() {
+        Equipment ats = equipmentRepository.findByEquipmentCode("ATS-01").orElseThrow();
+        alarmRepository.saveAndFlush(Alarm.builder()
+                .equipment(ats)
+                .subsystemType(ats.getEquipmentType())
+                .subsystemId(ats.getEquipmentCode())
+                .alarmCode("ATS_TRANSFER_FAIL")
+                .alarmMessage("ATS transfer did not complete.")
+                .severity(AlarmSeverity.CRITICAL)
+                .status(AlarmStatus.ACTIVE)
+                .build());
+
+        assertThat(predictionService.latest())
+                .anySatisfy(response -> {
+                    assertThat(response.id()).isNull();
+                    assertThat(response.equipmentId()).isEqualTo(ats.getId());
+                    assertThat(response.equipmentCode()).isEqualTo("ATS-01");
+                    assertThat(response.predictedFailureType()).isEqualTo("ATS_TRANSFER_FAIL");
+                    assertThat(response.failureProbability()).isEqualTo(0.95);
+                    assertThat(response.riskLevel()).isEqualTo("HIGH");
+                    assertThat(response.modelVersion()).isEqualTo("Live alarm");
+                });
+    }
+
+    @Test
+    void noFailurePredictionDisplaysAsLowZeroProbability() {
+        predictionRepository.saveAndFlush(Prediction.builder()
+                .equipment(generator)
+                .subsystemType(generator.getEquipmentType())
+                .subsystemId(generator.getEquipmentCode())
+                .failureProbability(0.22)
+                .predictedFailureType(null)
+                .recommendedActions("[]")
+                .confidence(0.78)
+                .modelVersion("test-v1")
+                .riskLevel("MEDIUM")
+                .build());
+
+        assertThat(predictionService.latest())
+                .anySatisfy(response -> {
+                    assertThat(response.equipmentId()).isEqualTo(generator.getId());
+                    assertThat(response.predictedFailureType()).isNull();
+                    assertThat(response.failureProbability()).isZero();
+                    assertThat(response.riskLevel()).isEqualTo("LOW");
+                    assertThat(response.estimatedTimeToFailureMinutes()).isNull();
+                });
+    }
 }
