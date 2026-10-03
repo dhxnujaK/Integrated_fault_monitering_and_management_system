@@ -247,7 +247,7 @@ export default function ATSPage({ onAcknowledge, onCreateTicketFromAlarm }) {
 
       <div className="content-grid two-even">
         <DiagnosisPanel alarms={alarms} title="ATS Fault Diagnosis" />
-        <PredictionPanel equipmentId={selectedEquipment?.id} title="ATS Prediction" />
+        <PredictionPanel equipmentId={selectedEquipment?.id} alarms={alarms} title="ATS Prediction" />
       </div>
     </div>
   )

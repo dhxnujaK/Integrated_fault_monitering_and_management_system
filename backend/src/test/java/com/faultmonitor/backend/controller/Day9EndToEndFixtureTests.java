@@ -112,7 +112,8 @@ class Day9EndToEndFixtureTests {
         mockMvc.perform(get("/api/predictions/latest"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].modelVersion").value("fixture-v1"))
-                .andExpect(jsonPath("$[0].estimatedTimeToFailureMinutes").value(45));
+                .andExpect(jsonPath("$[0].estimatedTimeToFailureMinutes").value(0))
+                .andExpect(jsonPath("$[0].riskLevel").value("HIGH"));
 
         MvcResult createdTicket = mockMvc.perform(post("/api/tickets").with(csrf())
                         .contentType("application/json")

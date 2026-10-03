@@ -2,6 +2,7 @@ package com.faultmonitor.backend.ml;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.faultmonitor.backend.dto.MlHealthResponse;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -28,9 +30,16 @@ public class MlClient {
             @Value("${ml.service.url:http://localhost:8000}") String baseUrl,
             @Value("${ml.service.timeout-ms:3000}") long timeoutMs,
             @Value("${ml.service.retry-count:1}") int retryCount) {
-        this.restTemplate = builder
+        // Force HTTP/1.1: the JDK client otherwise sends an h2c upgrade request, and uvicorn's
+        // httptools parser (installed with uvicorn[standard]) drops the POST body, returning 422.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(timeoutMs))
-                .readTimeout(Duration.ofMillis(timeoutMs))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofMillis(timeoutMs));
+        this.restTemplate = builder
+                .requestFactory(() -> requestFactory)
                 .build();
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.predictUrl = this.baseUrl + "/predict";
@@ -75,16 +84,18 @@ public class MlClient {
             @JsonAlias("recommended_actions") List<String> recommendedActions,
             Double confidence,
             @JsonAlias("model_version") String modelVersion,
-            @JsonAlias("estimated_time_to_failure_minutes") Integer estimatedTimeToFailureMinutes
+            @JsonAlias("estimated_time_to_failure_minutes") Integer estimatedTimeToFailureMinutes,
+            @JsonAlias("risk_level") String riskLevel
     ) {
         MlPredictionResult toResult() {
             return new MlPredictionResult(
                     failureProbability == null ? 0.0 : failureProbability,
-                    predictedFailureType == null || predictedFailureType.isBlank() ? "UNKNOWN" : predictedFailureType,
+                    predictedFailureType == null || predictedFailureType.isBlank() ? null : predictedFailureType,
                     recommendedActions == null ? List.of() : recommendedActions,
                     confidence == null ? 0.0 : confidence,
                     modelVersion == null || modelVersion.isBlank() ? "unversioned" : modelVersion,
-                    estimatedTimeToFailureMinutes);
+                    estimatedTimeToFailureMinutes,
+                    riskLevel == null || riskLevel.isBlank() ? null : riskLevel.trim().toUpperCase());
         }
     }
 }

@@ -6,7 +6,6 @@ import {
   Bell,
   BrainCircuit,
   CheckCircle2,
-  CircleUserRound,
   ClipboardList,
   Gauge,
   LayoutDashboard,
@@ -16,7 +15,7 @@ import {
   Power,
   ServerCog,
   Settings,
-  SlidersHorizontal,
+  UserRound,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -31,6 +30,8 @@ import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
 import PredictionsPage from './pages/PredictionsPage'
 import OperationsPage from './pages/OperationsPage'
+import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
 import DiagnosisPanel from './components/DiagnosisPanel'
 import PredictionPanel from './components/PredictionPanel'
 
@@ -44,6 +45,7 @@ const navItems = [
   { label: 'Predictions', path: '/predictions', icon: BrainCircuit },
   { label: 'Operations', path: '/operations', icon: ClipboardList },
   { label: 'Settings', path: '/settings', icon: Settings },
+  { label: 'Profile', path: '/profile', icon: UserRound },
   { label: 'Log out', icon: LogOut },
 ]
 
@@ -57,6 +59,7 @@ const pathToPage = {
   '/predictions': 'Predictions',
   '/operations': 'Operations',
   '/settings': 'Settings',
+  '/profile': 'Profile',
 }
 
 const pageHeaderCopy = {
@@ -67,8 +70,9 @@ const pageHeaderCopy = {
   'MDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Main Distribution Panel', subtitle: 'Phase balance, load, and protection status' },
   'SDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Sub Distribution Panels', subtitle: 'Branch power health and local conditions' },
   Predictions: { eyebrow: 'FAILURE INTELLIGENCE', title: 'Prediction Center', subtitle: 'Risk signals and six-hour failure forecasts' },
-  Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Tickets, reports, and equipment administration' },
-  Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'Configure monitored equipment and operating limits' },
+  Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Maintenance tickets and reports' },
+  Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'Users, equipment, alarm thresholds and system status' },
+  Profile: { eyebrow: 'ACCOUNT', title: 'My Profile', subtitle: 'Your account details and password' },
 }
 
 function SignIn() {
@@ -98,7 +102,7 @@ function SignIn() {
   return (
     <main className="signin-page">
       <section className="signin-brand" aria-label="Expressway operation maintenance and management division">
-        <p className="logo-mark">LOGO</p>
+        <img className="signin-logo" src="/expressway-logo.jpg" alt="Expressway logo" />
         <h1>
           EXPRESSWAY
           <span>OPERATION</span>
@@ -131,7 +135,6 @@ function SignIn() {
             <input type="checkbox" defaultChecked />
             Remember me
           </label>
-          <a href="#forgot">Forgot Password?</a>
         </div>
       </form>
     </main>
@@ -139,7 +142,6 @@ function SignIn() {
 }
 
 function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
-  const { user } = useAuth()
   const severityRank = { NORMAL: 0, OFFLINE: 1, WARNING: 2, CRITICAL: 3 }
   const statusByType = (dashboardSummary?.equipment ?? []).reduce((statuses, equipment) => {
     const type = String(equipment.equipmentType ?? '').toUpperCase()
@@ -166,11 +168,11 @@ function Sidebar({ activePage, onNavigate, onLogout, dashboardSummary }) {
 
   return (
     <aside className="sidebar" aria-label="Primary navigation">
-      <div className="account-card">
-        <CircleUserRound size={42} strokeWidth={2.6} />
+      <div className="sidebar-brand">
+        <img src="/expressway-logo.jpg" alt="Expressway logo" />
         <div>
-          <p>{user?.username || 'Admin'}</p>
-          <span>{user?.role || 'Authenticated'}</span>
+          <strong>EXPRESSWAY</strong>
+          <span>Power Monitoring</span>
         </div>
       </div>
 
@@ -219,7 +221,8 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
         {activePage === 'Predictions' ? <PredictionsPage /> : null}
         {activePage === 'Operations' ? <OperationsPage /> : null}
-        {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
+        {activePage === 'Settings' ? <SettingsPage /> : null}
+        {activePage === 'Profile' ? <ProfilePage /> : null}
         {children}
       </main>
     </div>
@@ -370,7 +373,14 @@ function getAlarmTab(status) {
 
 function formatReading(value, unit = '', fallback = '—') {
   if (value === null || value === undefined || value === '') return fallback
-  return `${value}${unit ? ` ${unit}` : ''}`
+  const number = Number(value)
+  const text = Number.isFinite(number) ? number.toFixed(1) : value
+  return `${text}${unit ? ` ${unit}` : ''}`
+}
+
+function toTitleCase(value) {
+  const text = String(value ?? '').replaceAll('_', ' ').toLowerCase()
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 function getStatusTone(status) {
@@ -388,14 +398,15 @@ function toUpsUnit(equipment, status) {
     equipmentCode: equipment.equipmentCode,
     displayName: equipment.displayName,
     site: equipment.location,
-    mode: reading.operational_status ?? overallStatus,
+    status: overallStatus,
+    mode: reading.operational_status ? toTitleCase(reading.operational_status) : '—',
     runtime: formatReading(reading.estimated_runtime_min, 'min'),
     load: formatReading(reading.load_pct, '%'),
     output: formatReading(reading.output_voltage_v, 'V'),
     input: formatReading(reading.input_voltage_v, 'V'),
     battery: formatReading(reading.battery_charge_pct, '%'),
     tone: getStatusTone(overallStatus),
-    note: `${overallStatus.charAt(0) + overallStatus.slice(1).toLowerCase()} status recorded ${formatAlarmTime(status.recordedAt)}.`,
+    note: `${toTitleCase(overallStatus)} status recorded ${formatAlarmTime(status.recordedAt)}.`,
   }
 }
 
@@ -765,7 +776,7 @@ function UpsPage({ alarms, onAcknowledge, onCreateTicketFromAlarm, onAction, ala
           </SectionCard>
         ) : null}
         {activeUpsTab === 'Diagnosis' ? <DiagnosisPanel alarms={selectedUnitAlarms} title="UPS Fault Diagnosis" /> : null}
-        {activeUpsTab === 'Prediction' ? <PredictionPanel equipmentId={selectedUnit.id} title="UPS Prediction" /> : null}
+        {activeUpsTab === 'Prediction' ? <PredictionPanel equipmentId={selectedUnit.id} alarms={selectedUnitAlarms} title="UPS Prediction" /> : null}
       </> : null}
     </div>
   )
@@ -782,15 +793,16 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
           <strong>{selectedUnit.displayName}</strong>
           <span>{selectedUnit.site}</span>
         </div>
-        <div className={`mode-chip ${selectedUnit.tone}`}>{selectedUnit.mode}</div>
+        <div className={`mode-chip ${selectedUnit.tone}`}>{selectedUnit.status}</div>
       </div>
       <dl className="ups-selected-metrics">
+        <div><dt>Mode</dt><dd>{selectedUnit.mode}</dd></div>
+        <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
         <div><dt>Runtime</dt><dd>{selectedUnit.runtime}</dd></div>
         <div><dt>Load</dt><dd>{selectedUnit.load}</dd></div>
         <div><dt>Battery</dt><dd>{selectedUnit.battery}</dd></div>
         <div><dt>Output</dt><dd>{selectedUnit.output}</dd></div>
         <div><dt>Input</dt><dd>{selectedUnit.input}</dd></div>
-        <div><dt>Contextual alarms</dt><dd>{selectedUnitAlarmCount}</dd></div>
       </dl>
       <p className="ups-selected-note">{selectedUnit.note}</p>
       <section className="ups-fleet ups-fleet-compact" aria-label="UPS fleet status">
@@ -813,9 +825,10 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
                 <strong>{unit.displayName}</strong>
                 <span>{unit.site}</span>
               </div>
-              <p className={`mode-chip ${unit.tone}`}>{unit.mode}</p>
+              <p className={`mode-chip ${unit.tone}`}>{unit.status}</p>
             </div>
             <dl>
+              <div><dt>Mode</dt><dd>{unit.mode}</dd></div>
               <div><dt>Runtime</dt><dd>{unit.runtime}</dd></div>
               <div><dt>Load</dt><dd>{unit.load}</dd></div>
               <div><dt>Output</dt><dd>{unit.output}</dd></div>
@@ -829,18 +842,21 @@ function UpsFleetSummary({ units, selectedUpsId, selectedUnitAlarmCount, onSelec
 }
 
 function UpsMiniTrends({ readings }) {
+  // Fixed scales per metric, so steady values look steady and real changes are visible.
   const metrics = [
-    { key: 'battery_charge_pct', label: 'Battery', unit: '%', color: 'var(--green)' },
-    { key: 'load_pct', label: 'Load', unit: '%', color: 'var(--cyan)' },
-    { key: 'output_voltage_v', label: 'Output', unit: 'V', color: 'var(--amber)' },
+    { key: 'battery_charge_pct', label: 'Battery', unit: '%', color: 'var(--green)', min: 0, max: 100 },
+    { key: 'load_pct', label: 'Load', unit: '%', color: 'var(--cyan)', min: 0, max: 100 },
+    { key: 'output_voltage_v', label: 'Output', unit: 'V', color: 'var(--amber)', min: 200, max: 250 },
   ]
+  // The API returns readings newest first; trends read left (oldest) to right (latest).
+  const chronological = [...readings].reverse()
 
   return (
     <div className="ups-mini-trends">
       {metrics.map((metric) => {
-        const values = readings.map((reading) => Number(reading.data?.[metric.key])).filter(Number.isFinite).slice(-12)
+        const values = chronological.map((reading) => Number(reading.data?.[metric.key])).filter(Number.isFinite).slice(-12)
         const latest = values.at(-1)
-        const maximum = Math.max(...values, 1)
+        const scaled = (value) => Math.min(100, Math.max(8, ((value - metric.min) / (metric.max - metric.min)) * 100))
         return (
           <article className="ups-mini-trend" key={metric.key}>
             <div className="ups-mini-trend-heading">
@@ -849,65 +865,13 @@ function UpsMiniTrends({ readings }) {
             </div>
             <div className="ups-mini-bars" aria-label={`${metric.label} recent trend`}>
               {values.length ? values.map((value, index) => (
-                <i key={`${metric.key}-${index}`} style={{ height: `${Math.max(12, (value / maximum) * 100)}%`, background: metric.color }} />
+                <i key={`${metric.key}-${index}`} title={`${value.toFixed(1)} ${metric.unit}`} style={{ height: `${scaled(value)}%`, background: metric.color }} />
               )) : <span className="ups-mini-empty">Waiting for readings</span>}
             </div>
           </article>
         )
       })}
     </div>
-  )
-}
-
-function SettingsPage({ onAction }) {
-  return (
-    <div className="settings-grid">
-      <SettingsPanel title="System Parameters & Thresholds">
-        <SliderRow label="Phase Voltage Tolerance" value="15 V" />
-        <label className="setting-line"><span>Overload Trip Delay</span><input defaultValue="5 sec" /></label>
-        <label className="setting-line"><span>Maintenance Alert Interval</span><input defaultValue="90 Days" /></label>
-        <label className="setting-line"><span>Report Generation Frequency</span><select defaultValue="monthly"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="daily">Daily</option></select></label>
-      </SettingsPanel>
-      <SettingsPanel title="Notification & Alert Settings">
-        <div className="check-row"><label><input type="checkbox" defaultChecked /> Email Alerts</label><label><input type="checkbox" defaultChecked /> SMS Alerts</label><label><input type="checkbox" /> Push Notifications</label></div>
-        <label className="setting-line"><span>Critical Alarm Contact List</span><input defaultValue="Dispatch A, On-call Tech" /></label>
-        <label className="setting-line"><span>Status Report Subscription</span><select defaultValue="summary"><option value="summary">Daily Summary</option><option value="incident">Incident Only</option></select></label>
-        <label className="setting-line check"><span>Quiet Hours</span><input type="checkbox" defaultChecked /></label>
-      </SettingsPanel>
-      <SettingsPanel title="Advanced Options & User Permissions">
-        <label className="setting-line"><span>User Role & Permissions</span><select defaultValue="tech"><option value="tech">Edit Permission</option><option value="view">View Only</option></select></label>
-        <label className="setting-line"><span>Alarm Override Access</span><select defaultValue="allowed"><option value="allowed">Allowed</option><option value="blocked">Blocked</option></select></label>
-        <label className="setting-line check"><span>Active Directory Sync</span><input type="checkbox" defaultChecked /></label>
-        <label className="setting-line check"><span>Enable Two-Factor Authentication</span><input type="checkbox" defaultChecked /></label>
-      </SettingsPanel>
-      <SettingsPanel title="Network & Backup Configuration">
-        <label className="setting-line"><span>Network Connectivity</span><select defaultValue="primary"><option value="primary">Primary</option><option value="backup">Backup SIM</option></select></label>
-        <label className="setting-line"><span>Backup & Restore</span><input defaultValue="Drive K / Auto Sync" /></label>
-        <label className="setting-line"><span>Assigned Backup</span><input defaultValue="Local Server" /></label>
-        <label className="setting-line check"><span>Auto Backup Enabled</span><input type="checkbox" defaultChecked /></label>
-      </SettingsPanel>
-      <div className="settings-actions">
-        <button type="button" onClick={() => onAction?.('Settings saved')}>Save Changes</button>
-        <button type="button" className="ghost">Cancel</button>
-      </div>
-    </div>
-  )
-}
-
-function SettingsPanel({ title, children }) {
-  return (
-    <SectionCard title={title} icon={SlidersHorizontal}>
-      {children}
-    </SectionCard>
-  )
-}
-
-function SliderRow({ label, value }) {
-  return (
-    <label className="setting-line slider-line">
-      <span>{label}</span>
-      <span className="slider-control"><input type="range" defaultValue="68" /><strong>{value}</strong></span>
-    </label>
   )
 }
 
@@ -1060,6 +1024,7 @@ function App() {
               <Route path="/predictions" element={<DashboardWorkspace />} />
               <Route path="/operations" element={<DashboardWorkspace />} />
               <Route path="/settings" element={<DashboardWorkspace />} />
+              <Route path="/profile" element={<DashboardWorkspace />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

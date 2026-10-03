@@ -3,8 +3,8 @@ import { useLocation } from 'react-router-dom'
 import SectionCard from '../components/SectionCard'
 import { createTicket, getTickets, updateTicket } from '../api/ticketsApi'
 import { downloadAlarmsReport, downloadTicketsReport } from '../api/reportsApi'
-import { getEquipmentList, getThresholds, setEquipmentEnabled, updateThreshold } from '../api/settingsApi'
-import { CheckCircle2, Clock, Download, FileSpreadsheet, Plus, RefreshCw, Settings2, Ticket, AlertTriangle } from 'lucide-react'
+import { getEquipmentList } from '../api/settingsApi'
+import { CheckCircle2, Clock, Download, FileSpreadsheet, Plus, RefreshCw, Ticket, AlertTriangle } from 'lucide-react'
 
 export default function OperationsPage() {
   const location = useLocation()
@@ -34,20 +34,11 @@ export default function OperationsPage() {
           <FileSpreadsheet size={16} />
           Reports & Export
         </button>
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'equipment' ? 'active' : ''}`}
-          onClick={() => setActiveTab('equipment')}
-        >
-          <Settings2 size={16} />
-          Equipment & Thresholds
-        </button>
       </nav>
 
       <div className="operations-tab-content">
         {activeTab === 'tickets' ? <TicketsTab locationState={location.state} /> : null}
         {activeTab === 'reports' ? <ReportsTab /> : null}
-        {activeTab === 'equipment' ? <EquipmentTab /> : null}
       </div>
     </div>
   )
@@ -380,117 +371,6 @@ function ReportsTab() {
           </div>
         </form>
       </SectionCard>
-    </div>
-  )
-}
-
-function EquipmentTab() {
-  const [equipmentList, setEquipmentList] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [selectedEq, setSelectedEq] = useState(null)
-  const [thresholds, setThresholds] = useState([])
-
-  const loadEquipment = async () => {
-    try {
-      setLoading(true)
-      const data = await getEquipmentList()
-      setEquipmentList(data)
-      if (data.length > 0 && !selectedEq) {
-        setSelectedEq(data[0])
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadEquipment()
-  }, [])
-
-  useEffect(() => {
-    if (!selectedEq) return
-    getThresholds(selectedEq.id)
-      .then(setThresholds)
-      .catch(() => setThresholds([]))
-  }, [selectedEq])
-
-  async function handleToggleEnabled(eq) {
-    try {
-      const updated = await setEquipmentEnabled(eq.id, !eq.enabled)
-      setEquipmentList((prev) => prev.map((item) => (item.id === eq.id ? updated : item)))
-    } catch (err) {
-      alert(err.message || 'Failed to toggle equipment state')
-    }
-  }
-
-  async function handleUpdateThreshold(metricKey, val) {
-    if (!selectedEq) return
-    try {
-      await updateThreshold(selectedEq.id, metricKey, Number(val))
-      const updated = await getThresholds(selectedEq.id)
-      setThresholds(updated)
-    } catch (err) {
-      alert(err.message || 'Failed to update threshold')
-    }
-  }
-
-  return (
-    <div className="equipment-threshold-section">
-      <SectionCard title="Equipment Registry & Monitoring Controls">
-        {loading ? <p className="empty-state">Loading equipment list...</p> : null}
-        {!loading && equipmentList.length > 0 ? (
-          <div className="equipment-grid">
-            {equipmentList.map((eq) => (
-              <article key={eq.id} className={`equipment-card ${selectedEq?.id === eq.id ? 'selected' : ''}`} onClick={() => setSelectedEq(eq)}>
-                <div className="equipment-header">
-                  <div>
-                    <strong>{eq.equipmentCode}</strong>
-                    <span>{eq.displayName} ({eq.equipmentType})</span>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(eq.enabled)}
-                      onChange={() => handleToggleEnabled(eq)}
-                    />
-                    <span className="slider" />
-                  </label>
-                </div>
-                <div className="equipment-status">
-                  <span className={`badge ${eq.enabled ? 'online' : 'offline'}`}>
-                    {eq.enabled ? 'ACTIVE' : 'DISABLED'}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </SectionCard>
-
-      {selectedEq ? (
-        <SectionCard title={`Threshold Overrides: ${selectedEq.equipmentCode} (${selectedEq.equipmentType})`}>
-          <div className="thresholds-panel">
-            {thresholds.length === 0 ? (
-              <p className="empty-state">No custom thresholds configured for {selectedEq.equipmentCode}. System defaults apply.</p>
-            ) : (
-              <div className="thresholds-table">
-                {thresholds.map((t) => (
-                  <div key={t.id ?? t.metricKey} className="threshold-row">
-                    <label><span>{t.metricKey}</span></label>
-                    <input
-                      type="number"
-                      defaultValue={t.value}
-                      onBlur={(e) => handleUpdateThreshold(t.metricKey, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </SectionCard>
-      ) : null}
     </div>
   )
 }

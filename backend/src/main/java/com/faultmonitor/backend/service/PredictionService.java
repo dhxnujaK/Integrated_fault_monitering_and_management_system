@@ -5,8 +5,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.faultmonitor.backend.dto.PageResponse;
+import com.faultmonitor.backend.dto.DiagnosisResponse;
 import com.faultmonitor.backend.dto.PredictionResponse;
 import com.faultmonitor.backend.dto.PredictionSummaryResponse;
+import com.faultmonitor.backend.entity.Alarm;
+import com.faultmonitor.backend.entity.AlarmSeverity;
+import com.faultmonitor.backend.entity.AlarmStatus;
 import com.faultmonitor.backend.entity.Equipment;
 import com.faultmonitor.backend.entity.Prediction;
 import com.faultmonitor.backend.entity.SensorReading;
@@ -17,11 +21,15 @@ import com.faultmonitor.backend.ml.MlFeatureService;
 import com.faultmonitor.backend.ml.MlPredictionRequest;
 import com.faultmonitor.backend.ml.MlPredictionResult;
 import com.faultmonitor.backend.repository.EquipmentRepository;
+import com.faultmonitor.backend.repository.AlarmRepository;
 import com.faultmonitor.backend.repository.PredictionRepository;
 import com.faultmonitor.backend.repository.SensorReadingRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -39,10 +47,13 @@ public class PredictionService {
     private static final TypeReference<List<String>> ACTIONS_TYPE = new TypeReference<>() { };
     private static final Set<SubsystemType> SUPPORTED_FORECAST_TYPES = Set.of(
             SubsystemType.GENERATOR, SubsystemType.MDP, SubsystemType.SDP, SubsystemType.UPS);
+    private static final List<AlarmStatus> UNRESOLVED_ALARM_STATUSES = List.of(
+            AlarmStatus.ACTIVE, AlarmStatus.ACKNOWLEDGED);
 
     private final EquipmentRepository equipmentRepository;
     private final SensorReadingRepository sensorReadingRepository;
     private final PredictionRepository predictionRepository;
+    private final AlarmRepository alarmRepository;
     private final EquipmentService equipmentService;
     private final DiagnosisService diagnosisService;
     private final MlFeatureService mlFeatureService;
@@ -73,46 +84,46 @@ public class PredictionService {
     @Transactional(readOnly = true)
     public List<PredictionResponse> latest() {
         return equipmentRepository.findByEnabledTrueOrderByEquipmentCodeAsc().stream()
-                .map(equipment -> predictionRepository.findFirstByEquipmentIdOrderByPredictedAtDesc(equipment.getId()))
+                .map(this::latestForEquipment)
                 .flatMap(java.util.Optional::stream)
-                .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public PredictionSummaryResponse summary() {
         List<PredictionResponse> latest = latest();
-        long high = latest.stream().filter(prediction -> riskAtLeast(prediction.failureProbability(), 0.7)).count();
-        long medium = latest.stream().filter(prediction -> {
-            double probability = probability(prediction.failureProbability());
-            return probability >= 0.4 && probability < 0.7;
-        }).count();
-        long low = latest.stream().filter(prediction -> probability(prediction.failureProbability()) < 0.4).count();
+        long high = latest.stream().filter(prediction -> "HIGH".equals(prediction.riskLevel())).count();
+        long medium = latest.stream().filter(prediction -> "MEDIUM".equals(prediction.riskLevel())).count();
+        long low = latest.stream().filter(prediction -> "LOW".equals(prediction.riskLevel())).count();
         return new PredictionSummaryResponse(latest.size(), high, medium, low);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<PredictionResponse> history(Long equipmentId, int page, int size) {
         equipmentService.requireEquipment(equipmentId);
+        AtomicInteger index = new AtomicInteger();
         return PageResponse.from(predictionRepository
                 .findByEquipmentIdOrderByPredictedAtDesc(
                         equipmentId, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "predictedAt")))
-                .map(this::toResponse));
+                .map(prediction -> toResponse(prediction, page == 0 && index.getAndIncrement() == 0)));
     }
 
     private java.util.Optional<Prediction> predictAndSave(Equipment equipment) {
-        SensorReading reading = sensorReadingRepository.findFirstByEquipmentIdOrderByRecordedAtDesc(equipment.getId())
-                .orElse(null);
-        if (reading == null) {
+        int window = mlFeatureService.trendWindowReadings();
+        List<SensorReading> recent = sensorReadingRepository.findByEquipmentIdOrderByRecordedAtDesc(
+                equipment.getId(), PageRequest.of(0, window + 1));
+        if (recent.isEmpty()) {
             log.debug("Skipping prediction for {} because no sensor reading exists.", equipment.getEquipmentCode());
             return java.util.Optional.empty();
         }
+        SensorReading reading = recent.get(0);
+        Map<String, Object> previous = recent.size() > window ? parseReading(recent.get(window)) : null;
 
         MlPredictionResult result = mlClient.predict(new MlPredictionRequest(
                 equipment.getId(),
                 equipment.getEquipmentCode(),
                 equipment.getEquipmentType(),
-                mlFeatureService.enrich(reading, parseReading(reading))));
+                mlFeatureService.enrich(reading, parseReading(reading), previous)));
         Prediction prediction = Prediction.builder()
                 .equipment(equipment)
                 .subsystemType(equipment.getEquipmentType())
@@ -123,22 +134,158 @@ public class PredictionService {
                 .confidence(result.confidence())
                 .modelVersion(result.modelVersion())
                 .estimatedTimeToFailureMinutes(result.estimatedTimeToFailureMinutes())
+                .riskLevel(result.riskLevel())
                 .build();
         return java.util.Optional.of(predictionRepository.save(prediction));
     }
 
     private PredictionResponse toResponse(Prediction prediction) {
+        return toResponse(prediction, true);
+    }
+
+    private PredictionResponse toResponse(Prediction prediction, boolean reconcileLiveAlarm) {
+        List<String> actions = readActions(prediction.getRecommendedActions());
+        DiagnosisResponse diagnosis = predictionDiagnosis(prediction);
+        Optional<Alarm> liveAlarm = reconcileLiveAlarm ? mostImportantUnresolvedAlarm(prediction) : Optional.empty();
+        if (liveAlarm.isPresent()) {
+            Alarm alarm = liveAlarm.get();
+            DiagnosisResponse alarmDiagnosis = diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(diagnosis);
+            List<String> alarmActions = alarmDiagnosis == null
+                    ? actions
+                    : alarmDiagnosis.correctiveActions().stream()
+                            .map(com.faultmonitor.backend.dto.DiagnosisActionResponse::action)
+                            .toList();
+            return reconciledAlarmResponse(prediction, alarm, alarmDiagnosis, alarmActions);
+        }
+        if (!hasPredictedFailure(prediction)) {
+            return noFailureResponse(prediction);
+        }
         return PredictionResponse.from(
                 prediction,
-                readActions(prediction.getRecommendedActions()),
-                diagnosisService.findByAlarmCode(prediction.getPredictedFailureType())
-                        .orElseGet(() -> {
-                            try {
-                                return diagnosisService.requireByKey(prediction.getPredictedFailureType());
-                            } catch (ApiException exception) {
-                                return null;
-                            }
-                        }));
+                actions,
+                riskLevelOf(prediction),
+                diagnosis);
+    }
+
+    private Optional<PredictionResponse> latestForEquipment(Equipment equipment) {
+        Optional<Prediction> prediction = predictionRepository.findFirstByEquipmentIdOrderByPredictedAtDesc(equipment.getId());
+        if (prediction.isPresent()) {
+            return prediction.map(this::toResponse);
+        }
+        return mostImportantUnresolvedAlarm(equipment)
+                .map(alarm -> liveAlarmResponse(equipment, alarm));
+    }
+
+    /** Predictions saved before risk levels existed fall back to fixed probability bands. */
+    private String riskLevelOf(Prediction prediction) {
+        if (prediction.getRiskLevel() != null) {
+            return prediction.getRiskLevel();
+        }
+        double probability = probability(prediction.getFailureProbability());
+        return probability >= 0.7 ? "HIGH" : probability >= 0.4 ? "MEDIUM" : "LOW";
+    }
+
+    private PredictionResponse reconciledAlarmResponse(
+            Prediction prediction,
+            Alarm alarm,
+            DiagnosisResponse diagnosis,
+            List<String> actions) {
+        double alarmProbability = alarm.getSeverity() == AlarmSeverity.CRITICAL ? 0.95 : 0.55;
+        double alarmConfidence = alarm.getSeverity() == AlarmSeverity.CRITICAL ? 0.95 : 0.75;
+        return new PredictionResponse(
+                prediction.getId(),
+                prediction.getEquipment() == null ? null : prediction.getEquipment().getId(),
+                prediction.getEquipment() == null ? prediction.getSubsystemId() : prediction.getEquipment().getEquipmentCode(),
+                prediction.getSubsystemType(),
+                Math.max(probability(prediction.getFailureProbability()), alarmProbability),
+                alarm.getAlarmCode(),
+                actions,
+                Math.max(probability(prediction.getConfidence()), alarmConfidence),
+                prediction.getModelVersion(),
+                // Integer.valueOf keeps the ternary boxed; a plain 0 would unbox a null estimate and throw.
+                alarm.getSeverity() == AlarmSeverity.CRITICAL ? Integer.valueOf(0) : prediction.getEstimatedTimeToFailureMinutes(),
+                alarm.getSeverity() == AlarmSeverity.CRITICAL || "HIGH".equals(riskLevelOf(prediction)) ? "HIGH" : "MEDIUM",
+                PredictionResponse.toInstant(prediction.getPredictedAt()),
+                diagnosis);
+    }
+
+    private PredictionResponse liveAlarmResponse(Equipment equipment, Alarm alarm) {
+        DiagnosisResponse diagnosis = diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(null);
+        List<String> actions = diagnosis == null
+                ? List.of()
+                : diagnosis.correctiveActions().stream()
+                        .map(com.faultmonitor.backend.dto.DiagnosisActionResponse::action)
+                        .toList();
+        boolean critical = alarm.getSeverity() == AlarmSeverity.CRITICAL;
+        return new PredictionResponse(
+                null,
+                equipment.getId(),
+                equipment.getEquipmentCode(),
+                equipment.getEquipmentType(),
+                critical ? 0.95 : 0.55,
+                alarm.getAlarmCode(),
+                actions,
+                critical ? 0.95 : 0.75,
+                "Live alarm",
+                critical ? Integer.valueOf(0) : null,
+                critical ? "HIGH" : "MEDIUM",
+                PredictionResponse.toInstant(alarm.getTriggeredAt()),
+                diagnosis);
+    }
+
+    private PredictionResponse noFailureResponse(Prediction prediction) {
+        return new PredictionResponse(
+                prediction.getId(),
+                prediction.getEquipment() == null ? null : prediction.getEquipment().getId(),
+                prediction.getEquipment() == null ? prediction.getSubsystemId() : prediction.getEquipment().getEquipmentCode(),
+                prediction.getSubsystemType(),
+                0.0,
+                null,
+                List.of(),
+                prediction.getConfidence(),
+                prediction.getModelVersion(),
+                null,
+                "LOW",
+                PredictionResponse.toInstant(prediction.getPredictedAt()),
+                null);
+    }
+
+    private DiagnosisResponse predictionDiagnosis(Prediction prediction) {
+        if (prediction.getPredictedFailureType() == null || prediction.getPredictedFailureType().isBlank()) {
+            return null;
+        }
+        return diagnosisService.findByAlarmCode(prediction.getPredictedFailureType())
+                .orElseGet(() -> {
+                    try {
+                        return diagnosisService.requireByKey(prediction.getPredictedFailureType());
+                    } catch (ApiException exception) {
+                        return null;
+                    }
+                });
+    }
+
+    private Optional<Alarm> mostImportantUnresolvedAlarm(Prediction prediction) {
+        return mostImportantUnresolvedAlarm(prediction.getEquipment());
+    }
+
+    private Optional<Alarm> mostImportantUnresolvedAlarm(Equipment equipment) {
+        if (equipment == null || equipment.getId() == null) {
+            return Optional.empty();
+        }
+        return alarmRepository.findByEquipmentIdAndStatusInOrderBySeverityAscTriggeredAtDesc(
+                        equipment.getId(), UNRESOLVED_ALARM_STATUSES)
+                .stream()
+                .filter(alarm -> diagnosisService.findByAlarmCode(alarm.getAlarmCode()).isPresent())
+                .max(Comparator
+                        .comparingInt((Alarm alarm) -> alarm.getSeverity() == AlarmSeverity.CRITICAL ? 2 : 1)
+                        .thenComparing(Alarm::getTriggeredAt, Comparator.nullsFirst(Comparator.naturalOrder())));
+    }
+
+    private boolean hasPredictedFailure(Prediction prediction) {
+        String predictedFailureType = prediction.getPredictedFailureType();
+        return predictedFailureType != null
+                && !predictedFailureType.isBlank()
+                && !"UNKNOWN".equalsIgnoreCase(predictedFailureType);
     }
 
     private Map<String, Object> parseReading(SensorReading reading) {
@@ -174,9 +321,6 @@ public class PredictionService {
         }
     }
 
-    private boolean riskAtLeast(Double probability, double threshold) {
-        return probability(probability) >= threshold;
-    }
 
     private double probability(Double value) {
         return value == null ? 0.0 : value;

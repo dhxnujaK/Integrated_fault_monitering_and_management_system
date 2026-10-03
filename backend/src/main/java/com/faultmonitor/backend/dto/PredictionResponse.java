@@ -18,12 +18,14 @@ public record PredictionResponse(
         Double confidence,
         String modelVersion,
         Integer estimatedTimeToFailureMinutes,
+        String riskLevel,
         Instant predictedAt,
         DiagnosisResponse diagnosis
 ) {
     public static PredictionResponse from(
             Prediction prediction,
             List<String> recommendedActions,
+            String riskLevel,
             DiagnosisResponse diagnosis) {
         return new PredictionResponse(
                 prediction.getId(),
@@ -36,11 +38,12 @@ public record PredictionResponse(
                 prediction.getConfidence(),
                 prediction.getModelVersion(),
                 prediction.getEstimatedTimeToFailureMinutes(),
+                riskLevel,
                 toInstant(prediction.getPredictedAt()),
                 diagnosis);
     }
 
-    private static Instant toInstant(LocalDateTime value) {
+    public static Instant toInstant(LocalDateTime value) {
         return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 }

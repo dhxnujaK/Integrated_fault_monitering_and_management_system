@@ -65,6 +65,10 @@ public class Prediction {
     @Column(name = "estimated_time_to_failure_minutes")
     private Integer estimatedTimeToFailureMinutes;
 
+    /** LOW, MEDIUM or HIGH relative to the model's own decision threshold. */
+    @Column(name = "risk_level", length = 10)
+    private String riskLevel;
+
     @CreationTimestamp
     @Column(name = "predicted_at", nullable = false, updatable = false)
     private LocalDateTime predictedAt;
