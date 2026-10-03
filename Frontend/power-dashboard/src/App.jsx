@@ -15,7 +15,6 @@ import {
   Power,
   ServerCog,
   Settings,
-  UserRound,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -30,7 +29,6 @@ import LiveMDPPage from './pages/MDPPage'
 import LiveSDPPage from './pages/SDPPage'
 import PredictionsPage from './pages/PredictionsPage'
 import OperationsPage from './pages/OperationsPage'
-import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import DiagnosisPanel from './components/DiagnosisPanel'
 import PredictionPanel from './components/PredictionPanel'
@@ -45,7 +43,6 @@ const navItems = [
   { label: 'Predictions', path: '/predictions', icon: BrainCircuit },
   { label: 'Operations', path: '/operations', icon: ClipboardList },
   { label: 'Settings', path: '/settings', icon: Settings },
-  { label: 'Profile', path: '/profile', icon: UserRound },
   { label: 'Log out', icon: LogOut },
 ]
 
@@ -59,7 +56,6 @@ const pathToPage = {
   '/predictions': 'Predictions',
   '/operations': 'Operations',
   '/settings': 'Settings',
-  '/profile': 'Profile',
 }
 
 const pageHeaderCopy = {
@@ -70,9 +66,8 @@ const pageHeaderCopy = {
   'MDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Main Distribution Panel', subtitle: 'Phase balance, load, and protection status' },
   'SDP Status': { eyebrow: 'EQUIPMENT MONITORING', title: 'Sub Distribution Panels', subtitle: 'Branch power health and local conditions' },
   Predictions: { eyebrow: 'FAILURE INTELLIGENCE', title: 'Prediction Center', subtitle: 'Risk signals and six-hour failure forecasts' },
-  Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Maintenance tickets and reports' },
-  Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'Users, equipment, alarm thresholds and system status' },
-  Profile: { eyebrow: 'ACCOUNT', title: 'My Profile', subtitle: 'Your account details and password' },
+  Operations: { eyebrow: 'MAINTENANCE CONTROL', title: 'Operations Workspace', subtitle: 'Tickets, reports, equipment and alarm thresholds' },
+  Settings: { eyebrow: 'SYSTEM CONFIGURATION', title: 'Settings', subtitle: 'System parameters, notifications, permissions and backup' },
 }
 
 function SignIn() {
@@ -221,8 +216,7 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
         {activePage === 'SDP Status' ? <LiveSDPPage onAcknowledge={onAcknowledge} onCreateTicketFromAlarm={onCreateTicketFromAlarm} /> : null}
         {activePage === 'Predictions' ? <PredictionsPage /> : null}
         {activePage === 'Operations' ? <OperationsPage /> : null}
-        {activePage === 'Settings' ? <SettingsPage /> : null}
-        {activePage === 'Profile' ? <ProfilePage /> : null}
+        {activePage === 'Settings' ? <SettingsPage onAction={onAction} /> : null}
         {children}
       </main>
     </div>
@@ -230,7 +224,7 @@ function AppShell({ activePage, setActivePage, onLogout, alarms, dashboardSummar
 }
 
 function HeaderIcon({ icon: Icon }) {
-  return <Icon size={25} strokeWidth={2.3} />
+  return createElement(Icon, { size: 25, strokeWidth: 2.3 })
 }
 
 function Tabs({ filters = false, tab, onTabChange, filter, onFilterChange }) {
@@ -1024,7 +1018,6 @@ function App() {
               <Route path="/predictions" element={<DashboardWorkspace />} />
               <Route path="/operations" element={<DashboardWorkspace />} />
               <Route path="/settings" element={<DashboardWorkspace />} />
-              <Route path="/profile" element={<DashboardWorkspace />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

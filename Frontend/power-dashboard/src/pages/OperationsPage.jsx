@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import SectionCard from '../components/SectionCard'
 import { createTicket, getTickets, updateTicket } from '../api/ticketsApi'
 import { downloadAlarmsReport, downloadTicketsReport } from '../api/reportsApi'
 import { getEquipmentList } from '../api/settingsApi'
-import { CheckCircle2, Clock, Download, FileSpreadsheet, Plus, RefreshCw, Ticket, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, Clock, Download, FileSpreadsheet, Plus, RefreshCw, Settings2, Ticket, AlertTriangle } from 'lucide-react'
+import EquipmentThresholdsTab from './EquipmentThresholdsTab'
 
 export default function OperationsPage() {
   const location = useLocation()
@@ -12,7 +13,8 @@ export default function OperationsPage() {
   const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
-    setActiveTab(location.state?.tab || 'tickets')
+    const timer = window.setTimeout(() => setActiveTab(location.state?.tab || 'tickets'), 0)
+    return () => window.clearTimeout(timer)
   }, [location.state])
 
   return (
@@ -34,11 +36,20 @@ export default function OperationsPage() {
           <FileSpreadsheet size={16} />
           Reports & Export
         </button>
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'equipment' ? 'active' : ''}`}
+          onClick={() => setActiveTab('equipment')}
+        >
+          <Settings2 size={16} />
+          Equipment & Thresholds
+        </button>
       </nav>
 
       <div className="operations-tab-content">
         {activeTab === 'tickets' ? <TicketsTab locationState={location.state} /> : null}
         {activeTab === 'reports' ? <ReportsTab /> : null}
+        {activeTab === 'equipment' ? <EquipmentThresholdsTab /> : null}
       </div>
     </div>
   )
@@ -63,7 +74,7 @@ function TicketsTab({ locationState }) {
   const [priority, setPriority] = useState(locationState?.priority || 'HIGH')
   const [assignedGroup, setAssignedGroup] = useState(locationState?.assignedGroup || 'Electrical Team')
 
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
       const data = await getTickets({ status: statusFilter || undefined })
@@ -75,11 +86,11 @@ function TicketsTab({ locationState }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     fetchTickets()
-  }, [statusFilter])
+  }, [fetchTickets])
 
   useEffect(() => {
     setShowCreateModal(Boolean(locationState?.createModal || locationState?.alarmId))
