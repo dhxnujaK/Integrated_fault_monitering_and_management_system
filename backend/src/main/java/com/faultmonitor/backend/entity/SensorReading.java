@@ -23,7 +23,8 @@ import org.hibernate.annotations.CreationTimestamp;
 @Table(
         name = "sensor_readings",
         indexes = {
-                @Index(name = "idx_subsystem_time", columnList = "subsystem_type, recorded_at")
+                @Index(name = "idx_subsystem_time", columnList = "subsystem_type, recorded_at"),
+                @Index(name = "idx_sensor_equipment_time", columnList = "equipment_id, recorded_at")
         }
 )
 @Getter

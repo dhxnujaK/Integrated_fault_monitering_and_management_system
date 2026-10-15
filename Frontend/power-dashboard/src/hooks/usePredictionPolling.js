@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-// Matches the backend prediction cadence, so prediction cards keep pace with live readings.
-export default function usePredictionPolling(loader, intervalMs = 5000, resetKey = '') {
+export default function usePredictionPolling(loader, intervalMs = 10000, resetKey = '') {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -23,6 +22,7 @@ export default function usePredictionPolling(loader, intervalMs = 5000, resetKey
 
   useEffect(() => {
     let disposed = false
+    let timeoutId
 
     async function load() {
       try {
@@ -32,18 +32,23 @@ export default function usePredictionPolling(loader, intervalMs = 5000, resetKey
           setError('')
         }
       } catch (err) {
-        if (!disposed) setError(err.message || 'Unable to load prediction data.')
+        if (!disposed) {
+          setError(err.message || 'Unable to load prediction data.')
+        }
       } finally {
-        if (!disposed) setLoading(false)
+        if (!disposed) {
+          setLoading(false)
+          timeoutId = window.setTimeout(load, intervalMs)
+        }
       }
     }
 
     setLoading(true)
     load()
-    const intervalId = window.setInterval(load, intervalMs)
+
     return () => {
       disposed = true
-      window.clearInterval(intervalId)
+      window.clearTimeout(timeoutId)
     }
   }, [intervalMs, loader, resetKey])
 
