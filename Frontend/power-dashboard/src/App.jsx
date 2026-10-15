@@ -75,10 +75,13 @@ const pageHeaderCopy = {
   Profile: { eyebrow: 'ACCOUNT', title: 'My Profile', subtitle: 'Your account details and password' },
 }
 
+const rememberedUsernameKey = 'rememberedUsername'
+
 function SignIn() {
   const { login, isAuthenticated } = useAuth()
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useState(() => localStorage.getItem(rememberedUsernameKey) || '')
   const [password, setPassword] = useState('')
+  const [rememberUsername, setRememberUsername] = useState(() => Boolean(localStorage.getItem(rememberedUsernameKey)))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -91,6 +94,11 @@ function SignIn() {
     setError('')
     setLoading(true)
     try {
+      if (rememberUsername && username.trim()) {
+        localStorage.setItem(rememberedUsernameKey, username.trim())
+      } else {
+        localStorage.removeItem(rememberedUsernameKey)
+      }
       await login(username, password)
     } catch (err) {
       setError(err.message || 'Login failed')
@@ -132,7 +140,11 @@ function SignIn() {
         {error ? <p className="signin-error">{error}</p> : null}
         <div className="signin-links">
           <label className="remember">
-            <input type="checkbox" defaultChecked />
+            <input
+              type="checkbox"
+              checked={rememberUsername}
+              onChange={(event) => setRememberUsername(event.target.checked)}
+            />
             Remember me
           </label>
         </div>
