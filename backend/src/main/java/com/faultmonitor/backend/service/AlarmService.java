@@ -211,16 +211,26 @@ public class AlarmService {
             boolean conditionActive) {
         List<Alarm> existing = alarmRepository.findByEquipmentIdAndAlarmCodeAndStatusIn(
                 equipment.getId(), alarmCode, UNRESOLVED);
-        if (conditionActive && existing.isEmpty()) {
-            alarmRepository.save(Alarm.builder()
-                    .subsystemType(equipment.getEquipmentType())
-                    .subsystemId(equipment.getEquipmentCode())
-                    .equipment(equipment)
-                    .alarmCode(alarmCode)
-                    .alarmMessage(alarmMessage)
-                    .severity(severity)
-                    .status(AlarmStatus.ACTIVE)
-                    .build());
+        if (conditionActive) {
+            if (existing.isEmpty()) {
+                alarmRepository.save(Alarm.builder()
+                        .subsystemType(equipment.getEquipmentType())
+                        .subsystemId(equipment.getEquipmentCode())
+                        .equipment(equipment)
+                        .alarmCode(alarmCode)
+                        .alarmMessage(alarmMessage)
+                        .severity(severity)
+                        .status(AlarmStatus.ACTIVE)
+                        .build());
+            } else if (existing.size() > 1) {
+                // Repair duplicates created by older deployments while keeping
+                // one active occurrence for this equipment and alarm code.
+                LocalDateTime resolvedAt = LocalDateTime.now();
+                existing.stream().skip(1).forEach(alarm -> {
+                    alarm.setStatus(AlarmStatus.RESOLVED);
+                    alarm.setResolvedAt(resolvedAt);
+                });
+            }
         } else if (!conditionActive && !existing.isEmpty()) {
             LocalDateTime resolvedAt = LocalDateTime.now();
             existing.forEach(alarm -> {
