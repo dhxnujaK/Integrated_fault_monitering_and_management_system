@@ -129,6 +129,7 @@ export default function GeneratorPage({ onAcknowledge, onCreateTicketFromAlarm }
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
+      throw err
     }
   }
 

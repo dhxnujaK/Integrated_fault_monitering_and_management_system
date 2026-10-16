@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -195,7 +196,16 @@ public class AlarmService {
                 ? alarmRepository.findByEquipmentIdAndStatusInOrderBySeverityAscTriggeredAtDesc(
                         equipmentId, UNRESOLVED)
                 : alarmRepository.findByEquipmentIdOrderBySeverityAscTriggeredAtDesc(equipmentId);
+        // Older polling deployments could insert the same occurrence more
+        // than once. Keep one card per equipment/alarm occurrence in the API
+        // response, while preserving distinct historical occurrences.
         return alarms.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        alarm -> alarm.getAlarmCode() + "|" + alarm.getTriggeredAt(),
+                        alarm -> alarm,
+                        (first, duplicate) -> first.getStatus() == AlarmStatus.RESOLVED ? duplicate : first,
+                        LinkedHashMap::new))
+                .values().stream()
                 .map(alarm -> AlarmResponse.from(
                         alarm, diagnosisService.findByAlarmCode(alarm.getAlarmCode()).orElse(null)))
                 .toList();

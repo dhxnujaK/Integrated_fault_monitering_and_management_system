@@ -22,7 +22,7 @@ import ProtectedRoute from './routes/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import { acknowledgeAlarm as acknowledgeAlarmRequest, getAlarms } from './api/alarmsApi'
 import { getDashboardSummary } from './api/dashboardApi'
-import { getEquipment, getEquipmentReadings, getEquipmentStatus } from './api/equipmentApi'
+import { getEquipment, getEquipmentAlarms, getEquipmentReadings, getEquipmentStatus } from './api/equipmentApi'
 import './App.css'
 import LiveGeneratorPage from './pages/GeneratorPage'
 import LiveATSPage from './pages/ATSPage'
@@ -277,7 +277,7 @@ function Tabs({ filters = false, tab, onTabChange, filter, onFilterChange }) {
 }
 
 function getVisibleAlarms(alarms, tab, filter) {
-  return alarms.filter((alarm) => {
+  const visible = alarms.filter((alarm) => {
     const status = String(alarm.status ?? '').toUpperCase()
     const matchesTab =
       (tab === 'History' && ['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)) ||
@@ -290,23 +290,19 @@ function getVisibleAlarms(alarms, tab, filter) {
 
     return matchesTab && matchesFilter
   })
+
+  // Keep one card for one occurrence even when legacy polling data contains
+  // duplicate rows with the same equipment, code and trigger timestamp.
+  return Array.from(new Map(visible.map((alarm) => [
+    `${alarm.equipmentId ?? alarm.subsystemId}|${alarm.alarmCode ?? alarm.title}|${alarm.triggeredAt ?? alarm.time}`,
+    alarm,
+  ])).values())
 }
 
 function getDashboardSummaryAlarms(alarmState) {
   return Object.entries(alarmState)
     .filter(([group]) => group !== 'dashboard')
     .flatMap(([, groupAlarms]) => groupAlarms)
-}
-
-function getAlarmStatusLabel(status) {
-  const normalized = String(status ?? '').trim().toUpperCase()
-  if (!normalized) return 'Unknown'
-
-  return normalized.charAt(0) + normalized.slice(1).toLowerCase()
-}
-
-function getAlarmStatusClass(status) {
-  return String(status ?? '').trim().toLowerCase()
 }
 
 function getAlarmRoute(alarm) {
@@ -462,7 +458,6 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
     <div className="alarm-table">
       {alarms.map((alarm) => {
         const alarmStatus = String(alarm.status ?? '').toUpperCase()
-        const alarmStatusLabel = getAlarmStatusLabel(alarm.status)
         const isAcknowledged = alarmStatus === 'ACKNOWLEDGED'
 
         return (
@@ -492,7 +487,7 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
                     <b>{alarm.alarmCode ?? alarm.title}</b>
                     <small>{alarm.alarmMessage ?? alarm.detail ?? alarm.title}</small>
                     {alarm.subsystemId ? <small>Subsystem: {alarm.subsystemId}</small> : null}
-                    {isAcknowledged ? <small>Acknowledged by Admin at {alarm.acknowledgedAt}</small> : null}
+                    {isAcknowledged ? <small>Acknowledged: {formatAlarmTime(alarm.acknowledgedAt)}</small> : null}
                     {alarmStatus === 'RESOLVED' ? (
                       <>
                         <small>Created at {alarm.triggeredAt ?? alarm.time}</small>
@@ -504,9 +499,11 @@ function AlarmTable({ alarms = [], compact = false, onAcknowledge, onNavigateAla
               </span>
             </div>
             <div className="alarm-meta">
-              <time>{alarm.time}</time>
-              {alarm.severity ? <p className={`alarm-severity ${alarm.severity.toLowerCase()}`}>{alarm.severity}</p> : null}
-              <p className={`alarm-status ${getAlarmStatusClass(alarm.status)}`}>{alarmStatusLabel}</p>
+              {alarmStatus === 'ACTIVE' ? <time>
+                <span>{formatAlarmTime(alarm.triggeredAt ?? alarm.time).split(',')[0]}</span>
+                <span>{formatAlarmTime(alarm.triggeredAt ?? alarm.time).split(',').slice(1).join(',').trim()}</span>
+              </time> : null}
+              {alarmStatus !== 'RESOLVED' && alarm.severity ? <p className={`alarm-severity ${alarm.severity.toLowerCase()}`}>{alarm.severity}</p> : null}
             </div>
             {compact || !showActions ? null : (
               <div className="alarm-row-actions">
@@ -689,10 +686,11 @@ function UpsPage({ alarms, onAcknowledge, onCreateTicketFromAlarm, onAction, ala
   const [selectedUpsId, setSelectedUpsId] = useState(() => alarms.find((alarm) => String(alarm.id) === String(alarmFocus?.id))?.equipmentId ?? null)
   const [activeUpsTab, setActiveUpsTab] = useState('Overview')
   const [readingsByUnit, setReadingsByUnit] = useState({})
+  const [alarmsByUnit, setAlarmsByUnit] = useState({})
   const [tab, setTab] = useState(() => alarmFocus?.tab ?? 'Active')
   const [filter, setFilter] = useState('All')
   const selectedUnit = units.find((unit) => String(unit.id) === String(selectedUpsId)) ?? units[0]
-  const selectedUnitAlarms = alarms.filter((alarm) => String(alarm.equipmentId) === String(selectedUnit?.id))
+  const selectedUnitAlarms = alarmsByUnit[String(selectedUnit?.id)] ?? alarms.filter((alarm) => String(alarm.equipmentId) === String(selectedUnit?.id))
   const selectedUnitAlarmCount = selectedUnitAlarms.filter((alarm) => ['ACTIVE', 'ACKNOWLEDGED'].includes(String(alarm.status ?? '').toUpperCase())).length
   const selectedReadings = readingsByUnit[String(selectedUnit?.id)] ?? []
   const visibleAlarms = getVisibleAlarms(selectedUnitAlarms, tab, filter)
@@ -700,10 +698,15 @@ function UpsPage({ alarms, onAcknowledge, onCreateTicketFromAlarm, onAction, ala
   const refreshUps = useCallback(async () => {
     const equipment = await getEquipment({ type: 'UPS', enabled: true })
     const equipmentData = await Promise.all(equipment.map(async (item) => {
-      const [status, readings] = await Promise.all([getEquipmentStatus(item.id), getEquipmentReadings(item.id, 12)])
-      return { item, status, readings }
+      const [status, readings, unitAlarms] = await Promise.all([
+        getEquipmentStatus(item.id),
+        getEquipmentReadings(item.id, 12),
+        getEquipmentAlarms(item.id),
+      ])
+      return { item, status, readings, unitAlarms }
     }))
     setReadingsByUnit((current) => Object.fromEntries(equipmentData.map(({ item, readings }) => [String(item.id), readings ?? current[String(item.id)] ?? []])))
+    setAlarmsByUnit(Object.fromEntries(equipmentData.map(({ item, unitAlarms }) => [String(item.id), unitAlarms ?? []])))
     const nextUnits = equipmentData.map(({ item, status, readings }) => toUpsUnit(item, {
       ...status,
       latestReading: status.latestReading ?? readings[0]?.data ?? {},
@@ -935,12 +938,9 @@ function DashboardWorkspace() {
 
   async function acknowledgeAlarm(alarmId) {
     try {
-      const latestAlarms = await refreshMonitoring()
-      const currentAlarm = latestAlarms.find((item) => String(item.id) === String(alarmId))
-      if (!currentAlarm || String(currentAlarm.status).toUpperCase() !== 'ACTIVE') {
-        showToast('Alarm state already updated.')
-        return
-      }
+      // The page alarm list can be newer than the global snapshot. Let the
+      // backend decide whether this specific alarm is still active instead
+      // of rejecting it from a stale client-side pre-check.
       await acknowledgeAlarmRequest(alarmId)
       await refreshMonitoring()
       showToast('Alarm acknowledged')

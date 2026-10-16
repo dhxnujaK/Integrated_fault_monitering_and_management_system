@@ -62,7 +62,10 @@ export default function useEquipmentMonitoring(equipmentType, selectedEquipmentI
   )
   const fetchAlarms = useCallback(
     () => (effectiveEquipmentId
-      ? getEquipmentAlarms(effectiveEquipmentId, { unresolved: false })
+      // The shared alarm panel owns Active/Acknowledged/History filtering.
+      // Load the complete equipment alarm set so acknowledgement transitions
+      // are immediately visible in the correct tab.
+      ? getEquipmentAlarms(effectiveEquipmentId)
       : Promise.resolve([])),
     [effectiveEquipmentId],
   )

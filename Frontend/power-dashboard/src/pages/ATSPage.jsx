@@ -35,6 +35,7 @@ export default function ATSPage({ onAcknowledge, onCreateTicketFromAlarm }) {
       await refresh()
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alarm')
+      throw err
     }
   }
 

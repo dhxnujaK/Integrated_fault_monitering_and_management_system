@@ -912,6 +912,9 @@ button {
 .alarm-row time {
   font-weight: 900;
   white-space: nowrap;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
 }
 
 .alarm-severity {
@@ -1244,13 +1247,16 @@ dd {
 
 .ats-schematic {
   display: grid;
-  grid-template-columns: minmax(132px, 1fr) 72px minmax(132px, 1fr) 72px minmax(132px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(38px, .34fr) minmax(0, 1fr) minmax(38px, .34fr) minmax(0, 1fr);
   align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 244px;
   gap: 0;
   border: 1px solid rgb(93 122 176 / 30%);
   border-radius: 14px;
-  padding: 20px;
+  padding: 16px 12px;
   background:
     radial-gradient(circle at 50% 50%, rgb(62 113 177 / 15%), transparent 48%),
     linear-gradient(145deg, #101d37, #142746);
@@ -1269,6 +1275,7 @@ dd {
   border: 1px solid rgb(148 168 209 / 34%);
   border-radius: 12px;
   padding: 12px 14px;
+  min-width: 0;
   background: #22395f;
   color: #f4f8ff;
   box-shadow: 0 10px 20px rgb(2 10 26 / 24%);
@@ -1341,13 +1348,15 @@ dd {
 
 .schematic-connector span {
   position: absolute;
-  top: -23px;
+  top: -31px;
   left: 50%;
+  z-index: 1;
   color: #bcd0ef;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: .06em;
   text-transform: uppercase;
+  white-space: nowrap;
   transform: translateX(-50%);
 }
 

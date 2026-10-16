@@ -2,9 +2,29 @@ import { useState } from 'react'
 import { AlertTriangle, Bell } from 'lucide-react'
 import SectionCard from './SectionCard'
 
+function formatAlarmDateTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+function formatAlarmDate(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
+}
+
+function formatAlarmClock(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [], onAcknowledge, onCreateTicket }) {
   const [tab, setTab] = useState('Active')
-  const visibleAlarms = alarms.filter((alarm) => {
+  const [acknowledgedIds, setAcknowledgedIds] = useState(() => new Set())
+  const displayAlarms = alarms.map((alarm) => acknowledgedIds.has(String(alarm.id))
+    ? { ...alarm, status: 'ACKNOWLEDGED' }
+    : alarm)
+  const visibleAlarms = displayAlarms.filter((alarm) => {
     const status = String(alarm.status ?? '').toUpperCase()
     if (tab === 'History') return ['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'].includes(status)
     if (tab === 'Acknowledged') return status === 'ACKNOWLEDGED'
@@ -13,6 +33,7 @@ export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [],
 
   async function handleAcknowledge(alarmId) {
     await onAcknowledge?.(alarmId)
+    setAcknowledgedIds((current) => new Set(current).add(String(alarmId)))
     setTab('Acknowledged')
   }
 
@@ -42,12 +63,18 @@ export default function ContextualAlarmPanel({ title, emptyMessage, alarms = [],
                   <strong>{alarm.alarmCode}</strong>
                   <span>
                     <small>{alarm.alarmMessage}</small>
-                    {acknowledged && <small>Acknowledged</small>}
+                    {acknowledged && <small>Acknowledged: {formatAlarmDateTime(alarm.acknowledgedAt)}</small>}
                   </span>
                 </div>
                 <div className="alarm-meta">
-                  <time>{new Date(alarm.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-                  <p className={`alarm-status ${status.toLowerCase()}`}>{status || 'UNKNOWN'}</p>
+                  {tab === 'Active' ? <time>
+                    <span>{formatAlarmDate(alarm.triggeredAt)}</span><span>{formatAlarmClock(alarm.triggeredAt)}</span>
+                  </time> : null}
+                  {tab !== 'History' ? <div className="alarm-badges">
+                    <p className={`alarm-severity ${String(alarm.severity ?? '').toLowerCase()}`}>
+                      {alarm.severity || 'UNKNOWN'}
+                    </p>
+                  </div> : null}
                 </div>
                 {tab !== 'History' ? (
                   <div className="alarm-row-actions">
